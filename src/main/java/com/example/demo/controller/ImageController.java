@@ -17,6 +17,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.demo.repository.ImageRepository;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 @RestController
 @RequestMapping("/images")
 public class ImageController {
@@ -26,12 +28,14 @@ public class ImageController {
 
     // イメージアップロードAPI
     @PostMapping("/upload")
+    @Operation(summary = "画像アプロード")
     public String uploadImage(@RequestParam("file") MultipartFile file) throws Exception {
         ObjectId id = imageRepository.saveImage(file);
         return id.toHexString();
     }
 
     // イメージ獲得
+    @Operation(summary = "画像取得")
     @GetMapping("/{id}")
     public ResponseEntity<InputStreamResource> getImage(@PathVariable String id) throws Exception {
         GridFsResource resource = imageRepository.getImageById(id);
