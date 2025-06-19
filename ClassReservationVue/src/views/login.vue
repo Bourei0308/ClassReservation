@@ -12,13 +12,15 @@
         <input type="password" id="password" v-model="password" placeholder="例）Password123">
         <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
       </div>
-      <button @click="doLogin()" class="login-button primary-login-button">ログイン</button>
+      <button @click="login(account,password)" class="login-button primary-login-button">ログイン</button>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useAuth } from '@/scripts/useAuth'
+const { user, login } = useAuth()
 // restoreLogin, useAuth はこのスニペットでは使用されていないため、明確化のために削除しています。
 // 実際のログインロジックで必要であれば、インポートしてください。
 
@@ -66,7 +68,6 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #181818;
   font-family: 'Arial', sans-serif;
 }
 
