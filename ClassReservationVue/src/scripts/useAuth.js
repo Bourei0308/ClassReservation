@@ -35,13 +35,18 @@ export function useAuth() {
                     return
                 }
 
-                //if (user.value.removeFlag) {
-                //    alert('このアカウントはすでに削除されました。');
-                //    return;
-                //}
+                if (user.value.removeFlag) {
+                    alert('このアカウントはすでに削除されました。');
+                    return;
+                }
 
-                sessionStorage.setItem('user', JSON.stringify(res.data))
-                router.push(`/top/${user.value.role}`)
+                if (!user.value.admin) {
+                    sessionStorage.setItem('user', JSON.stringify(res.data))
+                    router.push('/mypage')
+                } else {
+                    sessionStorage.setItem('user', JSON.stringify(res.data))
+                    router.push('/users')
+                }
             } catch (e) {
                 console.error(e)
                 alert('ログインが失敗しました。')
@@ -51,7 +56,7 @@ export function useAuth() {
             axios.post('/api/auth/logout', {}, { withCredentials: true })
             user.value = null
             sessionStorage.removeItem('user')
-            router.push('/')
+            router.push('/login')
         },
         restoreLogin
     }
