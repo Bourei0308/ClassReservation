@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -31,7 +30,7 @@ const router = createRouter({
     },
     {
       path: '/admin/userlist',
-      name: '作成確認',
+      name: '管理者用ユーザ一覧',
       component: () => import('../views/admin/admin_accountlist.vue'),
     },
     {
