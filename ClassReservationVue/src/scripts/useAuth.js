@@ -9,19 +9,19 @@ const user = ref(null)  // 全局用户状态
 
 
 // ⬇️ ！！テスト用ユーザ　削除予定
-;(async () => {
-  try {
-    const res = await axios.post('/api/auth/login', {
-      account: 'admin123',
-      password: 'admin123'
-    }, { withCredentials: true })
-    user.value = res.data
-    sessionStorage.setItem('user', JSON.stringify(res.data))
-    console.log('[dev] Admin user logged in:', res.data)
-  } catch (e) {
-    console.warn('[dev] テストログイン失敗:', e?.response?.data || e)
-  }
-})()
+// ;(async () => {
+//   try {
+//     const res = await axios.post('/api/auth/login', {
+//       account: 'admin123',
+//       password: 'admin123'
+//     }, { withCredentials: true })
+//     user.value = res.data
+//     sessionStorage.setItem('user', JSON.stringify(res.data))
+//     console.log('[dev] Admin user logged in:', res.data)
+//   } catch (e) {
+//     console.warn('[dev] テストログイン失敗:', e?.response?.data || e)
+//   }
+// })()
 
 export async function restoreLogin() {
     if (user.value) return user.value
@@ -57,6 +57,7 @@ export function useAuth() {
                 //}
 
                 sessionStorage.setItem('user', JSON.stringify(res.data))
+                console.log(user.value)
                 router.push(`/top/${user.value.role}`)
             } catch (e) {
                 console.error(e)
