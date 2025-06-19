@@ -1,26 +1,30 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router'
 import siteheader from './components/siteheader.vue'
+import sitefooter from './components/sitefooter.vue'
 </script>
 
 <template>
-  <header>
+  <siteheader />
+  <div class="wrapper">
     <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <siteheader />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
+    <div >
+      <RouterView />
     </div>
-  </header>
+  </div>
 
-  <RouterView />
+  
+  <sitefooter />
 </template>
 
 <style scoped>
+
+.wrapper {
+  flex: 1; /* 主体内容撑满剩余高度 */
+  margin-top: 100px;
+}
+
+
 header {
   line-height: 1.5;
   max-height: 100vh;

@@ -1,36 +1,107 @@
 <template>
-  <header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-gray-800 text-white shadow-md">
+  <header class="site_header">
     <!-- Logo / Title -->
-    <div class="text-2xl font-semibold">
+    <div class="site_title" @click="goTo(`/top/${role}`)">
       ClassReservation
     </div>
 
     <!-- Right icons -->
-    <div class="flex items-center space-x-4">
+    <div class="header_icon_group">
       <!-- Notification icon -->
-      <router-link to="/notice" class="hover:text-blue-300">
-        <BellIcon class="w-6 h-6" />
-      </router-link>
+      <div class="icon_link" @click="goTo('/notice')">
+        <BellIcon class="header_icon" />
+      </div>
 
       <!-- Chat icon -->
-      <router-link to="/chat" class="hover:text-blue-300">
-        <MessageCircleIcon class="w-6 h-6" />
-      </router-link>
+      <div class="icon_link" @click="goTo('/chat')">
+        <MessageCircleIcon class="header_icon" />
+      </div>
 
       <!-- マイページ button -->
-      <router-link to="/account">
-        <div class="bg-black text-white rounded-full px-4 py-1 text-sm hover:bg-gray-900">
-          マイページ
-        </div>
-      </router-link>
+      <div class="mypage_button" @click="goTo('/account')">
+        マイページ
+      </div>
     </div>
   </header>
 </template>
 
 <script setup>
+
+const role = ref(1)
+
+import { useRouter } from 'vue-router'
 import { BellIcon, MessageCircleIcon } from 'lucide-vue-next'
+
+const router = useRouter()
+const goTo = (path) => {
+  router.push(path)
+}
+import {ref, onMounted } from 'vue'
+import { useAuth } from '@/scripts/useAuth'
+const { user, restoreLogin } = useAuth()
+onMounted(async () => {
+  await restoreLogin()
+  role.value=user.value.role
+})
+
 </script>
 
+
 <style scoped>
-/* 如果页面内容被 header 遮住，记得在 layout 或页面顶加上 padding-top */
+.site_header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #2d2d2d;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.site_title {
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.header_icon_group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.icon_link {
+  color: white;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.icon_link:hover {
+  color: #90caf9;
+  /* 浅蓝 */
+}
+
+.header_icon {
+  width: 24px;
+  height: 24px;
+}
+
+.mypage_button {
+  background-color: black;
+  color: white;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.mypage_button:hover {
+  background-color: #333;
+}
 </style>

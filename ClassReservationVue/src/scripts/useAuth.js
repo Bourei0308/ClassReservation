@@ -7,6 +7,22 @@ import { useRouter } from 'vue-router'
 
 const user = ref(null)  // 全局用户状态
 
+
+// ⬇️ ！！テスト用ユーザ　削除予定
+;(async () => {
+  try {
+    const res = await axios.post('/api/auth/login', {
+      account: 'admin123',
+      password: 'admin123'
+    }, { withCredentials: true })
+    user.value = res.data
+    sessionStorage.setItem('user', JSON.stringify(res.data))
+    console.log('[dev] Admin user logged in:', res.data)
+  } catch (e) {
+    console.warn('[dev] テストログイン失敗:', e?.response?.data || e)
+  }
+})()
+
 export async function restoreLogin() {
     if (user.value) return user.value
     try {
@@ -25,9 +41,9 @@ export function useAuth() {
     return {
         user,
         isLoggedIn: computed(() => !!user.value),
-        login: async (account, pwd) => {
+        login: async (account, password) => {
             try {
-                const res = await axios.post('/api/auth/login', { account, pwd }, { withCredentials: true })
+                const res = await axios.post('/api/auth/login', { account, password }, { withCredentials: true })
                 user.value = res.data
 
                 if (!user.value || !user.value.id) {
