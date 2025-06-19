@@ -13,10 +13,12 @@ import com.example.demo.entity.MailRequest;
 import com.example.demo.service.GmailService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/mail")
+@SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Gmail API", description = "Gmail送信API")
 public class MailController {
 	@Autowired
