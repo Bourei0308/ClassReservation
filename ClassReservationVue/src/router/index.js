@@ -49,6 +49,21 @@ const router = createRouter({
       name: '通知画面',
       component: () => import('../views/notice_view.vue'),
     },
+    {
+      path: '/account',
+      name: 'ユーザ情報画面',
+      component: () => import('../views/account_detail.vue'),
+    },
+    {
+      path: '/account/edit',
+      name: 'ユーザ情報編集',
+      component: () => import('../views/account_editinfo.vue'),
+    },
+    {
+      path: '/account/newpassword',
+      name: 'ユーザパスワード変更',
+      component: () => import('../views/account_editpassword.vue'),
+    },
 
   ],
 })

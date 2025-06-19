@@ -18,7 +18,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/testusers")
 @Tag(name = "TestUser API", description = "テストユーザーAPI")
 public class TestUserController {
 
