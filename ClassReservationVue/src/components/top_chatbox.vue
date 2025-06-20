@@ -62,8 +62,6 @@ const getUserName = (uid) => {
 const unreadCount = (uid) => {
   return unreadChats.value.filter(c => c.fromUserId === uid).length
 }
-
-import { useAuth } from '@/scripts/useAuth'
 import { latestMessage, latestTime } from '@/scripts/chatUtils.js'
 const latestMsg = (uid) => latestMessage(unreadChats.value, uid)
 const latestMsgTime = (uid) => latestTime(unreadChats.value, uid)
