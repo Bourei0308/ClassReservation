@@ -32,7 +32,7 @@ const fetchUsers = async () => {
     } else {
         users.value = []
     }
-    selectUser()
+    
 }
 
 const selectUser = (u) => {
@@ -50,9 +50,8 @@ onMounted(async () => {
 watch(users, (newUsers) => {
   if (!selectedUser.value) {
     const lastId = localStorage.getItem('lastSelectedUserId')
-    console.log(lastId)
     if (lastId) {
-      const u = newUsers.find(user => user.id === Number(lastId))
+      const u = newUsers.find(user => user.id === lastId)
       if (u) {
         selectedUser.value = u
       }

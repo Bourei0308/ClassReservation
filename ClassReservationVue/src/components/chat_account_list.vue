@@ -4,9 +4,6 @@
             'user-chat-entrance',
             isSelected(u) ? 'selected' : ''
         ]">
-            <div>
-                SelectedId: {{ props.selectedUser?.id }}, CurrentId: {{ u.id }}
-            </div>
             <div class="user-chat-header">
                 <div class="user-name-area">
                     <span v-if="unreadCount(u.id)" class="unread-badge">
@@ -40,12 +37,6 @@ const unreadCount = (uid) => {
 const selectUser = (user) => {
     emit('select', user)
 }
-
-import { watch } from 'vue'
-
-watch(() => props.selectedUser, (newVal) => {
-    console.log('selectedUser changed:', newVal?.id)
-})
 
 const isSelected = (u) => {
     return props.selectedUser?.id === u.id
