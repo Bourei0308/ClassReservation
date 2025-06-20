@@ -12,8 +12,8 @@
         <input type="password" id="password" v-model="password" placeholder="例）Password123">
         <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
       </div>
-      <button v-if="!TEST_MODE" @click="login(account,password)" class="login-button primary-login-button">ログイン</button>
-      <button v-if="TEST_MODE" @click="devLoginMockUser" class="login-button primary-login-button">ログイン</button>
+      <button v-if="!TEST_MODE" @click="login(account, password)" class="login-button primary-login-button">ログイン</button>
+      <button v-if="TEST_MODE" @click="devLoginMockUser" class="login-button test">ログイン</button>
     </div>
   </div>
 </template>
@@ -21,7 +21,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuth } from '@/scripts/useAuth'
-const { user, login,devLoginMockUser,TEST_MODE } = useAuth()
+const { user, login, devLoginMockUser, TEST_MODE } = useAuth()
 // restoreLogin, useAuth はこのスニペットでは使用されていないため、明確化のために削除しています。
 // 実際のログインロジックで必要であれば、インポートしてください。
 
@@ -120,7 +120,8 @@ onMounted(() => {
 
 /* エラーメッセージのスタイル */
 .error-message {
-  color: #dc3545; /* エラー用の赤色 */
+  color: #dc3545;
+  /* エラー用の赤色 */
   font-size: 0.85em;
   margin-top: 5px;
   text-align: left;
@@ -128,7 +129,8 @@ onMounted(() => {
 
 /* エラー時の入力フィールドのボーダー */
 .input-group.has-error input {
-  border-color: #dc3545; /* エラーフィールド用の赤いボーダー */
+  border-color: #dc3545;
+  /* エラーフィールド用の赤いボーダー */
 }
 
 
@@ -142,49 +144,70 @@ onMounted(() => {
   font-size: 1.1em;
   cursor: pointer;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  margin-top: 20px; /* スペースを広げるためマージンを増やす */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* 控えめな影 */
+  margin-top: 20px;
+  /* スペースを広げるためマージンを増やす */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  /* 控えめな影 */
+}
+
+.test {
+  background-color: #00ff4c;
+  /* 目立つ青色 */
 }
 
 /* メインログインボタンのスタイル (新しいデフォルト) */
 .primary-login-button {
-  background-color: #007bff; /* 目立つ青色 */
+  background-color: #007bff;
+  /* 目立つ青色 */
 }
 
 .primary-login-button:hover {
-  background-color: #0056b3; /* ホバーでより濃い青色 */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* ホバーで影を強調 */
+  background-color: #0056b3;
+  /* ホバーでより濃い青色 */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  /* ホバーで影を強調 */
 }
 
 .primary-login-button:active {
-  background-color: #004085; /* クリック時にさらに濃く */
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2); /* クリック時に内側の影 */
+  background-color: #004085;
+  /* クリック時にさらに濃く */
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  /* クリック時に内側の影 */
 }
 
 
 /* 既存の特定のログインボタンのスタイル (他の場所で使用する場合に保持) */
 /* 生徒ログインボタンの色 (デフォルト) */
 .login-button.student-login-button {
-  background-color: #007bff; /* 青色 */
+  background-color: #007bff;
+  /* 青色 */
 }
+
 .login-button.student-login-button:hover {
-  background-color: #0056b3; /* 濃い青色 */
+  background-color: #0056b3;
+  /* 濃い青色 */
 }
 
 /* 先生ログインボタンの色 */
 .login-button.teacher-login-button {
-  background-color: #28a745; /* 緑色 */
+  background-color: #28a745;
+  /* 緑色 */
 }
+
 .login-button.teacher-login-button:hover {
-  background-color: #1e7e34; /* 濃い緑色 */
+  background-color: #1e7e34;
+  /* 濃い緑色 */
 }
 
 /* 管理者ログインボタンの色 */
 .login-button.admin-login-button {
-  background-color: #dc3545; /* 赤色 */
+  background-color: #dc3545;
+  /* 赤色 */
 }
+
 .login-button.admin-login-button:hover {
-  background-color: #bd2130; /* 濃い赤色 */
+  background-color: #bd2130;
+  /* 濃い赤色 */
 }
 
 
