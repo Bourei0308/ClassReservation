@@ -34,4 +34,10 @@ public class ChatController {
 	public Chat sendMessage(@RequestBody Chat chat) {
 		return repository.save(chat);
 	}
+	
+	@GetMapping("/unread/{userId}")
+	@Operation(summary = "未読メッセージ取得")
+	public List<Chat> getUnreadMessages(@PathVariable String userId) {
+	    return repository.findByToUserIdAndIsRead(userId, false);
+	}
 }
