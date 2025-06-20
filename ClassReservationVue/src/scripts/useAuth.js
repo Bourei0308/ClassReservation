@@ -6,8 +6,13 @@ import { useRouter } from 'vue-router'
 
 
 const user = ref(null)  // 全局用户状态
+<<<<<<< HEAD
 const TEST_MODE=true;
 const TEST_ROLE=1;
+=======
+const TEST_MODE=false;
+const TEST_ROLE=0;
+>>>>>>> branch 'main' of https://github.com/Bourei0308/ClassReservation
 
 export async function restoreLogin() {
     if (user.value) return user.value
