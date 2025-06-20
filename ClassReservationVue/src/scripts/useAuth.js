@@ -1,27 +1,12 @@
 // composables/useAuth.ts
-import { ref,computed } from 'vue'
+import { ref, computed } from 'vue'
 import axios from 'axios'
 
 import { useRouter } from 'vue-router'
 
 
 const user = ref(null)  // 全局用户状态
-
-
-// ⬇️ ！！テスト用ユーザ　削除予定
-// ;(async () => {
-//   try {
-//     const res = await axios.post('/api/auth/login', {
-//       account: 'admin123',
-//       password: 'admin123'
-//     }, { withCredentials: true })
-//     user.value = res.data
-//     sessionStorage.setItem('user', JSON.stringify(res.data))
-//     console.log('[dev] Admin user logged in:', res.data)
-//   } catch (e) {
-//     console.warn('[dev] テストログイン失敗:', e?.response?.data || e)
-//   }
-// })()
+const TEST_MODE=true;
 
 export async function restoreLogin() {
     if (user.value) return user.value
@@ -38,6 +23,24 @@ export async function restoreLogin() {
 
 export function useAuth() {
     const router = useRouter()
+
+    // ✅ ダミーユーザ
+    const devLoginMockUser = () => {
+        const mockUser = {
+            id: '0',
+            name: 'admin',
+            email: 'admin@gmail.com',
+            password: '$2a$10$TnRTrRgTLdOI68qWaL6XSuVpm7SdV02kXMonfGDqQ2Ueg0UA1Mtby',
+            role: 0,
+            account: 'admin123'
+        }
+
+        user.value = mockUser
+        sessionStorage.setItem('user', JSON.stringify(mockUser))
+        console.log('[dev] Mock user injected:', mockUser)
+        router.push(`/top/${mockUser.role}`)
+    }
+
     return {
         user,
         isLoggedIn: computed(() => !!user.value),
@@ -70,6 +73,6 @@ export function useAuth() {
             sessionStorage.removeItem('user')
             router.push('/')
         },
-        restoreLogin
+        restoreLogin,devLoginMockUser
     }
 }
