@@ -34,7 +34,16 @@ const fetchChats = async () => {
 
 const fetchUsers = async () => {
   const res = await axios.get('/api/users')
-  users.value = res.data.filter(u => u.role === 1 && u.id !== user.value.id)
+  if (user.value.role === 1) {
+    // role 1 が role 0 または role 2 のユーザーを見れる
+    users.value = res.data.filter(u => (u.role === 0 || u.role === 2) && u.id !== user.value.id)
+  } else if (user.value.role === 2) {
+    // role 2 が role 0 または role 1 のユーザーを見れる
+    users.value = res.data.filter(u => (u.role === 0 || u.role === 1) && u.id !== user.value.id)
+  } else {
+    // 管理者またはその他は非表示
+    users.value = []
+  }
 }
 
 const selectUser = (u) => {

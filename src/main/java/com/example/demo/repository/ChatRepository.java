@@ -8,4 +8,5 @@ import com.example.demo.entity.Chat;
 
 public interface ChatRepository extends MongoRepository<Chat, String> {
 	List<Chat> findByFromUserIdOrToUserId(String fromUserId, String toUserId);
+	List<Chat> findByToUserIdAndIsRead(String toUserId, boolean isRead);
 }

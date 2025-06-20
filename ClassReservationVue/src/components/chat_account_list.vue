@@ -26,10 +26,10 @@
 </template>
 
 <script setup>
-const props = defineProps(['users', 'chats', 'user'])
 import { latestMessage, latestTime } from '@/scripts/chatUtils.js'
-const latestMsg = (uid) => latestMessage(unreadChats.value, uid)
-const latestMsgTime = (uid) => latestTime(unreadChats.value, uid)
+const props = defineProps(['users', 'chats', 'user'])
+const latestMsg = (uid) => latestMessage(props.chats, uid)
+const latestMsgTime = (uid) => latestTime(props.chats, uid)
 
 const unreadCount = (uid) => {
   return props.chats.filter(
