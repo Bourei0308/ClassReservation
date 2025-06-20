@@ -42,7 +42,7 @@ export function useAuth() {
     }
 
     return {
-        user,
+        user,TEST_MODE,
         isLoggedIn: computed(() => !!user.value),
         login: async (account, password) => {
             try {
