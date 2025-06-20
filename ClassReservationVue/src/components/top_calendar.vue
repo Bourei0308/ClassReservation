@@ -121,8 +121,8 @@
                 console.log(res.data);
                 users.value = res.data; // 取得したデータを users.value に格納
                 // 先生と生徒を分けて格納
-                tusers.value = res.data.filter(user => user.role === '1');
-                susers.value = res.data.filter(user => user.role === '2');
+                tusers.value = res.data.filter(user => user.role === 2);
+                susers.value = res.data.filter(user => user.role === 1);
             } else {
                 alert('ユーザの情報を取得できませんでした。');
                 users.value = [];
