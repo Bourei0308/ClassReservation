@@ -12,7 +12,8 @@
         <input type="password" id="password" v-model="password" placeholder="例）Password123">
         <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
       </div>
-      <button @click="login(account,password)" class="login-button primary-login-button">ログイン</button>
+      <button v-if="!TEST_MODE" @click="login(account,password)" class="login-button primary-login-button">ログイン</button>
+      <button v-if="TEST_MODE" @click="devLoginMockUser" class="login-button primary-login-button">ログイン</button>
     </div>
   </div>
 </template>
@@ -20,7 +21,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuth } from '@/scripts/useAuth'
-const { user, login } = useAuth()
+const { user, login,devLoginMockUser,TEST_MODE } = useAuth()
 // restoreLogin, useAuth はこのスニペットでは使用されていないため、明確化のために削除しています。
 // 実際のログインロジックで必要であれば、インポートしてください。
 
