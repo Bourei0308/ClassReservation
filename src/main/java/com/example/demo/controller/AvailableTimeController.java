@@ -35,6 +35,12 @@ public class AvailableTimeController {
 	public List<AvailableTime> getByTeacher(@PathVariable String teacherId) {
 		return repository.findByTeacherId(teacherId);
 	}
+	
+	@GetMapping("/teacher/{teacherId}/{year}/{month}")
+	@Operation(summary = "idで先生の指定した月の空き時間取得")
+	public List<AvailableTime> getByTeacherOne(@PathVariable String teacherId,@PathVariable String year,@PathVariable String month) {
+		return repository.findByTeacherIdAndYearAndMonth(teacherId, year, month);
+	}
 
 	@PostMapping
 	@Operation(summary = "空き時間追加")
