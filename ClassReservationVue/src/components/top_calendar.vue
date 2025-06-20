@@ -1,5 +1,6 @@
 <template>
     <div class="calendar-view">
+        <input type="text" v-if="account">
         <div class="calendar-header">
             <button @click="prevMonth">&lt; 前月</button>
             <h2>{{ currentMonthYear }}</h2>
@@ -12,13 +13,42 @@
             </div>
             <div v-for="(week, weekIndex) in calendarGrid" :key="weekIndex" class="calendar-week">
                 <div v-for="(dayObj, dayIndex) in week" :key="dayIndex"
-                    :class="['calendar-day', { 'is-prev-next-month': dayObj.isPrev || dayObj.isNext, 'is-today': dayObj.isToday }]"
+                    :class="['calendar-day', { 
+                        'is-prev-next-month': dayObj.isPrev || dayObj.isNext, 
+                        'is-today': dayObj.isToday,
+                        'is-selected': (() => {
+                            const isSelected = selectedDay && moment(selectedDay).isSame(dayObj.date, 'day');
+                            return isSelected;
+                        })()
+                    }]"
                     @click="handleDayClick(dayObj)">
                     {{ dayObj.day }}
                     <div v-if="dayObj.eventList && dayObj.eventList.length > 0" class="event-count">
                         イベント: {{ dayObj.eventList.length }}件
+                        <ul class="event-list">
+                            <li v-for="event in dayObj.eventList" :key="event.id" class="event-title">
+                                {{ event.title }}
+                            </li>
+                        </ul>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div v-if="selectedDayEvents" class="selected-day-info">
+            <h3>{{ selectedDayEvents.date.getFullYear() }}年{{ selectedDayEvents.day }}日</h3>
+            <div v-if="selectedDayEvents.eventList && selectedDayEvents.eventList.length > 0">
+                <h4>この日のイベント:</h4>
+                <ul>
+                    <li v-for="event in selectedDayEvents.eventList" :key="event.id">
+                        {{ event.title }} ({{ moment(event.start_datetime).format('HH:mm') }} - {{ moment(event.end_datetime).format('HH:mm') }})
+                    </li>
+                </ul>
+            </div>
+            <div v-else>
+                この日にはイベントがありません。
+            </div>
+            <div class="new">
+                新しい予約を入れる
             </div>
         </div>
     </div>
@@ -36,6 +66,8 @@
     const weekdayNames = ["日", "月", "火", "水", "木", "金", "土"]; // 曜日表示
     const calendarGrid = ref([]); // カレンダーの2次元配列データ
     const calendarEvent = ref([]); // カレンダーのイベントを格納する配列 (変数名を修正しました)
+    const selectedDayEvents = ref(null); // 選択された日のイベント情報を保持
+    const selectedDay = ref(null); // 選択された日付（Dateオブジェクト）を保持
 
     // 算出プロパティ
     const currentMonthYear = computed(() => {
@@ -134,21 +166,20 @@
     // イベントを取得する関数を分離
     const getEvents = async () => {
         console.log('取得する月：' + currentYear.value + '年' + (currentMonth.value + 1) + "月");
-        // try {
-        //     const res = await axios.get(`http://localhost:8080/events/month?year=${currentYear.value}&month=${currentMonth.value + 1}`);
-        //     if (res.data) {
-        //         console.log(res.data);
-        //         calendarEvent.value = res.data; // 取得したデータを calendarEvent.value に格納
-        //     } else {
-        //         alert('イベントの情報を取得できませんでした。');
-        //         calendarEvent.value = [];
-        //     }
-        // } catch (error) {
-        //     console.error("データ取得エラー:", error);
-        //     alert('イベントの情報を取得中にエラーが起きました。');
-        //     calendarEvent.value = [];
-        // }
-        calendarEvent.value = [];
+        try {
+            const res = await axios.get(`http://localhost:8080/api/available-times`);
+            if (res.data) {
+                console.log(res.data);
+                calendarEvent.value = res.data; // 取得したデータを calendarEvent.value に格納
+            } else {
+                alert('イベントの情報を取得できませんでした。');
+                calendarEvent.value = [];
+            }
+        } catch (error) {
+            console.error("データ取得エラー:", error);
+            alert('イベントの情報を取得中にエラーが起きました。');
+            calendarEvent.value = [];
+        }
     };
 
     // その日のイベントを取得する関数
@@ -174,17 +205,23 @@
     const handleDayClick = (dayObj) => {
         console.log('日付がクリックされました:', dayObj);
 
-        if (dayObj.isPrev) {
-            alert(`${dayObj.day}日 (前月) がクリックされました！`);
-        } else if (dayObj.isNext) {
-            alert(`${dayObj.day}日 (次月) がクリックされました！`);
+        if (dayObj.isPrev || dayObj.isNext) {
+            selectedDayEvents.value = null;
+            selectedDay.value = null;
         } else {
+            // イベントリストをクリック時にgetDayEventsで再取得して上書き
+            const events = getDayEvents(dayObj.date);
+            selectedDayEvents.value = {
+                ...dayObj,
+                eventList: events,
+            };
+            selectedDay.value = dayObj;
             let eventInfo = '';
             if (dayObj.eventList && dayObj.eventList.length > 0) {
                 // イベントタイトルをアラートに表示する例
                 eventInfo = `\nイベント: ${dayObj.eventList.map(event => event.title).join(', ')}`;
             }
-            alert(`${currentMonthYear.value}の${dayObj.day}日 がクリックされました！${eventInfo}`);
+            // alert(`${currentMonthYear.value}の${dayObj.day}日 がクリックされました！${eventInfo}`);
         }
     };
 
@@ -327,5 +364,65 @@
         font-size: 0.8em;
         color: #007bff;
         margin-top: 5px;
+    }
+
+    .event-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .event-title {
+        font-size: 0.8em;
+        color: #ff9800;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* このCSSを<style scoped>セクションに追加してください */
+    .selected-day-info {
+        color: #333;
+        margin-top: 30px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .selected-day-info h3 {
+        color: #007bff;
+        margin-top: 0;
+        margin-bottom: 15px;
+    }
+
+    .selected-day-info h4 {
+        color: #555;
+        margin-top: 15px;
+        margin-bottom: 10px;
+    }
+
+    .selected-day-info ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .selected-day-info li {
+        background-color: #e6f7ff;
+        border-left: 4px solid #a1b7ff;
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        font-size: 0.95em;
+        color: #333;
+    }
+
+    /* is-today より下に配置することで、is-selected の方が優先される可能性が高まります */
+    .calendar-day.is-selected {
+        background-color: #ffd8d8; /* 選択された日の背景色 */
+        border-color: #ff4e4e; /* 選択された日のボーダー色 */
+        box-shadow: 0 0 8px rgba(250, 111, 111, 0.4);
     }
 </style>
