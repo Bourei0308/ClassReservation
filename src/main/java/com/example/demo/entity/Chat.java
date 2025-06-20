@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,5 +22,6 @@ public class Chat {
 	private String toUserId;
 	private String message;
 	private LocalDateTime createdAt;
+	@JsonProperty("isRead")
 	private boolean isRead;
 }
