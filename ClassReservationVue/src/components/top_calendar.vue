@@ -42,7 +42,7 @@
             </div>
         </div>
         <div v-if="selectedDayEvents" class="selected-day-info">
-            <h3>{{ selectedDayEvents.date.getFullYear() }}年{{ selectedDayEvents. }}月{{selectedDayEvents.day }}日</h3>
+            <h3>{{ selectedDayEvents.date.getFullYear() }}年{{ selectedDayEvents.month }}月{{selectedDayEvents.day }}日</h3>
             <div v-if="selectedDayEvents.eventList && selectedDayEvents.eventList.length > 0">
                 <h4>この日のイベント:</h4>
                 <ul>
@@ -160,6 +160,7 @@ const generateCalendar = async () => { // async キーワードを追加
             const date = new Date(year, month, day);
             const isToday = moment(date).isSame(moment(), 'day'); // 今日かどうかを判定
             const dayEvents = getDayEvents(date); // その日のイベントを取得（日付オブジェクトを渡す）
+            console.log("111"+dayEvents)
             return {
                 date: date,
                 day,
@@ -213,13 +214,15 @@ const getEvents = async () => {
         return;
     }
     try {
-        const resT = await axios.get(`/teacher/${teacherId}`);//先生の予約状況を取得
+        const resT = await axios.get(`/api/available-times/teacher/${teacherId}`);//先生の予約状況を取得
         // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
+        console.log('resT.data:', resT.data);
         if (resT.data) {
-            console.log(teacherId, year, month + 1);
+            
             // 年月でフィルタリング
             const filtered = resT.data.filter(event => {
-                const eventMoment = moment(event.start_time);
+                const eventMoment = moment(event.startTime);
+                
                 return eventMoment.year() === year && eventMoment.month() === month;
             });
             calendarEvent.value = filtered;
@@ -242,7 +245,8 @@ const getDayEvents = (date) => {
     }
     // 指定日のイベントを取得
     return calendarEvent.value.filter(event => {
-        const eventDate = moment(event.start_time).format('YYYY-MM-DD');
+        
+        const eventDate = moment(event.startTime).format('YYYY-MM-DD');
         const targetDate = moment(date).format('YYYY-MM-DD');
         return eventDate === targetDate;
     }).map(event => {
@@ -261,11 +265,13 @@ const handleDayClick = (dayObj) => {
     console.log('日付がクリックされました:', dayObj);
 
     if (dayObj.isPrev || dayObj.isNext) {
+        
         selectedDayEvents.value = null;
         selectedDay.value = null;
     } else {
         // イベントリストをクリック時にgetDayEventsで再取得して上書き
         const events = getDayEvents(dayObj.date);
+        
         selectedDayEvents.value = {
             ...dayObj,
             eventList: events,
