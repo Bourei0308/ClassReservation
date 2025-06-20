@@ -29,8 +29,7 @@
                         return isSelected;
                     })()
                 }]" @click="handleDayClick(dayObj)">
-                    {{ dayObj.day }}
-                    <div v-if="dayObj.eventList && dayObj.eventList.length > 0" class="event-count">
+                    {{ dayObj.day }}<div v-if="dayObj.eventList && dayObj.eventList.length > 0" class="event-count">
                         イベント: {{ dayObj.eventList.length }}件
                         <ul class="event-list">
                             <li v-for="event in dayObj.eventList" :key="event.id" class="event-title">
@@ -38,6 +37,7 @@
                             </li>
                         </ul>
                     </div>
+                    
                 </div>
             </div>
         </div>
@@ -287,17 +287,16 @@ const handleDayClick = (dayObj) => {
 };
 
 // 先生が選択されたときの処理
-const onTeacherChange = () => {
-    // ここに先生選択時の処理を記述
-    getEvents();
+const onTeacherChange = async () => {
+    await getEvents();
+    await generateCalendar();
 };
 
 // ライフサイクルフック
-onMounted(() => {
-    getUsers();
-    generateCalendar(); // コンポーネントがマウントされたときにカレンダーを生成
-    getEvents();//先生の空き時間を取得
-    console.log("カレンダービューがマウントされました。");
+onMounted(async () => {
+    await getUsers();
+    await getEvents();
+    await generateCalendar();
 });
 </script>
 
