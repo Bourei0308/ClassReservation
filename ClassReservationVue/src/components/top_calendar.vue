@@ -1,6 +1,20 @@
 <template>
     <div class="calendar-view">
-        <input type="text" v-if="account">
+        <div class="teacher-select-box">
+            <label for="teacher-select" class="teacher-label">先生を選択！</label>
+            <select
+                id="teacher-select"
+                v-if="account"
+                v-model="selectedTeacher"
+                @change="onTeacherChange"
+                class="teacher-dropdown"
+            >
+                <option disabled value="">先生を選択してください</option>
+                <option v-for="teacher in tusers" :key="teacher.id" :value="teacher">
+                    {{ teacher.name }}
+                </option>
+            </select>
+        </div>
         <div class="calendar-header">
             <button @click="prevMonth">&lt; 前月</button>
             <h2>{{ currentMonthYear }}</h2>
@@ -68,6 +82,11 @@
     const calendarEvent = ref([]); // カレンダーのイベントを格納する配列 (変数名を修正しました)
     const selectedDayEvents = ref(null); // 選択された日のイベント情報を保持
     const selectedDay = ref(null); // 選択された日付（Dateオブジェクト）を保持
+    const users = ref([]); //全ユーザーを取得して保持
+    const tusers = ref([]); //全先生ユーザーを保持
+    const susers = ref([]); //全生徒ユーザーを保持
+    const selectedTeacher = ref(null); // 選択された先生
+    const account = ref("user");
 
     // 算出プロパティ
     const currentMonthYear = computed(() => {
@@ -86,20 +105,43 @@
     const prevMonth = () => {
         currentDate.value = currentDate.value.clone().subtract(1, 'month');
         generateCalendar();
+        getEvents();//先生の空き時間を取得
     };
 
     const nextMonth = () => {
         currentDate.value = currentDate.value.clone().add(1, 'month');
         generateCalendar();
+        getEvents();//先生の空き時間を取得
     };
+
+    const getUsers = async () => {
+        try {
+            const res = await axios.get(`/api/users`);//全ユーザを取得
+            if (res.data) {
+                console.log(res.data);
+                users.value = res.data; // 取得したデータを users.value に格納
+                // 先生と生徒を分けて格納
+                tusers.value = res.data.filter(user => user.role === '1');
+                susers.value = res.data.filter(user => user.role === '2');
+            } else {
+                alert('ユーザの情報を取得できませんでした。');
+                users.value = [];
+                tusers.value = [];
+                susers.value = [];
+            }
+        } catch (error) {
+            console.error("データ取得エラー:", error);
+            alert('イベントの情報を取得中にエラーが起きました。');
+            users.value = [];
+            tusers.value = [];
+            susers.value = [];
+        }
+    }
 
     const generateCalendar = async () => { // async キーワードを追加
         const year = currentYear.value;
         const month = currentMonth.value;
         const offsetValue = offset.value;
-
-        // イベントデータを先に取得する
-        await getEvents(); // イベントが取得されるまで待機
 
         // 前月の日を埋める
         const prevPaddingDays = (() => {
@@ -166,20 +208,27 @@
     // イベントを取得する関数を分離
     const getEvents = async () => {
         console.log('取得する月：' + currentYear.value + '年' + (currentMonth.value + 1) + "月");
-        try {
-            const res = await axios.get(`/api/available-times`);
-            if (res.data) {
-                console.log(res.data);
-                calendarEvent.value = res.data; // 取得したデータを calendarEvent.value に格納
-            } else {
-                alert('イベントの情報を取得できませんでした。');
-                calendarEvent.value = [];
-            }
-        } catch (error) {
-            console.error("データ取得エラー:", error);
-            alert('イベントの情報を取得中にエラーが起きました。');
-            calendarEvent.value = [];
+        const teacherId = selectedTeacher.value ? selectedTeacher.value.id : null;
+        console.log('選択された先生:', teacherId);
+        if (!teacherId) {
+            console.warn('先生が選択されていません。');
+            return;
         }
+        // try {
+        //     const resT = await axios.get(`/teacher/{teacherId}/{year}/{month}`);//先生の予約状況を取得
+        //     // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
+        //     if (resT.data) {
+        //         console.log(resT.data);
+        //         calendarEvent.value = resT.data; // 取得したデータを calendarEvent.value に格納
+        //     } else {
+        //         alert('イベントの情報を取得できませんでした。');
+        //         calendarEvent.value = [];
+        //     }
+        // } catch (error) {
+        //     console.error("データ取得エラー:", error);
+        //     alert('イベントの情報を取得中にエラーが起きました。');
+        //     calendarEvent.value = [];
+        // }
     };
 
     // その日のイベントを取得する関数
@@ -225,9 +274,17 @@
         }
     };
 
+    // 先生が選択されたときの処理
+    const onTeacherChange = () => {
+        // ここに先生選択時の処理を記述
+        getEvents();
+    };
+
     // ライフサイクルフック
     onMounted(() => {
+        getUsers();
         generateCalendar(); // コンポーネントがマウントされたときにカレンダーを生成
+        getEvents();//先生の空き時間を取得
         console.log("カレンダービューがマウントされました。");
     });
 </script>
@@ -424,5 +481,32 @@
         background-color: #ffd8d8; /* 選択された日の背景色 */
         border-color: #ff4e4e; /* 選択された日のボーダー色 */
         box-shadow: 0 0 8px rgba(250, 111, 111, 0.4);
+    }
+
+    .teacher-select-box {
+        margin-bottom: 20px;
+    }
+
+    .teacher-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .teacher-dropdown {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1em;
+        color: #333;
+        background-color: #fff;
+        transition: border-color 0.3s ease;
+    }
+
+    .teacher-dropdown:focus {
+        border-color: #007bff;
+        outline: none;
     }
 </style>
