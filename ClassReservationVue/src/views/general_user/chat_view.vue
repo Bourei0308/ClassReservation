@@ -32,6 +32,7 @@ const fetchUsers = async () => {
     } else {
         users.value = []
     }
+    selectUser()
 }
 
 const selectUser = (u) => {
