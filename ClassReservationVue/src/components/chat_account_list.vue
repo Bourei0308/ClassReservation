@@ -16,10 +16,10 @@
           </span>
           <span class="user-name">{{ u.name }}</span>
         </div>
-        <span class="chat-time">{{ latestTime(u.id) }}</span>
+        <span class="chat-time">{{ latestMsgTime(u.id) }}</span>
       </div>
-      <div class="chat-preview" v-if="latestMessage(u.id)">
-        {{ latestMessage(u.id).message }}
+      <div class="chat-preview" v-if="latestMsg(u.id)">
+        {{ latestMsg(u.id).message }}
       </div>
     </div>
   </div>
@@ -27,22 +27,9 @@
 
 <script setup>
 const props = defineProps(['users', 'chats', 'user'])
-
-const latestMessage = (uid) => {
-  return [...props.chats]
-    .filter(c => c.fromUserId === uid || c.toUserId === uid)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
-}
-
-const latestTime = (uid) => {
-  const msg = latestMessage(uid)
-  if (!msg) return ''
-  const d = new Date(msg.createdAt)
-  const now = new Date()
-  return d.toDateString() === now.toDateString()
-    ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : `${d.getMonth() + 1}月${d.getDate()}日`
-}
+import { latestMessage, latestTime } from '@/scripts/chatUtils.js'
+const latestMsg = (uid) => latestMessage(unreadChats.value, uid)
+const latestMsgTime = (uid) => latestTime(unreadChats.value, uid)
 
 const unreadCount = (uid) => {
   return props.chats.filter(
