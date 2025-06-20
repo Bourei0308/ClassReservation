@@ -121,8 +121,8 @@
                 console.log(res.data);
                 users.value = res.data; // 取得したデータを users.value に格納
                 // 先生と生徒を分けて格納
-                tusers.value = res.data.filter(user => user.role === '1');
-                susers.value = res.data.filter(user => user.role === '2');
+                tusers.value = res.data.filter(user => user.role === 2);
+                susers.value = res.data.filter(user => user.role === 1);
             } else {
                 alert('ユーザの情報を取得できませんでした。');
                 users.value = [];
@@ -207,46 +207,53 @@
 
     // イベントを取得する関数を分離
     const getEvents = async () => {
-        console.log('取得する月：' + currentYear.value + '年' + (currentMonth.value + 1) + "月");
+        const year = currentYear.value ? currentYear.value : null;
+        const month = currentMonth.value ? currentMonth.value : null;
+        console.log('取得する月：' + year + '年' + (month + 1) + "月");
+
         const teacherId = selectedTeacher.value ? selectedTeacher.value.id : null;
         console.log('選択された先生:', teacherId);
+
         if (!teacherId) {
             console.warn('先生が選択されていません。');
             return;
         }
-        // try {
-        //     const resT = await axios.get(`/teacher/{teacherId}/{year}/{month}`);//先生の予約状況を取得
-        //     // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
-        //     if (resT.data) {
-        //         console.log(resT.data);
-        //         calendarEvent.value = resT.data; // 取得したデータを calendarEvent.value に格納
-        //     } else {
-        //         alert('イベントの情報を取得できませんでした。');
-        //         calendarEvent.value = [];
-        //     }
-        // } catch (error) {
-        //     console.error("データ取得エラー:", error);
-        //     alert('イベントの情報を取得中にエラーが起きました。');
-        //     calendarEvent.value = [];
-        // }
+        try {
+            const resT = await axios.get(`/teacher/${teacherId}/${year}/${month}`);//先生の予約状況を取得
+            // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
+            if (resT.data) {
+                console.log(resT.data);
+                calendarEvent.value = resT.data; // 取得したデータを calendarEvent.value に格納
+            } else {
+                alert('イベントの情報を取得できませんでした。');
+                calendarEvent.value = [];
+            }
+        } catch (error) {
+            console.error("データ取得エラー:", error);
+            alert('イベントの情報を取得中にエラーが起きました。');
+            calendarEvent.value = [];
+        }
     };
 
     // その日のイベントを取得する関数
     const getDayEvents = (date) => {
-        // calendarEvent.value が配列であることを確認
         if (!Array.isArray(calendarEvent.value)) {
             console.warn("calendarEvent.value が配列ではありません。空のリストを返します。");
             return [];
         }
-
+        // 指定日のイベントを取得
         return calendarEvent.value.filter(event => {
-            let startDate = moment(event.start_datetime); // momentオブジェクトに変換
-            let endDate = moment(event.end_datetime);     // momentオブジェクトに変換
-            let targetDate = moment(date);                 // dayObj.date は Date オブジェクトなので moment() で変換
-
-            // 開始日 <= 判定日 かつ 終了日 >= 判定日
-            return targetDate.isSameOrAfter(startDate.startOf('day')) &&
-                targetDate.isSameOrBefore(endDate.startOf('day'));
+            const eventDate = moment(event.start_time).format('YYYY-MM-DD');
+            const targetDate = moment(date).format('YYYY-MM-DD');
+            return eventDate === targetDate;
+        }).map(event => {
+            // 先生名を付加（tusersから検索）
+            const teacher = tusers.value.find(t => t.id === event.teacher_id);
+            return {
+                ...event,
+                teacherName: teacher ? teacher.name : '不明な先生',
+                title: teacher ? `${teacher.name}先生出席` : '先生出席',
+            };
         });
     };
 
