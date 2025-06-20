@@ -219,10 +219,10 @@
             return;
         }
         try {
-            const resT = await axios.get(`/teacher/${teacherId}/${year}/${month}`);//先生の予約状況を取得
+            const resT = await axios.get(`/teacher/${teacherId}/${year}/${month+1}`);//先生の予約状況を取得
             // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
             if (resT.data) {
-                console.log(resT.data);
+                console.log(teacherId,year,month+1);
                 calendarEvent.value = resT.data; // 取得したデータを calendarEvent.value に格納
             } else {
                 alert('イベントの情報を取得できませんでした。');
