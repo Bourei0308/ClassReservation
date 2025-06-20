@@ -42,7 +42,7 @@
             </div>
         </div>
         <div v-if="selectedDayEvents" class="selected-day-info">
-            <h3>{{ selectedDayEvents.date.getFullYear() }}年{{ selectedDayEvents.date.getFullMonth() }}月{{selectedDayEvents.day }}日</h3>
+            <h3>{{ selectedDayEvents.date.getFullYear() }}年{{ selectedDayEvents. }}月{{selectedDayEvents.day }}日</h3>
             <div v-if="selectedDayEvents.eventList && selectedDayEvents.eventList.length > 0">
                 <h4>この日のイベント:</h4>
                 <ul>
