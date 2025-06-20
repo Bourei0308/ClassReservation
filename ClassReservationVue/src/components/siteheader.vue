@@ -1,7 +1,11 @@
 <template>
   <header class="site_header">
     <!-- Logo / Title -->
-    <div class="site_title" @click="goTo(`/top/${role}`)">
+    <div v-if="role" class="site_title_login" @click="goTo(`/top/${role}`)">
+      ClassReservation
+    </div>
+
+    <div v-if="!role" class="site_title">
       ClassReservation
     </div>
 
@@ -63,10 +67,15 @@ onMounted(async () => {
   z-index: 1000;
 }
 
-.site_title {
+.site_title_login {
   font-size: 24px;
   font-weight: bold;
   cursor: pointer;
+}
+
+.site_title {
+  font-size: 24px;
+  font-weight: bold;
 }
 
 .header_icon_group {

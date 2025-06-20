@@ -20,7 +20,7 @@ import sitefooter from './components/sitefooter.vue'
 
 .wrapper {
   flex: 1; /* 主体内容撑满剩余高度 */
-  margin-top: 100px;
+  margin-top: 60px;
 }
 
 
