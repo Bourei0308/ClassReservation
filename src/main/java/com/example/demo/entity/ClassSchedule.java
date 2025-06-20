@@ -22,4 +22,5 @@ public class ClassSchedule {
 	private LocalDateTime startTime;
 	private LocalDateTime endTime;
 	private int status; // 0 = pending, 1 = confirmed, 2 = completed, etc.
+	private Boolean isReminded = false;
 }
