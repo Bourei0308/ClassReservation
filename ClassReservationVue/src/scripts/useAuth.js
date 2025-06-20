@@ -7,7 +7,7 @@ import { useRouter } from 'vue-router'
 
 const user = ref(null)  // 全局用户状态
 const TEST_MODE=true;
-const TEST_ROLE=0;
+const TEST_ROLE=1;
 
 export async function restoreLogin() {
     if (user.value) return user.value
