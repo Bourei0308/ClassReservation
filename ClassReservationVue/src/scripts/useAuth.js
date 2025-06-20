@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router'
 
 const user = ref(null)  // 全局用户状态
 const TEST_MODE=true;
+const TEST_ROLE=0;
 
 export async function restoreLogin() {
     if (user.value) return user.value
@@ -31,7 +32,7 @@ export function useAuth() {
             name: 'admin',
             email: 'admin@gmail.com',
             password: '$2a$10$TnRTrRgTLdOI68qWaL6XSuVpm7SdV02kXMonfGDqQ2Ueg0UA1Mtby',
-            role: 0,
+            role: TEST_ROLE,
             account: 'admin123'
         }
 
