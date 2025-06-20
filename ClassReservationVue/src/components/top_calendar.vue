@@ -40,7 +40,7 @@
                 <h4>この日のイベント:</h4>
                 <ul>
                     <li v-for="event in selectedDayEvents.eventList" :key="event.id">
-                        {{ event.title }} ({{ moment(event.start_datetime).format('HH:mm') }} - {{ moment(event.end_datetime).format('HH:mm') }})
+                        {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{ moment(event.endTime).format('HH:mm') }})
                     </li>
                 </ul>
             </div>
@@ -167,7 +167,7 @@
     const getEvents = async () => {
         console.log('取得する月：' + currentYear.value + '年' + (currentMonth.value + 1) + "月");
         try {
-            const res = await axios.get(`http://localhost:8080/api/available-times`);
+            const res = await axios.get(`/api/available-times`);
             if (res.data) {
                 console.log(res.data);
                 calendarEvent.value = res.data; // 取得したデータを calendarEvent.value に格納
