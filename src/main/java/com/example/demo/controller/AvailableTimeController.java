@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -52,5 +53,15 @@ public class AvailableTimeController {
 	@Operation(summary = "idで空き時間削除")
 	public void delete(@PathVariable String id) {
 		repository.deleteById(id);
+	}
+	
+	@PutMapping("/{id}")
+	@Operation(summary = "idで空き時間を更新")
+	public AvailableTime update(@PathVariable String id, @RequestBody AvailableTime newTime) {
+	    return repository.findById(id).map(existingTime -> {
+	        existingTime.setStartTime(newTime.getStartTime());
+	        existingTime.setEndTime(newTime.getEndTime());
+	        return repository.save(existingTime);
+	    }).orElse(null);
 	}
 }
