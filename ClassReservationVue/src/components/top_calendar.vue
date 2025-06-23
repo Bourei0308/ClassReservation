@@ -2,8 +2,7 @@
     <div class="calendar-view">
         <div v-if="account == 'student'" class="teacher-select-box">
             <label for="teacher-select" class="teacher-label">先生を選択！</label>
-            <select id="teacher-select" v-model="selectedTeacher" @change="onTeacherChange"
-                class="teacher-dropdown">
+            <select id="teacher-select" v-model="selectedTeacher" @change="onTeacherChange" class="teacher-dropdown">
                 <option disabled value="">先生を選択してください</option>
                 <option v-for="teacher in tusers" :key="teacher.id" :value="teacher">
                     {{ teacher.name }}
@@ -36,18 +35,19 @@
                                 {{ event.title }}
                             </li>
                         </ul>
-                        <div v-if="dayObj.eventList && dayObj.eventList.length > 0">
-                            <div v-for="event in dayObj.eventList" :key="event.id + '-student'" class="student-info" v-if="event.studentName">
-                                生徒: {{ event.studentName }}さん
+                        <div v-if="dayObj.eventList.length > 0">
+                            <div v-for="event in dayObj.eventList" :key="event.id + '-student'" class="student-info">
+                                <span v-if="event&&event.studentName">生徒: {{ event.studentName }}さん</span>
                             </div>
                         </div>
                     </div>
-                    
+
                 </div>
             </div>
         </div>
         <div v-if="selectedDayEvents" class="selected-day-info">
-            <h3>{{ selectedDayEvents.date.getFullYear() }}年{{ selectedDayEvents.date.getMonth() + 1 }}月{{ selectedDayEvents.date.getDate() }}日</h3>
+            <h3>{{ selectedDayEvents.date.getFullYear() }}年{{ selectedDayEvents.date.getMonth() + 1 }}月{{
+                selectedDayEvents.date.getDate() }}日</h3>
             <div v-if="selectedDayEvents.eventList && selectedDayEvents.eventList.length > 0">
                 <h4>この日のイベント:</h4>
                 <ul>
@@ -68,13 +68,15 @@
                     <h4>新しい予約</h4>
                     <div v-if="account === 'teacher'">
                         <label>開始日:
-                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
+                                disabled />
                         </label>
                         <label>開始時間:
                             <input type="time" v-model="popupStartTime" />
                         </label>
                         <label>終了日:
-                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
+                                disabled />
                         </label>
                         <label>終了時間:
                             <input type="time" v-model="popupEndTime" />
@@ -111,7 +113,7 @@ const props = defineProps({
         type: [String, Number],
         default: null
     },
-    studentID:{
+    studentID: {
         type: [String, Number],
         default: null
     }
@@ -166,7 +168,6 @@ const getUsers = async () => {
     try {
         const res = await axios.get(`/api/users`);//全ユーザを取得
         if (res.data) {
-            console.log(res.data);
             users.value = res.data; // 取得したデータを users.value に格納
             // 先生と生徒を分けて格納
             tusers.value = res.data.filter(user => user.role === 2);
@@ -214,7 +215,6 @@ const generateCalendar = async () => { // async キーワードを追加
             const date = new Date(year, month, day);
             const isToday = moment(date).isSame(moment(), 'day'); // 今日かどうかを判定
             const dayEvents = getDayEvents(date); // その日のイベントを取得（日付オブジェクトを渡す）
-            console.log("111"+dayEvents)
             return {
                 date: date,
                 day,
@@ -269,9 +269,9 @@ const getEvents = async () => {
         let resT = await axios.get(`/api/available-times/teacher/${teacherId}`);
         // 生徒の予定
         let resS = null;
-        if(account.value === 'student' && studentId) {
+        if (account.value === 'student' && studentId) {
             resS = await axios.get(`/api/class-schedules/student/${studentId}`);
-        } else if(account.value === 'teacher') {
+        } else if (account.value === 'teacher') {
             resS = await axios.get(`/api/class-schedules`);
         }
         // 先生の予定
@@ -290,20 +290,19 @@ const getEvents = async () => {
                 ...e,
                 startTime: e.startTime || e.start_time,
                 endTime: e.endTime || e.end_time,
-                teacher_id: e.teacher_id,
                 student_id: e.student_id,
-                status: e.status
+                teacher_id: e.teacherId,
             })),
             ...studentEvents.map(e => ({
                 ...e,
                 startTime: e.startTime || e.start_time,
                 endTime: e.endTime || e.end_time,
-                teacher_id: e.teacher_id,
                 student_id: e.student_id,
                 status: e.status
             }))
         ];
         calendarEvent.value = allEvents;
+        console.log(calendarEvent.value)
     } catch (error) {
         console.error("データ取得エラー:", error);
         alert('イベントの情報を取得中にエラーが起きました。');
@@ -353,7 +352,7 @@ const getDayEvents = (date) => {
             const eventDate = moment(event.startTime).format('YYYY-MM-DD');
             // 自分が担当 or 生徒が登録
             const isTeacher = teacherID.value ? event.teacher_id == teacherID.value : (selectedTeacher.value && event.teacher_id == selectedTeacher.value.id);
-            return eventDate === targetDate && isTeacher;
+            return (eventDate === targetDate) && isTeacher;
         }).map(event => {
             const teacher = tusers.value.find(t => t.id == event.teacher_id);
             const student = susers.value.find(s => s.id == event.student_id);
@@ -407,13 +406,13 @@ const handleDayClick = (dayObj) => {
     console.log('日付がクリックされました:', dayObj);
 
     if (dayObj.isPrev || dayObj.isNext) {
-        
+
         selectedDayEvents.value = null;
         selectedDay.value = null;
     } else {
         // イベントリストをクリック時にgetDayEventsで再取得して上書き
         const events = getDayEvents(dayObj.date);
-        
+
         selectedDayEvents.value = {
             ...dayObj,
             eventList: events,
@@ -453,7 +452,7 @@ const closeReservationPopup = () => {
 };
 
 // 予約を登録する
-const submitReservation =async () => {
+const submitReservation = async () => {
     // バリデーション例
     if (!popupStartTime.value || !popupEndTime.value) {
         alert('開始時間と終了時間を入力してください');
@@ -470,7 +469,7 @@ const submitReservation =async () => {
     };
     // ここでAPI送信などの処理を実装
     try {
-         const  resT =await axios.post(`/api/available-times`,payload);//先生の予定予約
+        const resT = await axios.post(`/api/available-times`, payload);//先生の予定予約
         // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
         console.log('resT.data:', resT.data);
         if (resT.data) {
@@ -728,7 +727,7 @@ onMounted(async () => {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -739,7 +738,7 @@ onMounted(async () => {
     background: #fff;
     padding: 30px 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     min-width: 300px;
     text-align: center;
 }
@@ -797,6 +796,7 @@ onMounted(async () => {
     transition: background 0.2s, box-shadow 0.2s;
     margin: 10px 0;
 }
+
 .reserve-btn:hover {
     background: linear-gradient(90deg, #ffb74d 0%, #ffe082 100%);
     color: #ff9800;
