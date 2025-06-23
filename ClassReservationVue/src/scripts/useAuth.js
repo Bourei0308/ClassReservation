@@ -72,12 +72,15 @@ export function useAuth() {
                 alert('ログインが失敗しました。')
             }
         },
-        logout: () => {
-            axios.post('/api/auth/logout', {}, { withCredentials: true })
+        logout: async () => {
+            await axios.post('/api/auth/logout', {}, { withCredentials: true })
+
             user.value = null
             role.value = null
             sessionStorage.removeItem('user')
-            router.push('/')
+
+            await router.push('/')
+            location.reload() // ✅ 强制刷新，确保所有状态重新初始化
         },
         restoreLogin, devLoginMockUser
     }

@@ -1,16 +1,16 @@
 <template>
   <header class="site_header">
     <!-- Logo / Title -->
-    <div v-if="user && user.value" class="site_title_login" @click="goTo(`/top/${role}`)">
+    <div v-if="isLoggedIn" class="site_title_login" @click="goTo(`/top/${role}`)">
       ClassReservation
     </div>
 
-    <div v-if="user == null" class="site_title">
+    <div v-if="!isLoggedIn" class="site_title">
       ClassReservation
     </div>
 
     <!-- Right icons -->
-    <div v-if="user != null" class="header_icon_group">
+    <div v-if="isLoggedIn" class="header_icon_group">
       <!-- Notification icon -->
       <div class="icon_link" @click="goTo('/notice')">
         <BellIcon class="header_icon" />
@@ -42,7 +42,7 @@ const goTo = (path) => {
 }
 import { ref, onMounted } from 'vue'
 import { useAuth } from '@/scripts/useAuth'
-const { user, restoreLogin } = useAuth()
+const { user, restoreLogin,isLoggedIn  } = useAuth()
 onMounted(async () => {
   await restoreLogin()
   if (user.value != null) {
