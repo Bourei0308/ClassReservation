@@ -43,8 +43,7 @@ const fetchNotifications = async () => {
     }
 }
 
-const toggleDetail = async (index, notification) => {
-    console.log(notification.createdAt, typeof notification.createdAt)
+const toggleDetail = async (index, notification) => {   
     if (expandedIndex.value === index) {
         expandedIndex.value = null
         return
