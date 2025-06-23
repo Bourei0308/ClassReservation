@@ -1,8 +1,8 @@
 <template>
     <div class="calendar-view">
-        <div class="teacher-select-box">
+        <div v-if="account == 'student'" class="teacher-select-box">
             <label for="teacher-select" class="teacher-label">先生を選択！</label>
-            <select id="teacher-select" v-if="account" v-model="selectedTeacher" @change="onTeacherChange"
+            <select id="teacher-select" v-model="selectedTeacher" @change="onTeacherChange"
                 class="teacher-dropdown">
                 <option disabled value="">先生を選択してください</option>
                 <option v-for="teacher in tusers" :key="teacher.id" :value="teacher">
@@ -42,7 +42,7 @@
             </div>
         </div>
         <div v-if="selectedDayEvents" class="selected-day-info">
-            <h3>{{ selectedDayEvents.date.getFullYear() }}年{{ selectedDayEvents.month }}月{{selectedDayEvents.day }}日</h3>
+            <h3>{{ selectedDayEvents.date.getFullYear() }}年{{ selectedDayEvents.date.getMonth() + 1 }}月{{ selectedDayEvents.date.getDate() }}日</h3>
             <div v-if="selectedDayEvents.eventList && selectedDayEvents.eventList.length > 0">
                 <h4>この日のイベント:</h4>
                 <ul>
@@ -56,7 +56,34 @@
                 この日にはイベントがありません。
             </div>
             <div class="new">
-                新しい予約を入れる
+                <button class="reserve-btn" @click="openReservationPopup">新しい予約を入れる</button>
+            </div>
+            <div v-if="showPopup" class="popup-overlay">
+                <div class="popup-content">
+                    <h4>新しい予約</h4>
+                    <div v-if="account === 'teacher'">
+                        <label>開始日:
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
+                        </label>
+                        <label>開始時間:
+                            <input type="time" v-model="popupStartTime" />
+                        </label>
+                        <label>終了日:
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
+                        </label>
+                        <label>終了時間:
+                            <input type="time" v-model="popupEndTime" />
+                        </label>
+                        <div style="margin-top:10px;">
+                            <button @click="submitReservation">登録</button>
+                            <button @click="closeReservationPopup">キャンセル</button>
+                        </div>
+                    </div>
+                    <div v-else>
+                        予約は先生のみ入力できます。
+                        <button @click="closeReservationPopup">閉じる</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -64,9 +91,22 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { defineProps } from 'vue';
 import moment from "moment";
 import _ from "lodash";
 import axios from 'axios';
+
+// 親から受け取るpropsを定義
+const props = defineProps({
+    account: {
+        type: String,
+        default: 'teacher'
+    },
+    teacherID: {
+        type: [String, Number],
+        default: null
+    }
+});
 
 // リアクティブな状態
 const currentDate = ref(moment()); // 現在の月を基準にするmomentオブジェクト
@@ -80,7 +120,11 @@ const users = ref([]); //全ユーザーを取得して保持
 const tusers = ref([]); //全先生ユーザーを保持
 const susers = ref([]); //全生徒ユーザーを保持
 const selectedTeacher = ref(null); // 選択された先生
-const account = ref("user");
+const account = ref(props.account);
+const teacherID = ref(props.teacherID);
+const showPopup = ref(false);
+const popupStartTime = ref('');
+const popupEndTime = ref('');
 
 // 算出プロパティ
 const currentMonthYear = computed(() => {
@@ -206,7 +250,8 @@ const getEvents = async () => {
     const month = currentMonth.value ? currentMonth.value : null;
     console.log('取得する月：' + year + '年' + (month + 1) + "月");
 
-    const teacherId = selectedTeacher.value ? selectedTeacher.value.id : null;
+    // teacherIdの優先順位: props.teacherID > selectedTeacher.value?.id
+    let teacherId = teacherID.value ? teacherID.value : (selectedTeacher.value ? selectedTeacher.value.id : null);
     console.log('選択された先生:', teacherId);
 
     if (!teacherId) {
@@ -290,6 +335,63 @@ const handleDayClick = (dayObj) => {
 const onTeacherChange = async () => {
     await getEvents();
     await generateCalendar();
+};
+
+// 画面が更新されたときの処理
+const onChange = async () => {
+    await getEvents();
+    await generateCalendar();
+};
+
+// 新しい予約のポップアップを開く
+const openReservationPopup = () => {
+    showPopup.value = true;
+    popupStartTime.value = '';
+    popupEndTime.value = '';
+};
+
+// 新しい予約のポップアップを閉じる
+const closeReservationPopup = () => {
+    showPopup.value = false;
+};
+
+// 予約を登録する
+const submitReservation = () => {
+    // バリデーション例
+    if (!popupStartTime.value || !popupEndTime.value) {
+        alert('開始時間と終了時間を入力してください');
+        return;
+    }
+    const teacherId = 1;//先生のIDを取得する必要がある
+    const date = selectedDayEvents.value.date;
+    const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
+    const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
+
+    const payload = {
+        teacherId: teacherId,
+        startTime: startDateTime,
+        endTime: endDateTime
+    };
+    // ここでAPI送信などの処理を実装
+    try {
+        const resT = axios.post(`/api/available-times`,payload);//先生の予定予約
+        // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
+        console.log('resT.data:', resT.data);
+        if (resT.data) {
+            alert(`予約: ${popupStartTime.value} ～ ${popupEndTime.value}`);
+        } else {
+            alert('イベントの情報を登録できませんでした。');
+        }
+    } catch (error) {
+        console.error("データ登録エラー:", error);
+        alert('イベントの情報を登録中にエラーが起きました。');
+    }
+    showPopup.value = false;
+};
+
+// 日付をyyyy-MM-dd形式で返す関数
+const formatDate = (date) => {
+    return moment(date).format('YYYY-MM-DD');
 };
 
 // ライフサイクルフック
@@ -521,5 +623,86 @@ onMounted(async () => {
 .teacher-dropdown:focus {
     border-color: #007bff;
     outline: none;
+}
+
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.popup-content {
+    background: #fff;
+    padding: 30px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    min-width: 300px;
+    text-align: center;
+}
+
+.popup-content h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.popup-content label {
+    display: block;
+    margin: 10px 0 5px 0;
+    font-weight: bold;
+}
+
+.popup-content input[type="datetime-local"] {
+    width: 90%;
+    padding: 6px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.popup-content button {
+    margin: 0 8px;
+    padding: 7px 18px;
+    border: none;
+    border-radius: 4px;
+    background: #007bff;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background 0.2s;
+}
+
+.popup-content button:hover {
+    background: #0056b3;
+}
+
+.popup-content div {
+    margin-top: 10px;
+}
+
+.reserve-btn {
+    background: linear-gradient(90deg, #ff9800 0%, #ffc107 100%);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 24px;
+    font-size: 1.1em;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(255, 152, 0, 0.15);
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    margin: 10px 0;
+}
+.reserve-btn:hover {
+    background: linear-gradient(90deg, #ffb74d 0%, #ffe082 100%);
+    color: #ff9800;
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
 }
 </style>
