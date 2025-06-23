@@ -30,12 +30,17 @@
                     })()
                 }]" @click="handleDayClick(dayObj)">
                     {{ dayObj.day }}<div v-if="dayObj.eventList && dayObj.eventList.length > 0" class="event-count">
-                        イベント: {{ dayObj.eventList.length }}件
+                        <!-- イベント: {{ dayObj.eventList.length }}件 -->
                         <ul class="event-list">
                             <li v-for="event in dayObj.eventList" :key="event.id" class="event-title">
                                 {{ event.title }}
                             </li>
                         </ul>
+                        <div v-if="dayObj.eventList && dayObj.eventList.length > 0">
+                            <div v-for="event in dayObj.eventList" :key="event.id + '-student'" class="student-info" v-if="event.studentName">
+                                生徒: {{ event.studentName }}さん
+                            </div>
+                        </div>
                     </div>
                     
                 </div>
@@ -105,6 +110,10 @@ const props = defineProps({
     teacherID: {
         type: [String, Number],
         default: null
+    },
+    studentID:{
+        type: [String, Number],
+        default: null
     }
 });
 
@@ -122,6 +131,7 @@ const susers = ref([]); //全生徒ユーザーを保持
 const selectedTeacher = ref(null); // 選択された先生
 const account = ref(props.account);
 const teacherID = ref(props.teacherID);
+const studentID = ref(props.studentID);
 const showPopup = ref(false);
 const popupStartTime = ref('');
 const popupEndTime = ref('');
@@ -250,31 +260,50 @@ const getEvents = async () => {
     const month = currentMonth.value ? currentMonth.value : null;
     console.log('取得する月：' + year + '年' + (month + 1) + "月");
 
-    // teacherIdの優先順位: props.teacherID > selectedTeacher.value?.id
     let teacherId = teacherID.value ? teacherID.value : (selectedTeacher.value ? selectedTeacher.value.id : null);
+    let studentId = studentID ? studentID.value : null;
     console.log('選択された先生:', teacherId);
-
-    if (!teacherId) {
-        console.warn('先生が選択されていません。');
-        return;
-    }
+    let allEvents = [];
     try {
-        const resT = await axios.get(`/api/available-times/teacher/${teacherId}`);//先生の予約状況を取得
-        // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
-        console.log('resT.data:', resT.data);
-        if (resT.data) {
-            
-            // 年月でフィルタリング
-            const filtered = resT.data.filter(event => {
-                const eventMoment = moment(event.startTime);
-                
-                return eventMoment.year() === year && eventMoment.month() === month;
-            });
-            calendarEvent.value = filtered;
-        } else {
-            alert('イベントの情報を取得できませんでした。');
-            calendarEvent.value = [];
+        // 先生の予定
+        let resT = await axios.get(`/api/available-times/teacher/${teacherId}`);
+        // 生徒の予定
+        let resS = null;
+        if(account.value === 'student' && studentId) {
+            resS = await axios.get(`/api/class-schedules/student/${studentId}`);
+        } else if(account.value === 'teacher') {
+            resS = await axios.get(`/api/class-schedules`);
         }
+        // 先生の予定
+        let teacherEvents = resT.data ? resT.data.filter(event => {
+            const eventMoment = moment(event.startTime);
+            return eventMoment.year() === year && eventMoment.month() === month;
+        }) : [];
+        // 生徒の予定
+        let studentEvents = (resS && resS.data) ? resS.data.filter(event => {
+            const eventMoment = moment(event.start_time);
+            return eventMoment.year() === year && eventMoment.month() === month;
+        }) : [];
+        // 統合
+        allEvents = [
+            ...teacherEvents.map(e => ({
+                ...e,
+                startTime: e.startTime || e.start_time,
+                endTime: e.endTime || e.end_time,
+                teacher_id: e.teacher_id,
+                student_id: e.student_id,
+                status: e.status
+            })),
+            ...studentEvents.map(e => ({
+                ...e,
+                startTime: e.startTime || e.start_time,
+                endTime: e.endTime || e.end_time,
+                teacher_id: e.teacher_id,
+                student_id: e.student_id,
+                status: e.status
+            }))
+        ];
+        calendarEvent.value = allEvents;
     } catch (error) {
         console.error("データ取得エラー:", error);
         alert('イベントの情報を取得中にエラーが起きました。');
@@ -288,21 +317,89 @@ const getDayEvents = (date) => {
         console.warn("calendarEvent.value が配列ではありません。空のリストを返します。");
         return [];
     }
-    // 指定日のイベントを取得
-    return calendarEvent.value.filter(event => {
-        
-        const eventDate = moment(event.startTime).format('YYYY-MM-DD');
-        const targetDate = moment(date).format('YYYY-MM-DD');
-        return eventDate === targetDate;
-    }).map(event => {
-        // 先生名を付加（tusersから検索）
-        const teacher = tusers.value.find(t => t.id === event.teacher_id);
-        return {
-            ...event,
-            teacherName: teacher ? teacher.name : '不明な先生',
-            title: teacher ? `${teacher.name}先生出席` : '先生出席',
-        };
-    });
+    const targetDate = moment(date).format('YYYY-MM-DD');
+    // accountによって表示するイベントを切り替え
+    if (account.value === 'student') {
+        // 生徒の場合: 選択先生の予定＋自分（生徒）の予定のみ
+        return calendarEvent.value.filter(event => {
+            const eventDate = moment(event.startTime).format('YYYY-MM-DD');
+            // 先生の予定 or 自分の予定
+            const isTeacher = teacherID.value ? event.teacher_id == teacherID.value : (selectedTeacher.value && event.teacher_id == selectedTeacher.value.id);
+            const isStudent = event.student_id && users.value.find(u => u.id == event.student_id && u.role === 1);
+            return eventDate === targetDate && (isTeacher || isStudent);
+        }).map(event => {
+            const teacher = tusers.value.find(t => t.id == event.teacher_id);
+            const student = susers.value.find(s => s.id == event.student_id);
+            let title = '';
+            if (teacher && student) {
+                title = `${teacher.name}先生・${student.name}さん出席`;
+            } else if (teacher) {
+                title = `${teacher.name}先生出席`;
+            } else if (student) {
+                title = `${student.name}さん出席`;
+            } else {
+                title = '予定あり';
+            }
+            return {
+                ...event,
+                teacherName: teacher ? teacher.name : '不明な先生',
+                studentName: student ? student.name : '',
+                title,
+            };
+        });
+    } else if (account.value === 'teacher') {
+        // 先生の場合: 自分の予定＋生徒が登録した予定すべて
+        return calendarEvent.value.filter(event => {
+            const eventDate = moment(event.startTime).format('YYYY-MM-DD');
+            // 自分が担当 or 生徒が登録
+            const isTeacher = teacherID.value ? event.teacher_id == teacherID.value : (selectedTeacher.value && event.teacher_id == selectedTeacher.value.id);
+            return eventDate === targetDate && isTeacher;
+        }).map(event => {
+            const teacher = tusers.value.find(t => t.id == event.teacher_id);
+            const student = susers.value.find(s => s.id == event.student_id);
+            let title = '';
+            if (teacher && student) {
+                title = `${teacher.name}先生・${student.name}さん出席`;
+            } else if (teacher) {
+                title = `${teacher.name}先生出席`;
+            } else if (student) {
+                title = `${student.name}さん出席`;
+            } else {
+                title = '予定あり';
+            }
+            return {
+                ...event,
+                teacherName: teacher ? teacher.name : '不明な先生',
+                studentName: student ? student.name : '',
+                title,
+            };
+        });
+    } else {
+        // その他は全て表示
+        return calendarEvent.value.filter(event => {
+            const eventDate = moment(event.startTime).format('YYYY-MM-DD');
+            return eventDate === targetDate;
+        }).map(event => {
+            const teacher = tusers.value.find(t => t.id == event.teacher_id);
+            const student = susers.value.find(s => s.id == event.student_id);
+            let title = '';
+            if (teacher && student) {
+                title = `${teacher.name}先生・${student.name}さん出席`;
+            } else if (teacher) {
+                title = `${teacher.name}先生出席`;
+            } else if (student) {
+                title = `${student.name}さん出席`;
+            } else {
+                title = '予定あり';
+            }
+            return {
+                ...event,
+                teacherName: teacher ? teacher.name : '不明な先生',
+                studentName: student ? student.name : '',
+                title,
+            };
+        });
+    }
 };
 
 // 日付クリック時のハンドラ
