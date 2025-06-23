@@ -5,10 +5,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.auth.AccessTokenProvider;
 import com.example.demo.entity.MailRequest;
 import com.example.demo.service.GmailService;
 
@@ -23,15 +23,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class MailController {
 	@Autowired
 	private GmailService gmailService;
+	@Autowired
+	private AccessTokenProvider accessTokenProvider;
 
 	@PostMapping("/send")
 	@Operation(summary = "Gmailでメール送信（Vueのaccess_token使用）")
 	public ResponseEntity<String> sendMail(
-			@RequestHeader("Authorization") String authHeader,
 			@RequestBody MailRequest mailRequest) {
 		try {
-			String accessToken = authHeader.replace("Bearer ", "").trim();
-
+			String accessToken = accessTokenProvider.getAccessToken();
 			gmailService.sendEmail(accessToken,
 					mailRequest.getTo(),
 					mailRequest.getSubject(),
