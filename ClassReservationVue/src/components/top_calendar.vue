@@ -52,8 +52,8 @@
                 <h4>この日のイベント:</h4>
                 <ul>
                     <li v-for="event in selectedDayEvents.eventList" :key="event.id">
-                        {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{
-                            moment(event.endTime).format('HH:mm') }})
+                        {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{ moment(event.endTime).format('HH:mm') }})
+                        <button @click="openEditPopup(event)">編集</button>
                     </li>
                 </ul>
             </div>
@@ -65,29 +65,48 @@
             </div>
             <div v-if="showPopup" class="popup-overlay">
                 <div class="popup-content">
-                    <h4>新しい予約</h4>
+                    <h4 v-if="popupMode === 'create'">新しい予約</h4>
+                    <h4 v-else-if="popupMode === 'edit'">予定の編集</h4>
                     <div v-if="account === 'teacher'">
                         <label>開始日:
-                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
-                                disabled />
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
                         </label>
                         <label>開始時間:
                             <input type="time" v-model="popupStartTime" />
                         </label>
                         <label>終了日:
-                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
-                                disabled />
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
                         </label>
                         <label>終了時間:
                             <input type="time" v-model="popupEndTime" />
                         </label>
                         <div style="margin-top:10px;">
-                            <button @click="submitReservation">登録</button>
+                            <button v-if="popupMode === 'create'" @click="submitReservation">登録</button>
+                            <button v-else-if="popupMode === 'edit'" @click="submitEditReservation">更新</button>
+                            <button @click="closeReservationPopup">キャンセル</button>
+                        </div>
+                    </div>
+                    <div v-else-if="account === 'student'">
+                        <label>開始日:
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
+                        </label>
+                        <label>開始時間:
+                            <input type="time" v-model="popupStartTime" />
+                        </label>
+                        <label>終了日:
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
+                        </label>
+                        <label>終了時間:
+                            <input type="time" v-model="popupEndTime" />
+                        </label>
+                        <div style="margin-top:10px;">
+                            <button v-if="popupMode === 'create'" @click="submitStudentReservation">予約申請</button>
+                            <button v-else-if="popupMode === 'edit'" @click="submitEditReservation">更新</button>
                             <button @click="closeReservationPopup">キャンセル</button>
                         </div>
                     </div>
                     <div v-else>
-                        予約は先生のみ入力できます。
+                        <span>予約はこのアカウントでは入力できません。</span>
                         <button @click="closeReservationPopup">閉じる</button>
                     </div>
                 </div>
@@ -137,6 +156,8 @@ const studentID = ref(props.studentID);
 const showPopup = ref(false);
 const popupStartTime = ref('');
 const popupEndTime = ref('');
+const popupMode = ref('create'); // 'create' or 'edit'
+const editingEvent = ref(null); // 編集対象イベント
 
 // 算出プロパティ
 const currentMonthYear = computed(() => {
@@ -154,14 +175,12 @@ const currentMonth = computed(() => {
 // メソッド
 const prevMonth = () => {
     currentDate.value = currentDate.value.clone().subtract(1, 'month');
-    generateCalendar();
-    getEvents();//先生の空き時間を取得
+    onChange();
 };
 
 const nextMonth = () => {
     currentDate.value = currentDate.value.clone().add(1, 'month');
-    generateCalendar();
-    getEvents();//先生の空き時間を取得
+    onChange();
 };
 
 const getUsers = async () => {
@@ -442,10 +461,20 @@ const onChange = async () => {
 // 新しい予約のポップアップを開く
 const openReservationPopup = () => {
     showPopup.value = true;
+    popupMode.value = 'create';
     popupStartTime.value = '';
     popupEndTime.value = '';
+    editingEvent.value = null;
 };
-
+// 編集ポップアップを開く
+const openEditPopup = (event) => {
+    showPopup.value = true;
+    popupMode.value = 'edit';
+    editingEvent.value = event;
+    // 既存の値をセット
+    popupStartTime.value = moment(event.startTime).format('HH:mm');
+    popupEndTime.value = moment(event.endTime).format('HH:mm');
+};
 // 新しい予約のポップアップを閉じる
 const closeReservationPopup = () => {
     showPopup.value = false;
@@ -461,7 +490,7 @@ const submitReservation = async () => {
     const date = selectedDayEvents.value.date;
     const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
     const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
-
+    const id = selectedEventId.value;
     const payload = {
         teacherId: props.teacherID,
         startTime: startDateTime,
@@ -469,7 +498,7 @@ const submitReservation = async () => {
     };
     // ここでAPI送信などの処理を実装
     try {
-        const resT = await axios.post(`/api/available-times`, payload);//先生の予定予約
+        const resT = await axios.post(`/api/available-times/${id}`, payload);//先生の予定予約
         // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
         console.log('resT.data:', resT.data);
         if (resT.data) {
@@ -480,6 +509,60 @@ const submitReservation = async () => {
     } catch (error) {
         console.error("データ登録エラー:", error);
         alert('イベントの情報を登録中にエラーが起きました。');
+    }
+    onChange();
+    showPopup.value = false;
+};
+
+// 編集の登録
+const submitEditReservation = async () => {
+    if (!popupStartTime.value || !popupEndTime.value) {
+        alert('開始時間と終了時間を入力してください');
+        return;
+    }
+    const date = selectedDayEvents.value.date;
+    const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
+    const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
+    if (!editingEvent.value) return;
+    const payload = {
+        id: editingEvent.value.id,
+        teacherId: editingEvent.value.teacher_id,
+        startTime: startDateTime,
+        endTime: endDateTime
+    };
+    try {
+        await axios.put(`/api/available-times/${editingEvent.value.id}`, payload);
+        alert('予定を更新しました');
+    } catch (error) {
+        console.error('編集エラー:', error);
+        alert('予定の更新に失敗しました');
+    }
+    onChange();
+    showPopup.value = false;
+};
+
+// 生徒用の予約申請
+const submitStudentReservation = async () => {
+    if (!popupStartTime.value || !popupEndTime.value) {
+        alert('開始時間と終了時間を入力してください');
+        return;
+    }
+    const date = selectedDayEvents.value.date;
+    const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
+    const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
+    const teacherId = teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null);
+    const payload = {
+        teacherId: teacherId,
+        studentId: studentID.value,
+        startTime: startDateTime,
+        endTime: endDateTime
+    };
+    try {
+        await axios.post(`/api/class-schedules`, payload);
+        alert('予約申請を送信しました');
+    } catch (error) {
+        console.error('生徒予約エラー:', error);
+        alert('予約申請に失敗しました');
     }
     onChange();
     showPopup.value = false;
