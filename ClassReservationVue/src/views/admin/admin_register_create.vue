@@ -1,7 +1,8 @@
 <template>
   <div class="container">
     <h2>アカウント作成（管理者）</h2>
-    <form @submit.prevent="submitForm">
+
+    <form @submit.prevent="goToConfirm">
       <label>氏名:</label>
       <input type="text" v-model="form.name" required />
 
@@ -11,14 +12,17 @@
       <label>パスワード:</label>
       <input type="password" v-model="form.password" required />
 
+      <label>アカウント名:</label>
+      <input type="text" v-model="form.account" required />
+
       <label>ロール:</label>
-      <div>
+      <div class="radio-group">
         <label>
-          <input type="radio" value="teacher" v-model="form.role" required />
+          <input type="radio" value="2" v-model="form.role" required />
           先生
         </label>
         <label>
-          <input type="radio" value="student" v-model="form.role" />
+          <input type="radio" value="1" v-model="form.role" />
           生徒
         </label>
       </div>
@@ -37,27 +41,16 @@ export default {
         name: "",
         email: "",
         password: "",
-        role: ""
+        role: "",
+        account: ""
       }
     };
   },
   methods: {
-    submitForm() {
-      // バリデーションチェック後、APIへPOST送信
-      fetch("http://localhost:8080/api/admin/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(this.form)
-      })
-        .then(response => response.json())
-        .then(data => {
-          alert("アカウント確認画面へ進みます");
-          // routerで次の画面へ遷移する場合
-          this.$router.push("/admin/register/confirm");
-        })
-        .catch(error => {
-          console.error("登録エラー:", error);
-        });
+    goToConfirm() {
+      // セッションストレージに保存（確認画面へ渡す）
+      sessionStorage.setItem("registerForm", JSON.stringify(this.form));
+      this.$router.push("/admin/register/confirm");
     }
   }
 };
@@ -65,13 +58,27 @@ export default {
 
 <style scoped>
 .container {
-  max-width: 500px;
+  max-width: 600px;
   margin: 30px auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
 }
-input, button {
+label {
   display: block;
-  margin-top: 10px;
-  padding: 8px;
+  margin-top: 15px;
+}
+input[type="text"],
+input[type="email"],
+input[type="password"] {
   width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+}
+.radio-group {
+  margin-top: 10px;
+}
+button {
+  margin-top: 20px;
+  padding: 10px 20px;
 }
 </style>
