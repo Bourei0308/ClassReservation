@@ -356,25 +356,24 @@ const closeReservationPopup = () => {
 };
 
 // 予約を登録する
-const submitReservation = () => {
+const submitReservation =async () => {
     // バリデーション例
     if (!popupStartTime.value || !popupEndTime.value) {
         alert('開始時間と終了時間を入力してください');
         return;
     }
-    const teacherId = 1;//先生のIDを取得する必要がある
     const date = selectedDayEvents.value.date;
     const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
     const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
 
     const payload = {
-        teacherId: teacherId,
+        teacherId: props.teacherID,
         startTime: startDateTime,
         endTime: endDateTime
     };
     // ここでAPI送信などの処理を実装
     try {
-        const resT = axios.post(`/api/available-times`,payload);//先生の予定予約
+         const  resT =await axios.post(`/api/available-times`,payload);//先生の予定予約
         // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
         console.log('resT.data:', resT.data);
         if (resT.data) {
@@ -386,6 +385,7 @@ const submitReservation = () => {
         console.error("データ登録エラー:", error);
         alert('イベントの情報を登録中にエラーが起きました。');
     }
+    onChange();
     showPopup.value = false;
 };
 

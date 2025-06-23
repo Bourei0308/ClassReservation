@@ -1,6 +1,6 @@
 <template>
     <div>
-        <Top_Calender />
+        <Top_Calender account="student"/>
         <Top_ChatBox />
     </div>
 </template>

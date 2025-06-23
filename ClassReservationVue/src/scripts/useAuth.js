@@ -6,8 +6,10 @@ import { useRouter } from 'vue-router'
 
 
 const user = ref(null)  // 全局用户状态
-const TEST_MODE=false;
-const TEST_ROLE=1;
+const role = ref(null)
+const TEST_MODE = false;
+const TEST_ROLE = 1;
+
 
 export async function restoreLogin() {
     if (user.value) return user.value
@@ -15,6 +17,7 @@ export async function restoreLogin() {
         const res = await axios.get('/api/auth/me', { withCredentials: true })
         user.value = res.data
         sessionStorage.setItem('user', JSON.stringify(res.data))
+        role.value = user.value.role
         return res.data
     } catch {
         user.value = null
@@ -38,12 +41,13 @@ export function useAuth() {
 
         user.value = mockUser
         sessionStorage.setItem('user', JSON.stringify(mockUser))
+        role.value = user.value.role
         console.log('[dev] Mock user injected:', mockUser)
         router.push(`/top/${mockUser.role}`)
     }
 
     return {
-        user,TEST_MODE,
+        user, TEST_MODE,
         isLoggedIn: computed(() => !!user.value),
         login: async (account, password) => {
             try {
@@ -61,7 +65,7 @@ export function useAuth() {
                 //}
 
                 sessionStorage.setItem('user', JSON.stringify(res.data))
-                console.log(user.value)
+                role.value = user.value.role
                 router.push(`/top/${user.value.role}`)
             } catch (e) {
                 console.error(e)
@@ -71,9 +75,10 @@ export function useAuth() {
         logout: () => {
             axios.post('/api/auth/logout', {}, { withCredentials: true })
             user.value = null
+            role.value = null
             sessionStorage.removeItem('user')
             router.push('/')
         },
-        restoreLogin,devLoginMockUser
+        restoreLogin, devLoginMockUser
     }
 }
