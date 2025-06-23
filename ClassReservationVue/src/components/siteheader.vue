@@ -1,16 +1,16 @@
 <template>
   <header class="site_header">
     <!-- Logo / Title -->
-    <div v-if="role" class="site_title_login" @click="goTo(`/top/${role}`)">
+    <div v-if="user && user.value" class="site_title_login" @click="goTo(`/top/${role}`)">
       ClassReservation
     </div>
 
-    <div v-if="!role" class="site_title">
+    <div v-if="user == null" class="site_title">
       ClassReservation
     </div>
 
     <!-- Right icons -->
-    <div class="header_icon_group">
+    <div v-if="user != null" class="header_icon_group">
       <!-- Notification icon -->
       <div class="icon_link" @click="goTo('/notice')">
         <BellIcon class="header_icon" />
@@ -40,12 +40,14 @@ const router = useRouter()
 const goTo = (path) => {
   router.push(path)
 }
-import {ref, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuth } from '@/scripts/useAuth'
 const { user, restoreLogin } = useAuth()
 onMounted(async () => {
   await restoreLogin()
-  role.value=user.value.role
+  if (user.value != null) {
+    role.value = user.value.role
+  }
 })
 
 </script>

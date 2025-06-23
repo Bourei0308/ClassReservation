@@ -14,7 +14,7 @@ const TEST_ROLE = 1;
 export async function restoreLogin() {
     if (user.value) return user.value
     try {
-        const res = await axios.get('/api/auth/me', { withCredentials: true })
+        const res = await axios.get('/api/auth/me', { withCredentials: true, validateStatus: (status) => status < 500 })
         user.value = res.data
         sessionStorage.setItem('user', JSON.stringify(res.data))
         role.value = user.value.role
