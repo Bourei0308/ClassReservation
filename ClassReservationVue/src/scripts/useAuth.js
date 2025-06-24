@@ -7,7 +7,7 @@ import { useRouter } from 'vue-router'
 
 const user = ref(null)  // 全局用户状态
 const role = ref(null)
-const TEST_MODE = true;
+const TEST_MODE = false;
 const TEST_ROLE = 1;
 
 

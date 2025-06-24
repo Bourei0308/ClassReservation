@@ -99,7 +99,7 @@
                     </div>
                     <div v-else-if="account === 'student'">
                         <label>その日の先生の予定:
-
+                            
                         </label>
                         <label>開始日:
                             <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
@@ -634,11 +634,11 @@ const submitStudentReservation = async () => {
     const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
     const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
     const payload = {
-        student_id: studentID.value,
-        teacher_id: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
-        start_time: startDateTime,
-        end_time: endDateTime,
-        created_at: startDateTime-endDateTime,
+        studentId: studentID.value,
+        teacherId: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
+        startTime: startDateTime,
+        endTime: endDateTime,
+        createdAt: startDateTime-endDateTime,
         status: 0 // 承認待ち
     };
     try {
