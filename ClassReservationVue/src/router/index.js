@@ -28,17 +28,17 @@ const router = createRouter({
       component: () => import('../views/general_user/teacher_top.vue'),
     },
     {
-      path: '/admin/register',
+      path: '/admin/register/create',
       name: 'アカウント作成',
       component: () => import('../views/admin/admin_register_create.vue'),
     },
     {
-      path: '/admin/confirm',
+      path: '/admin/register/confirm',
       name: '作成確認',
       component: () => import('../views/admin/admin_register_confirm.vue'),
     },
     {
-      path: '/admin/userlist',
+      path: '/admin/accountlist',
       name: '管理者用ユーザ一覧',
       meta: { requiresAuth: true, role_number: 0 },
       component: () => import('../views/admin/admin_accountlist.vue'),
