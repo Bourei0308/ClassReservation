@@ -581,7 +581,7 @@ const submitStudentEditReservation = async () => {
         teacherId: editingEvent.value.teacher_id,
         studentId: studentID.value,
         teacherId: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
-        createdAt: startDateTime-endDateTime,
+        createdAt: formatDate(Date.now()),
         startTime: startDateTime,
         endTime: endDateTime,
         status: editingEvent.value.status, // 承認待ち
