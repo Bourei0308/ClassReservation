@@ -466,9 +466,10 @@ const getDayEvents = (date) => {
 };
 
 // 日付クリック時のハンドラ
-const handleDayClick = (dayObj) => {
+const handleDayClick = (dayObj) => {    
     console.log('日付がクリックされました:', dayObj);
-
+    console.log(blueTimes)
+    blueTimes.value = fetchAndProcessBlueTimes(selectedTeacher.value.id,dayObj.date);
     if (dayObj.isPrev || dayObj.isNext) {
 
         selectedDayEvents.value = null;
@@ -507,8 +508,7 @@ const onChange = async () => {
         ...selectedDay.value,
         eventList: events,
     };
-
-    blueTimes = fetchAndProcessBlueTimes(selectedTeacher.value,selectedDayEvents.value.date);
+    
 };
 
 // 新しい予約のポップアップを開く
