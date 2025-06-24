@@ -37,7 +37,7 @@
                         </ul>
                         <div v-if="dayObj.eventList.length > 0">
                             <div v-for="event in dayObj.eventList" :key="event.id + '-student'" class="student-info">
-                                <span v-if="event&&event.studentName">生徒: {{ event.studentName }}さん</span>
+                                <span v-if="event && event.studentName">生徒: {{ event.studentName }}さん</span>
                             </div>
                         </div>
                     </div>
@@ -52,7 +52,8 @@
                 <h4>この日のイベント:</h4>
                 <ul>
                     <li v-for="event in selectedDayEvents.eventList" :key="event.id">
-                        {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{ moment(event.endTime).format('HH:mm') }})
+                        {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{
+                            moment(event.endTime).format('HH:mm') }})
                         <button @click="openEditPopup(event)">編集</button>
                         <button @click="deleteEditPopup(event)">削除</button>
                     </li>
@@ -69,15 +70,24 @@
                     <h4 v-if="popupMode === 'create'">新しい予約</h4>
                     <h4 v-else-if="popupMode === 'edit'">予定の編集</h4>
                     <h4 v-else-if="popupMode === 'delete'">予定の削除</h4>
-                    <div v-if="account === 'teacher'">
+                    <div v-if="popupMode === 'delete' && editingEvent">
+                        <p>本当にこの予定を削除しますか？</p>
+                        <div style="margin-top:10px;">
+                            <button @click="submitDeleteReservation">削除</button>
+                            <button @click="closeReservationPopup">キャンセル</button>
+                        </div>
+                    </div>
+                    <div v-else-if="account === 'teacher'">
                         <label>開始日:
-                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
+                                disabled />
                         </label>
                         <label>開始時間:
                             <input type="time" v-model="popupStartTime" />
                         </label>
                         <label>終了日:
-                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
+                                disabled />
                         </label>
                         <label>終了時間:
                             <input type="time" v-model="popupEndTime" />
@@ -90,13 +100,15 @@
                     </div>
                     <div v-else-if="account === 'student'">
                         <label>開始日:
-                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
+                                disabled />
                         </label>
                         <label>開始時間:
                             <input type="time" v-model="popupStartTime" />
                         </label>
                         <label>終了日:
-                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
+                            <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
+                                disabled />
                         </label>
                         <label>終了時間:
                             <input type="time" v-model="popupEndTime" />
@@ -107,15 +119,9 @@
                             <button @click="closeReservationPopup">キャンセル</button>
                         </div>
                     </div>
-                    <div v-else-if="account === 'delete'">
-                        <div v-if="popupMode === 'delete' && editingEvent">
-                            <p>本当にこの予定を削除しますか？</p>
-                            <div style="margin-top:10px;">
-                                <button @click="submitDeleteReservation">削除</button>
-                                <button @click="closeReservationPopup">キャンセル</button>
-                            </div>
-                        </div>
-                    </div>
+
+
+
                     <div v-else>
                         <span>予約はこのアカウントでは入力できません。</span>
                         <button @click="closeReservationPopup">閉じる</button>
