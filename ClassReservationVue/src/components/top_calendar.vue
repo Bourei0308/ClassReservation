@@ -49,16 +49,19 @@
                     <li v-for="event in selectedDayEvents.eventList" :key="event.id">
                         {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{
                             moment(event.endTime).format('HH:mm') }})
-                        <button @click="openEditPopup(event)">編集</button>
-                        <button @click="deleteEditPopup(event)">削除</button>
+                        <button v-if="account === 'teacher' || (account === 'student' && event.studentName)" @click="openEditPopup(event)">編集</button>
+                        <button v-if="account === 'teacher' || (account === 'student' && event.studentName)" @click="deleteEditPopup(event)">削除</button>
                     </li>
                 </ul>
             </div>
             <div v-else>
                 この日にはイベントがありません。
             </div>
-            <div class="new">
+            <div v-if="account === 'teacher' || account === 'student' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.teacherName)" class="new">
                 <button class="reserve-btn" @click="openReservationPopup">新しい予約を入れる</button>
+            </div>
+            <div v-else class="message">
+                <label>先生を選択して下さい</label>
             </div>
             <div v-if="showPopup" class="popup-overlay">
                 <div class="popup-content">
@@ -991,5 +994,18 @@ onMounted(async () => {
     background: linear-gradient(90deg, #ffb74d 0%, #ffe082 100%);
     color: #ff9800;
     box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+}
+
+.message {
+    background: #fffbe6;
+    border: 1.5px solid #ffd700;
+    color: #b8860b;
+    border-radius: 8px;
+    padding: 18px 0;
+    margin: 18px 0;
+    text-align: center;
+    font-size: 1.1em;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.08);
 }
 </style>
