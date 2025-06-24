@@ -27,4 +27,18 @@ public class EmailService {
 			throw new RuntimeException("メール送信に失敗しました", e);
 		}
 	}
+
+	public void sendRejectionEmail(String to, String name) {
+		String subject = "【予約拒否通知】予約がキャンセルされました";
+		String body = name + " 様\n先生の都合により予約がキャンセルされました。\n別の時間帯を再度ご予約ください。";
+
+		try {
+			String accessToken = accessTokenProvider.getAccessToken();
+			gmailService.sendEmail(accessToken, to, subject, body); // ✅ accessToken を追加
+		} catch (Exception e) {
+			System.err.println("❌ メール送信失敗：" + e.getMessage());
+			throw new RuntimeException("メール送信に失敗しました", e);
+		}
+	}
+
 }
