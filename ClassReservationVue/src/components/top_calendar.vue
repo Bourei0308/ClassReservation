@@ -60,8 +60,11 @@
             <div v-if="account === 'teacher' || account === 'student' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.teacherName)" class="new">
                 <button class="reserve-btn" @click="openReservationPopup">新しい予約を入れる</button>
             </div>
+            <div v-else-if="!selectedTeacher" class="message">
+                <label>先生を選択して下さい。</label>
+            </div>
             <div v-else class="message">
-                <label>先生を選択して下さい</label>
+                <label>先生の予約時間外です。</label>
             </div>
             <div v-if="showPopup" class="popup-overlay">
                 <div class="popup-content">
