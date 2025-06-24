@@ -39,10 +39,10 @@ export default {
         alert("生徒とチャージ時間を正しく入力してください。");
         return;
       }
-      fetch(`http://localhost:8080/api/users/${this.selectedUserId}/charge`, {
-        method: "PUT",
+      fetch(`http://localhost:8080/api/charges/users/${this.selectedUserId}`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chargeTime: this.chargeAmount })
+        body: JSON.stringify({ chargeHours: this.chargeAmount })
       })
         .then(res => {
           if (!res.ok) throw new Error("チャージ失敗");
