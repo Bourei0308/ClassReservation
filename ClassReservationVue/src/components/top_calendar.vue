@@ -28,18 +28,14 @@
                         return isSelected;
                     })()
                 }]" @click="handleDayClick(dayObj)">
-                    {{ dayObj.day }}<div v-if="dayObj.eventList && dayObj.eventList.length > 0" class="event-count">
+                    {{ dayObj.day }}<div v-if="dayObj.eventList && dayObj.eventList.length > 0">
                         <!-- イベント: {{ dayObj.eventList.length }}件 -->
                         <ul class="event-list">
-                            <li v-for="event in dayObj.eventList" :key="event.id" class="event-title">
-                                {{ event.title }}
+                            <li v-for="event in dayObj.eventList" :key="event.id">
+                                <span v-if="event && !event.studentName" class="event-title">{{ event.title }}</span>
+                                <span v-if="event && event.studentName" class="student-info">{{ event.title }}</span>
                             </li>
                         </ul>
-                        <div v-if="dayObj.eventList.length > 0">
-                            <div v-for="event in dayObj.eventList" :key="event.id + '-student'" class="student-info">
-                                <span v-if="event && event.studentName">生徒: {{ event.studentName }}さん</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -581,12 +577,13 @@ const submitStudentEditReservation = async () => {
         teacherId: editingEvent.value.teacher_id,
         studentId: studentID.value,
         teacherId: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
-        createdAt: moment().format('YYYY-MM-DD HH:mm:ss'),
+        createdAt: moment().format('YYYY-MM-DDTHH:mm:ss'),
+        startTime: startDateTime,
         endTime: endDateTime,
         status: editingEvent.value.status, // 承認待ち
     };
     try {
-        await axios.put(`/api/available-times/${editingEvent.value.id}`, payload);
+        await axios.put(`/api/class-schedules/${editingEvent.value.id}`, payload);
         alert('予定を更新しました');
     } catch (error) {
         console.error('編集エラー:', error);
@@ -637,7 +634,7 @@ const submitStudentReservation = async () => {
         teacherId: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
         startTime: startDateTime,
         endTime: endDateTime,
-        createdAt: startDateTime-endDateTime,
+        createdAt: moment().format('YYYY-MM-DDTHH:mm:ss'),
         status: 0 // 承認待ち
     };
     try {
@@ -819,9 +816,9 @@ onMounted(async () => {
     font-weight: bold;
 }
 
-.event-count {
-    font-size: 0.8em;
-    color: #007bff;
+.student-info {
+    font-size: 12px;
+    color: hsl(211, 100%, 50%);
     margin-top: 5px;
 }
 
@@ -832,7 +829,7 @@ onMounted(async () => {
 }
 
 .event-title {
-    font-size: 0.8em;
+    font-size: 12px;
     color: #ff9800;
     white-space: nowrap;
     overflow: hidden;
