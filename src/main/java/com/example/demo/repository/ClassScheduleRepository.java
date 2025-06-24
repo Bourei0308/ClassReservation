@@ -19,6 +19,4 @@ public interface ClassScheduleRepository extends MongoRepository<ClassSchedule, 
 
 	List<ClassSchedule> findByStartTimeBetweenAndIsRemindedFalse(LocalDateTime start, LocalDateTime end);
 
-	List<ClassSchedule> findByAvailableTimeId(String availableTimeId);
-
 }
