@@ -18,13 +18,13 @@ const router = createRouter({
     {
       path: '/top/1',
       name: '学生トップ',
-      meta: { requiresAuth: true, role_number: 1 },
+      meta: { requiresAuth: false, role_number: 1 },
       component: () => import('../views/general_user/student_top.vue'),
     },
     {
       path: '/top/2',
       name: '先生トップ',
-      meta: { requiresAuth: true, role_number: 2 },
+      meta: { requiresAuth: false, role_number: 2 },
       component: () => import('../views/general_user/teacher_top.vue'),
     },
     {
