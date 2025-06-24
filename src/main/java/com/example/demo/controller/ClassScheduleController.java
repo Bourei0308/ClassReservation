@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -52,5 +53,19 @@ public class ClassScheduleController {
 	@Operation(summary = "idで授業を削除")
 	public void delete(@PathVariable String id) {
 		repository.deleteById(id);
+	}
+	
+	@PutMapping("/{id}")
+	@Operation(summary = "idで授業を更新")
+	public ClassSchedule update(@PathVariable String id, @RequestBody ClassSchedule updatedSchedule) {
+	    return repository.findById(id)
+	        .map(schedule -> {
+	            schedule.setStartTime(updatedSchedule.getStartTime());
+	            schedule.setEndTime(updatedSchedule.getEndTime());
+	            schedule.setCreatedAt(updatedSchedule.getCreatedAt());
+	            // 添加你需要更新的字段
+	            return repository.save(schedule);
+	        })
+	        .orElseThrow(() -> new RuntimeException("指定された授業が見つかりません: " + id));
 	}
 }

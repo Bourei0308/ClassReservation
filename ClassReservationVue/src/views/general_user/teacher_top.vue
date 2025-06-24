@@ -1,11 +1,12 @@
 <template>
     <div>
-        <Top_Calender account="teacher" :teacherID=userid />
-        <Top_ChatBox />
-
-        <div>
-            <TimeBand :blue_time="blueTimes" />
+        <div class="timeband_section">
+            <h2 class="center_title">今日の予定</h2>
+            <TimeBand :blue_time="blueTimes" :hourStep="2" />
         </div>
+        <Top_Calender account="teacher" :teacherID=userid />
+
+        <Top_ChatBox />
     </div>
 </template>
 
@@ -27,3 +28,13 @@ const blueTimes = [
     ['2025-06-20 14:15', '2025-06-20 15:00']
 ]
 </script>
+
+<style scoped>
+.timeband_section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 50px 0;
+}
+</style>

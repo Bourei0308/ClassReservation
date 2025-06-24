@@ -28,20 +28,15 @@
                         return isSelected;
                     })()
                 }]" @click="handleDayClick(dayObj)">
-                    {{ dayObj.day }}<div v-if="dayObj.eventList && dayObj.eventList.length > 0" class="event-count">
+                    {{ dayObj.day }}<div v-if="dayObj.eventList && dayObj.eventList.length > 0">
                         <!-- イベント: {{ dayObj.eventList.length }}件 -->
                         <ul class="event-list">
-                            <li v-for="event in dayObj.eventList" :key="event.id" class="event-title">
-                                {{ event.title }}
+                            <li v-for="event in dayObj.eventList" :key="event.id">
+                                <span v-if="event && !event.studentName" class="event-title">{{ event.title }}</span>
+                                <span v-if="event && event.studentName" class="student-info">{{ event.title }}</span>
                             </li>
                         </ul>
-                        <div v-if="dayObj.eventList.length > 0">
-                            <div v-for="event in dayObj.eventList" :key="event.id + '-student'" class="student-info">
-                                <span v-if="event && event.studentName">生徒: {{ event.studentName }}さん</span>
-                            </div>
-                        </div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -51,19 +46,22 @@
             <div v-if="selectedDayEvents.eventList && selectedDayEvents.eventList.length > 0">
                 <h4>この日のイベント:</h4>
                 <ul>
-                    <li v-for="event in selectedDayEvents.eventList" :key="event.id">
+                    <li v-for="event in selectedDayEvents.eventList" :key="event.id" :class="event.studentName ? 'student-event' : 'teacher-event'">
                         {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{
                             moment(event.endTime).format('HH:mm') }})
-                        <button @click="openEditPopup(event)">編集</button>
-                        <button @click="deleteEditPopup(event)">削除</button>
+                        <button v-if="account === 'teacher' || (account === 'student' && event.studentName)" @click="openEditPopup(event)">編集</button>
+                        <button v-if="account === 'teacher' || (account === 'student' && event.studentName)" @click="deleteEditPopup(event)">削除</button>
                     </li>
                 </ul>
             </div>
             <div v-else>
                 この日にはイベントがありません。
             </div>
-            <div class="new">
+            <div v-if="account === 'teacher' || account === 'student' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.teacherName)" class="new">
                 <button class="reserve-btn" @click="openReservationPopup">新しい予約を入れる</button>
+            </div>
+            <div v-else class="message">
+                <label>先生を選択して下さい</label>
             </div>
             <div v-if="showPopup" class="popup-overlay">
                 <div class="popup-content">
@@ -94,11 +92,14 @@
                         </label>
                         <div style="margin-top:10px;">
                             <button v-if="popupMode === 'create'" @click="submitReservation">登録</button>
-                            <button v-else-if="popupMode === 'edit'" @click="submitEditReservation">更新</button>
+                            <button v-else-if="popupMode === 'edit'" @click="submitTeacherEditReservation">更新</button>
                             <button @click="closeReservationPopup">キャンセル</button>
                         </div>
                     </div>
                     <div v-else-if="account === 'student'">
+                        <label>その日の先生の予定:
+                            
+                        </label>
                         <label>開始日:
                             <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
                                 disabled />
@@ -113,14 +114,28 @@
                         <label>終了時間:
                             <input type="time" v-model="popupEndTime" />
                         </label>
+                        <label v-if="popupMode === 'edit'">承認状態:
+                            <span v-if="popupMode === 'edit' && editingEvent" :style="{
+                                color: editingEvent.status === 0 ? '#ff9800' : editingEvent.status === 1 ? '#2196f3' : editingEvent.status === 2 ? '#4caf50' : editingEvent.status === 3 ? '#f44336' : '#888',
+                                fontWeight: 'bold',
+                                marginLeft: '10px'
+                            }">
+                                {{
+                                    editingEvent.status === 0 ? '承認待ち' :
+                                    editingEvent.status === 1 ? '承認済み' :
+                                    editingEvent.status === 2 ? '完了' :
+                                    editingEvent.status === 3 ? 'キャンセル' :
+                                    '不明'
+                                }}
+                            </span>
+                            <span v-else style="color:#888; margin-left:10px;">申請時は「承認待ち」になります</span>
+                        </label>
                         <div style="margin-top:10px;">
                             <button v-if="popupMode === 'create'" @click="submitStudentReservation">予約申請</button>
-                            <button v-else-if="popupMode === 'edit'" @click="submitEditReservation">更新</button>
+                            <button v-else-if="popupMode === 'edit'" @click="submitStudentEditReservation">更新</button>
                             <button @click="closeReservationPopup">キャンセル</button>
                         </div>
                     </div>
-
-
 
                     <div v-else>
                         <span>予約はこのアカウントでは入力できません。</span>
@@ -339,6 +354,7 @@ const getEvents = async () => {
                 startTime: e.startTime || e.start_time,
                 endTime: e.endTime || e.end_time,
                 student_id: e.studentId,
+                teacher_id: e.teacherId,
                 status: e.status
             }))
         ];
@@ -392,6 +408,7 @@ const getDayEvents = (date) => {
         return calendarEvent.value.filter(event => {
             const eventDate = moment(event.startTime).format('YYYY-MM-DD');
             // 自分が担当 or 生徒が登録
+            console.log("event",eventDate,event.teacher_id)
             const isTeacher = teacherID.value ? event.teacher_id == teacherID.value : (selectedTeacher.value && event.teacher_id == selectedTeacher.value.id);
             return (eventDate === targetDate) && isTeacher;
         }).map(event => {
@@ -526,7 +543,6 @@ const submitReservation = async () => {
     const date = selectedDayEvents.value.date;
     const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
     const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
-    const id = selectedEventId.value;
     const payload = {
         teacherId: props.teacherID,
         startTime: startDateTime,
@@ -534,7 +550,7 @@ const submitReservation = async () => {
     };
     // ここでAPI送信などの処理を実装
     try {
-        const resT = await axios.post(`/api/available-times/${id}`, payload);//先生の予定予約
+        const resT = await axios.post(`/api/available-times`, payload);//先生の予定予約
         // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
         console.log('resT.data:', resT.data);
         if (resT.data) {
@@ -550,8 +566,39 @@ const submitReservation = async () => {
     showPopup.value = false;
 };
 
-// 編集の登録
-const submitEditReservation = async () => {
+// 生徒の編集の登録
+const submitStudentEditReservation = async () => {
+    if (!popupStartTime.value || !popupEndTime.value) {
+        alert('開始時間と終了時間を入力してください');
+        return;
+    }
+    const date = selectedDayEvents.value.date;
+    const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
+    const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
+    if (!editingEvent.value) return;
+    const payload = {
+        id: editingEvent.value.id,
+        teacherId: editingEvent.value.teacher_id,
+        studentId: studentID.value,
+        teacherId: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
+        createdAt: moment().format('YYYY-MM-DDTHH:mm:ss'),
+        startTime: startDateTime,
+        endTime: endDateTime,
+        status: editingEvent.value.status, // 承認待ち
+    };
+    try {
+        await axios.put(`/api/class-schedules/${editingEvent.value.id}`, payload);
+        alert('予定を更新しました');
+    } catch (error) {
+        console.error('編集エラー:', error);
+        alert('予定の更新に失敗しました');
+    }
+    onChange();
+    showPopup.value = false;
+};
+
+// 先生の編集の登録
+const submitTeacherEditReservation = async () => {
     if (!popupStartTime.value || !popupEndTime.value) {
         alert('開始時間と終了時間を入力してください');
         return;
@@ -586,12 +633,13 @@ const submitStudentReservation = async () => {
     const date = selectedDayEvents.value.date;
     const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
     const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
-    const teacherId = teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null);
     const payload = {
-        teacherId: teacherId,
         studentId: studentID.value,
+        teacherId: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
         startTime: startDateTime,
-        endTime: endDateTime
+        endTime: endDateTime,
+        createdAt: moment().format('YYYY-MM-DDTHH:mm:ss'),
+        status: 0 // 承認待ち
     };
     try {
         await axios.post(`/api/class-schedules`, payload);
@@ -772,9 +820,9 @@ onMounted(async () => {
     font-weight: bold;
 }
 
-.event-count {
-    font-size: 0.8em;
-    color: #007bff;
+.student-info {
+    font-size: 12px;
+    color: hsl(211, 100%, 50%);
     margin-top: 5px;
 }
 
@@ -785,7 +833,7 @@ onMounted(async () => {
 }
 
 .event-title {
-    font-size: 0.8em;
+    font-size: 12px;
     color: #ff9800;
     white-space: nowrap;
     overflow: hidden;
@@ -947,5 +995,27 @@ onMounted(async () => {
     background: linear-gradient(90deg, #ffb74d 0%, #ffe082 100%);
     color: #ff9800;
     box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+}
+
+.message {
+    background: #fffbe6;
+    border: 1.5px solid #ffd700;
+    color: #b8860b;
+    border-radius: 8px;
+    padding: 18px 0;
+    margin: 18px 0;
+    text-align: center;
+    font-size: 1.1em;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.08);
+}
+
+.student-event {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #2196f3 !important;
+}
+.teacher-event {
+    background-color: #fff3e0 !important;
+    border-left: 4px solid #ff9800 !important;
 }
 </style>
