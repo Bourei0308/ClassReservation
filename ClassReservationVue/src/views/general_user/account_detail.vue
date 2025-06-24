@@ -1,3 +1,4 @@
+
 <template>
   <div class="user-info-wrapper">
     <div class="user-info-box">
@@ -40,9 +41,22 @@ const goToEdit = () => {
   router.push('/account/edit')
 }
 
-const goToPasswordChange = () => {
-  router.push('/account/newpassword')
+const goToPasswordChange = async () => {
+  try {
+    // 認証コード送信API（6桁生成＋メール送信）
+    await fetch('/api/auth/send-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.value.email })
+    })
+
+    // 認証コード入力画面へ
+    router.push('/account/passwordedit')
+  } catch (err) {
+    alert('認証メールの送信に失敗しました')
+  }
 }
+
 </script>
 
 <style scoped>

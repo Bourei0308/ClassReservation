@@ -1,3 +1,5 @@
+
+
 // 📁 scripts/emailSender.js
 
 // 共通メール送信関数（Gmail API経由で使うことを想定）
@@ -66,4 +68,12 @@ export const EmailTemplates = {
       body: `${teacherName}先生、\n\n明日 ${classTime} に授業の予定があります。\n準備をお願いいたします。\n\nじゅくポン運営`,
     };
   },
+
+// パスワード変更完了
+passwordChanged(userName) {
+  return {
+    subject: "【じゅくポン】パスワード変更完了のお知らせ",
+    body: `${userName}さん\n\nパスワードの変更が正常に完了しました。\n\nご本人による操作でない場合は、速やかにご連絡ください。\n\n引き続き「じゅくポン」をご利用いただけますようお願いいたします。\n\nじゅくポン運営`,
+  };
+},
 };
