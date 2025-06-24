@@ -133,6 +133,10 @@ import moment from "moment";
 import _ from "lodash";
 import axios from 'axios';
 
+import { useAuth } from '@/scripts/useAuth'
+const { user } = useAuth()
+
+
 // 親から受け取るpropsを定義
 const props = defineProps({
     account: {
@@ -148,6 +152,8 @@ const props = defineProps({
         default: null
     }
 });
+
+
 
 // リアクティブな状態
 const currentDate = ref(moment()); // 現在の月を基準にするmomentオブジェクト
@@ -320,14 +326,13 @@ const getEvents = async () => {
                 ...e,
                 startTime: e.startTime || e.start_time,
                 endTime: e.endTime || e.end_time,
-                student_id: e.student_id,
                 teacher_id: e.teacherId,
             })),
             ...studentEvents.map(e => ({
                 ...e,
                 startTime: e.startTime || e.start_time,
                 endTime: e.endTime || e.end_time,
-                student_id: e.student_id,
+                student_id: e.studentId,
                 status: e.status
             }))
         ];
@@ -467,6 +472,12 @@ const onTeacherChange = async () => {
 const onChange = async () => {
     await getEvents();
     await generateCalendar();
+    const events = getDayEvents(selectedDay.value.date);
+
+    selectedDayEvents.value = {
+        ...selectedDay.value,
+        eventList: events,
+    };
 };
 
 // 新しい予約のポップアップを開く
