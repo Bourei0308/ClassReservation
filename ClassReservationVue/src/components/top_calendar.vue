@@ -49,7 +49,7 @@
                     <li v-for="event in selectedDayEvents.eventList" :key="event.id" :class="event.studentName ? 'student-event' : 'teacher-event'">
                         {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{
                             moment(event.endTime).format('HH:mm') }})
-                        <TimeBand :blue_time="blueTimes" :hour-step="2" />
+                        <TimeBand :blue_time="blueTimes" :hour-step="2" v-if="!event.studentName"/>
                         <button v-if="account === 'teacher' || (account === 'student' && event.studentName)" @click="openEditPopup(event)">編集</button>
                         <button v-if="account === 'teacher' || (account === 'student' && event.studentName)" @click="deleteEditPopup(event)">削除</button>
                     </li>
@@ -467,9 +467,11 @@ const getDayEvents = (date) => {
 
 // 日付クリック時のハンドラ
 const handleDayClick = (dayObj) => {    
-    console.log('日付がクリックされました:', dayObj);
-    console.log(blueTimes)
-    blueTimes.value = fetchAndProcessBlueTimes(selectedTeacher.value.id,dayObj.date);
+    // console.log('日付がクリックされました:', dayObj);
+    // console.log(blueTimes);
+    if (selectedTeacher.value&&dayObj) {
+        blueTimes.value = fetchAndProcessBlueTimes(selectedTeacher.value.id, dayObj.date);
+    }
     if (dayObj.isPrev || dayObj.isNext) {
 
         selectedDayEvents.value = null;
