@@ -351,6 +351,7 @@ const getEvents = async () => {
                 startTime: e.startTime || e.start_time,
                 endTime: e.endTime || e.end_time,
                 student_id: e.studentId,
+                teacher_id: e.teacherId,
                 status: e.status
             }))
         ];
@@ -404,6 +405,7 @@ const getDayEvents = (date) => {
         return calendarEvent.value.filter(event => {
             const eventDate = moment(event.startTime).format('YYYY-MM-DD');
             // 自分が担当 or 生徒が登録
+            console.log("event",eventDate,event.teacher_id)
             const isTeacher = teacherID.value ? event.teacher_id == teacherID.value : (selectedTeacher.value && event.teacher_id == selectedTeacher.value.id);
             return (eventDate === targetDate) && isTeacher;
         }).map(event => {
@@ -538,7 +540,6 @@ const submitReservation = async () => {
     const date = selectedDayEvents.value.date;
     const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
     const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
-    const id = selectedEventId.value;
     const payload = {
         teacherId: props.teacherID,
         startTime: startDateTime,
@@ -546,7 +547,7 @@ const submitReservation = async () => {
     };
     // ここでAPI送信などの処理を実装
     try {
-        const resT = await axios.post(`/api/available-times/${id}`, payload);//先生の予定予約
+        const resT = await axios.post(`/api/available-times`, payload);//先生の予定予約
         // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
         console.log('resT.data:', resT.data);
         if (resT.data) {
