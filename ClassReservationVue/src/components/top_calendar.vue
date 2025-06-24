@@ -46,7 +46,7 @@
             <div v-if="selectedDayEvents.eventList && selectedDayEvents.eventList.length > 0">
                 <h4>この日のイベント:</h4>
                 <ul>
-                    <li v-for="event in selectedDayEvents.eventList" :key="event.id">
+                    <li v-for="event in selectedDayEvents.eventList" :key="event.id" :class="event.studentName ? 'student-event' : 'teacher-event'">
                         {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{
                             moment(event.endTime).format('HH:mm') }})
                         <button v-if="account === 'teacher' || (account === 'student' && event.studentName)" @click="openEditPopup(event)">編集</button>
@@ -1008,5 +1008,14 @@ onMounted(async () => {
     font-size: 1.1em;
     font-weight: bold;
     box-shadow: 0 2px 8px rgba(255, 215, 0, 0.08);
+}
+
+.student-event {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #2196f3 !important;
+}
+.teacher-event {
+    background-color: #fff3e0 !important;
+    border-left: 4px solid #ff9800 !important;
 }
 </style>
