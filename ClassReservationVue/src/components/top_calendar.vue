@@ -46,7 +46,8 @@
             <div v-if="selectedDayEvents.eventList && selectedDayEvents.eventList.length > 0">
                 <h4>この日のイベント:</h4>
                 <ul>
-                    <li v-for="event in selectedDayEvents.eventList" :key="event.id" :class="event.studentName ? 'student-event' : 'teacher-event'">
+                    <li v-for="event in selectedDayEvents.eventList" :key="event.id"
+                        :class="event.studentName ? 'student-event' : 'teacher-event'">
                         {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{
                             moment(event.endTime).format('HH:mm') }})
                         <TimeBand :blue_time="blueTimes" :hour-step="2" v-if="!event.studentName"/>
@@ -58,7 +59,8 @@
             <div v-else>
                 この日にはイベントがありません。
             </div>
-            <div v-if="account === 'teacher' || account === 'student' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.teacherName)" class="new">
+            <div v-if="account === 'teacher' || account === 'student' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.teacherName)"
+                class="new">
                 <button class="reserve-btn" @click="openReservationPopup">新しい予約を入れる</button>
             </div>
             <div v-else-if="!selectedTeacher" class="message">
@@ -102,7 +104,7 @@
                     </div>
                     <div v-else-if="account === 'student'">
                         <label>その日の先生の予定:
-                            
+
                         </label>
                         <label>開始日:
                             <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
@@ -126,10 +128,10 @@
                             }">
                                 {{
                                     editingEvent.status === 0 ? '承認待ち' :
-                                    editingEvent.status === 1 ? '承認済み' :
-                                    editingEvent.status === 2 ? '完了' :
-                                    editingEvent.status === 3 ? 'キャンセル' :
-                                    '不明'
+                                        editingEvent.status === 1 ? '承認済み' :
+                                            editingEvent.status === 2 ? '完了' :
+                                                editingEvent.status === 3 ? 'キャンセル' :
+                                                    '不明'
                                 }}
                             </span>
                             <span v-else style="color:#888; margin-left:10px;">申請時は「承認待ち」になります</span>
@@ -414,7 +416,7 @@ const getDayEvents = (date) => {
         return calendarEvent.value.filter(event => {
             const eventDate = moment(event.startTime).format('YYYY-MM-DD');
             // 自分が担当 or 生徒が登録
-            console.log("event",eventDate,event.teacher_id)
+            console.log("event", eventDate, event.teacher_id)
             const isTeacher = teacherID.value ? event.teacher_id == teacherID.value : (selectedTeacher.value && event.teacher_id == selectedTeacher.value.id);
             return (eventDate === targetDate) && isTeacher;
         }).map(event => {
@@ -466,11 +468,10 @@ const getDayEvents = (date) => {
 };
 
 // 日付クリック時のハンドラ
-const handleDayClick = (dayObj) => {    
-    // console.log('日付がクリックされました:', dayObj);
-    // console.log(blueTimes);
+const handleDayClick = async (dayObj) => {
+    console.log('日付がクリックされました:', dayObj);
     if (selectedTeacher.value&&dayObj) {
-        blueTimes.value = fetchAndProcessBlueTimes(selectedTeacher.value.id, dayObj.date);
+        blueTimes.value = await fetchAndProcessBlueTimes(selectedTeacher.value.id, dayObj.date);
     }
     if (dayObj.isPrev || dayObj.isNext) {
 
@@ -510,7 +511,7 @@ const onChange = async () => {
         ...selectedDay.value,
         eventList: events,
     };
-    
+
 };
 
 // 新しい予約のポップアップを開く
@@ -653,9 +654,9 @@ const submitStudentReservation = async () => {
     };
     try {
         const sc = await axios.post(`/api/class-schedules`, payload);
-        console.log('授業のID:'+sc.id)
+        console.log('授業のID:' + sc.id)
         //登録したことを先生にメールで送信
-        if(sc){
+        if (sc) {
             mailSend(sc.id);
         }
         alert('予約申請を送信しました');
@@ -700,12 +701,12 @@ const formatDate = (date) => {
 };
 
 // メールを送信する関数
-const mailSend = async (scheduleId) =>{
-    try{
+const mailSend = async (scheduleId) => {
+    try {
         await axios.post("/api/mail/notify/teacher", {
-          classScheduleId: scheduleId
-        }); 
-    }catch(error){
+            classScheduleId: scheduleId
+        });
+    } catch (error) {
         console.error('生徒予約エラー:', error);
     }
 }
@@ -1040,6 +1041,7 @@ onMounted(async () => {
     background-color: #e3f2fd !important;
     border-left: 4px solid #2196f3 !important;
 }
+
 .teacher-event {
     background-color: #fff3e0 !important;
     border-left: 4px solid #ff9800 !important;
