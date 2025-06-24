@@ -49,6 +49,7 @@
                     <li v-for="event in selectedDayEvents.eventList" :key="event.id" :class="event.studentName ? 'student-event' : 'teacher-event'">
                         {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{
                             moment(event.endTime).format('HH:mm') }})
+                        <TimeBand :blue_time="blueTimes" :hour-step="2" />
                         <button v-if="account === 'teacher' || (account === 'student' && event.studentName)" @click="openEditPopup(event)">編集</button>
                         <button v-if="account === 'teacher' || (account === 'student' && event.studentName)" @click="deleteEditPopup(event)">削除</button>
                     </li>
@@ -154,12 +155,13 @@
 import { ref, computed, onMounted } from 'vue';
 import { defineProps } from 'vue';
 import moment from "moment";
-import _ from "lodash";
+import _, { chain } from "lodash";
 import axios from 'axios';
 
+import { fetchAndProcessBlueTimes } from '@/scripts/chatUtils'
+import TimeBand from '@/components/comp_timeband.vue'
 import { useAuth } from '@/scripts/useAuth'
 const { user } = useAuth()
-
 
 // 親から受け取るpropsを定義
 const props = defineProps({
@@ -199,6 +201,7 @@ const popupStartTime = ref('');
 const popupEndTime = ref('');
 const popupMode = ref('create'); // 'create' or 'edit'
 const editingEvent = ref(null); // 編集対象イベント
+const blueTimes = ref([]);
 
 // 算出プロパティ
 const currentMonthYear = computed(() => {
@@ -504,6 +507,8 @@ const onChange = async () => {
         ...selectedDay.value,
         eventList: events,
     };
+
+    blueTimes = fetchAndProcessBlueTimes(selectedTeacher.value,selectedDayEvents.value.date);
 };
 
 // 新しい予約のポップアップを開く
@@ -645,7 +650,12 @@ const submitStudentReservation = async () => {
         status: 0 // 承認待ち
     };
     try {
-        await axios.post(`/api/class-schedules`, payload);
+        const sc = await axios.post(`/api/class-schedules`, payload);
+        console.log('授業のID:'+sc.id)
+        //登録したことを先生にメールで送信
+        if(sc){
+            mailSend(sc.id);
+        }
         alert('予約申請を送信しました');
     } catch (error) {
         console.error('生徒予約エラー:', error);
@@ -686,6 +696,17 @@ const submitDeleteReservation = async () => {
 const formatDate = (date) => {
     return moment(date).format('YYYY-MM-DD');
 };
+
+// メールを送信する関数
+const mailSend = async (scheduleId) =>{
+    try{
+        await axios.post("/api/mail/notify/teacher", {
+          classScheduleId: scheduleId
+        }); 
+    }catch(error){
+        console.error('生徒予約エラー:', error);
+    }
+}
 
 // ライフサイクルフック
 onMounted(async () => {
