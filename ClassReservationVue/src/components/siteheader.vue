@@ -40,13 +40,16 @@ const router = useRouter()
 const goTo = (path) => {
   router.push(path)
 }
-import { ref, onMounted } from 'vue'
+import { ref, onMounted,watch } from 'vue'
 import { useAuth } from '@/scripts/useAuth'
 const { user, restoreLogin,isLoggedIn  } = useAuth()
 onMounted(async () => {
   await restoreLogin()
-  if (user.value != null) {
-    role.value = user.value.role
+})
+
+watch(() => user.value, (newUser) => {
+  if (newUser) {
+    role.value = newUser.role
   }
 })
 

@@ -14,6 +14,9 @@ import { useRouter } from 'vue-router'
 
 import { sendEmail, EmailTemplates } from '@/scripts/emailSender' // ✅ 追加
 
+import { useAuth } from '@/scripts/useAuth'
+const { logout  } = useAuth()
+
 const router = useRouter()
 
 const email = ref('')
@@ -68,7 +71,7 @@ const changePassword = async () => {
     } catch (e) {
       console.error("メール送信失敗", e)
     }
-
+    logout()
     setTimeout(() => router.push('/'), 3000)
   } else {
     const message = await res.text()
