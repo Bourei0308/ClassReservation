@@ -54,6 +54,7 @@
                     <li v-for="event in selectedDayEvents.eventList" :key="event.id">
                         {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{ moment(event.endTime).format('HH:mm') }})
                         <button @click="openEditPopup(event)">編集</button>
+                        <button @click="deleteEditPopup(event)">削除</button>
                     </li>
                 </ul>
             </div>
@@ -67,6 +68,7 @@
                 <div class="popup-content">
                     <h4 v-if="popupMode === 'create'">新しい予約</h4>
                     <h4 v-else-if="popupMode === 'edit'">予定の編集</h4>
+                    <h4 v-else-if="popupMode === 'delete'">予定の削除</h4>
                     <div v-if="account === 'teacher'">
                         <label>開始日:
                             <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''" disabled />
@@ -103,6 +105,15 @@
                             <button v-if="popupMode === 'create'" @click="submitStudentReservation">予約申請</button>
                             <button v-else-if="popupMode === 'edit'" @click="submitEditReservation">更新</button>
                             <button @click="closeReservationPopup">キャンセル</button>
+                        </div>
+                    </div>
+                    <div v-else-if="account === 'delete'">
+                        <div v-if="popupMode === 'delete' && editingEvent">
+                            <p>本当にこの予定を削除しますか？</p>
+                            <div style="margin-top:10px;">
+                                <button @click="submitDeleteReservation">削除</button>
+                                <button @click="closeReservationPopup">キャンセル</button>
+                            </div>
                         </div>
                     </div>
                     <div v-else>
@@ -475,6 +486,14 @@ const openEditPopup = (event) => {
     popupStartTime.value = moment(event.startTime).format('HH:mm');
     popupEndTime.value = moment(event.endTime).format('HH:mm');
 };
+
+// 削除ポップアップを開く
+const deleteEditPopup = (event) => {
+    showPopup.value = true;
+    popupMode.value = 'delete';
+    editingEvent.value = event;
+};
+
 // 新しい予約のポップアップを閉じる
 const closeReservationPopup = () => {
     showPopup.value = false;
@@ -563,6 +582,33 @@ const submitStudentReservation = async () => {
     } catch (error) {
         console.error('生徒予約エラー:', error);
         alert('予約申請に失敗しました');
+    }
+    onChange();
+    showPopup.value = false;
+};
+
+// 予定を削除する
+const submitDeleteReservation = async () => {
+    if (!editingEvent.value) return;
+    const eventId = editingEvent.value.id;
+    let url = '';
+    // 先生の予定か生徒の予定かでURLを分岐
+    if (editingEvent.value.teacher_id && !editingEvent.value.student_id) {
+        // 先生の空き時間（available-times）
+        url = `/api/available-times/${eventId}`;
+    } else if (editingEvent.value.student_id) {
+        // 生徒の予約（class-schedules）
+        url = `/api/class-schedules/${eventId}`;
+    } else {
+        // アラート
+        alert('生徒でも先生でもありません');
+    }
+    try {
+        await axios.delete(url);
+        alert('予定を削除しました');
+    } catch (error) {
+        console.error('削除エラー:', error);
+        alert('予定の削除に失敗しました');
     }
     onChange();
     showPopup.value = false;
