@@ -1,3 +1,4 @@
+
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -78,6 +79,12 @@ const router = createRouter({
       name: 'ユーザパスワード変更',
       meta: { requiresAuth: true },
       component: () => import('../views/general_user/account_editpassword.vue'),
+    },
+    {
+      path: '/account/passwordedit',
+      name: 'ユーザパスワード変更認証コード',
+      meta: { requiresAuth: true },
+      component: () => import('../views/general_user/account_passwordinfo.vue'),
     },
 
   ],
