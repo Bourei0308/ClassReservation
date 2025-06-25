@@ -83,5 +83,16 @@ public class ClassScheduleController {
 				})
 				.sum();
 	}
+	
+	@PutMapping("/{id}/status/{status}")
+	@Operation(summary = "指定授業のステータスを更新")
+	public ClassSchedule updateStatus(@PathVariable String id, @PathVariable int status) {
+		return repository.findById(id)
+				.map(schedule -> {
+					schedule.setStatus(status);
+					return repository.save(schedule);
+				})
+				.orElseThrow(() -> new RuntimeException("指定された授業が見つかりません: " + id));
+	}
 
 }

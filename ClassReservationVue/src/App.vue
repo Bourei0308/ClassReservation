@@ -2,6 +2,28 @@
 import { RouterLink, RouterView } from 'vue-router'
 import siteheader from './components/siteheader.vue'
 import sitefooter from './components/sitefooter.vue'
+
+import { ref, provide } from 'vue'
+const hasUnreadMessage = ref(false)
+provide('hasUnreadMessage', hasUnreadMessage)
+
+import { useWebSocket } from '@/scripts/useWebSocket'
+import { onMounted, onUnmounted } from 'vue'
+const { connect, disconnect } = useWebSocket()
+
+import { useAuth } from '@/scripts/useAuth'
+const { user,restoreLogin } = useAuth()
+
+onMounted(async() => {
+  await restoreLogin()
+  connect()
+})
+
+onUnmounted(() => {
+  disconnect()
+})
+
+
 </script>
 
 <template>
