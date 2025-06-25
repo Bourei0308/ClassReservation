@@ -18,7 +18,11 @@
 
       <!-- Chat icon -->
       <div class="icon_link" @click="goTo('/chat')">
-        <MessageCircleIcon class="header_icon" />
+        <div class="icon_box">
+          <MessageCircleIcon class="header_icon" />
+          <div v-if="hasUnreadMessage" class="unread_dot"></div>
+        </div>
+
       </div>
 
       <!-- マイページ button -->
@@ -32,7 +36,6 @@
 <script setup>
 
 const role = ref(1)
-
 import { useRouter } from 'vue-router'
 import { BellIcon, MessageCircleIcon } from 'lucide-vue-next'
 
@@ -40,9 +43,15 @@ const router = useRouter()
 const goTo = (path) => {
   router.push(path)
 }
-import { ref, onMounted,watch } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useAuth } from '@/scripts/useAuth'
-const { user, restoreLogin,isLoggedIn  } = useAuth()
+const { user, restoreLogin, isLoggedIn } = useAuth()
+
+import { inject } from 'vue'
+const hasUnreadMessage = inject('hasUnreadMessage')
+import { useWebSocket } from '@/scripts/useWebSocket'
+const { subscribe } = useWebSocket()
+
 onMounted(async () => {
   await restoreLogin()
 })
@@ -50,8 +59,18 @@ onMounted(async () => {
 watch(() => user.value, (newUser) => {
   if (newUser) {
     role.value = newUser.role
+    subscribe(`/api/topic/unread/${newUser.id}`, () => {
+      console.log("message")
+      hasUnreadMessage.value = true
+    })
   }
 })
+
+onBeforeUnmount(() => {
+  if (user.value) {
+  }
+})
+
 
 </script>
 
@@ -103,6 +122,11 @@ watch(() => user.value, (newUser) => {
 .header_icon {
   width: 24px;
   height: 24px;
+
+}
+
+.icon_box {
+  position: relative;
 }
 
 .mypage_button {
@@ -117,5 +141,19 @@ watch(() => user.value, (newUser) => {
 
 .mypage_button:hover {
   background-color: #333;
+}
+
+.message_icon_wrapper {
+  position: relative;
+}
+
+.unread_dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 50%;
 }
 </style>

@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,9 +36,18 @@ public class ChatController {
 	@PostMapping
 	@Operation(summary = "チャット追加")
 	public Chat sendMessage(@RequestBody Chat chat) {
-		System.out.println("Sending message to: /api/topic/chats/" + chat.getToUserId());
-	    messagingTemplate.convertAndSend("/api/topic/chats/" + chat.getToUserId(), chat);
-		return repository.save(chat);
+	    // 设置时间和未读状态（可选）
+	    chat.setCreatedAt(LocalDateTime.now());
+	    chat.setRead(false);
+
+	    // ⚠️ 先保存，MongoDB会生成id
+	    Chat savedChat = repository.save(chat);
+
+	    // 再发送给对方
+	    messagingTemplate.convertAndSend("/api/topic/chats/" + savedChat.getToUserId(), savedChat);
+	    messagingTemplate.convertAndSend("/api/topic/unread/" + savedChat.getToUserId(), "new_message");
+	    // 返回给发送者
+	    return savedChat;
 	}
 	
 	@GetMapping("/unread/{userId}")
@@ -52,7 +62,8 @@ public class ChatController {
 	    Chat chat = repository.findById(id).orElse(null);
 	    if (chat != null && !chat.isRead()) {
 	        chat.setRead(true);
-	        repository.save(chat);
+	        Chat updatedChat =repository.save(chat);
+	        messagingTemplate.convertAndSend("/api/topic/read-status/" + chat.getFromUserId(), updatedChat);
 	    }
 	}
 }

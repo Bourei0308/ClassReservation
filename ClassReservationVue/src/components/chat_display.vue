@@ -42,7 +42,7 @@ const chatContainer = ref(null)
 
 import { useWebSocket } from '@/scripts/useWebSocket'
 
-const { send } = useWebSocket()
+const { send,subscribe,disconnect } = useWebSocket()
 
 const sendMessage = async () => {
     if (!text.value.trim()) return
@@ -108,6 +108,21 @@ watch(sortedMessages, () => {
             behavior: 'smooth'
         })
     })
+})
+
+import { onMounted, onUnmounted } from 'vue'
+
+onMounted(() => {
+    if (props.user) {
+        // ✅ 订阅已读状态
+        subscribe(`/api/topic/read-status/${props.user.id}`, (message) => {
+            const updatedChat = JSON.parse(message.body)
+            const index = props.chats.findIndex(c => c.id === updatedChat.id)
+            if (index !== -1) {
+                props.chats[index].isRead = true
+            }
+        })
+    }
 })
 </script>
 

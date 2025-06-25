@@ -16,6 +16,7 @@ const { user } = useAuth()
 const chats = ref([])
 const users = ref([])
 const selectedUser = ref(null)
+const selectedSender = ref(null)
 
 const fetchChats = async () => {
   const res = await axios.get(`/api/chats/user/${user.value.id}`)
@@ -36,12 +37,15 @@ const fetchUsers = async () => {
 
 const selectUser = (u) => {
   selectedUser.value = u
+  selectedSender.value = u
   localStorage.setItem('lastSelectedUserId', u.id)
 }
 
 // 自动恢复选中的用户
-
+import { inject } from 'vue'
+const hasUnreadMessage = inject('hasUnreadMessage')
 onMounted(async () => {
+  hasUnreadMessage.value = false
   await fetchUsers()
   await fetchChats()
 })
@@ -69,28 +73,26 @@ import { useWebSocket } from '@/scripts/useWebSocket'
 const { connect, disconnect, subscribe, send, isConnected } = useWebSocket()
 
 onMounted(() => {
-  connect()
-
   subscribe(`/api/topic/chats/${user.value.id}`, (message) => {
     const msg = JSON.parse(message.body)
-    console.log('Received:', msg)
     chats.value.push(msg)
 
-    if (selectedUser.value && selectedUser.value.id === msg.fromUserId) {
-      console.log('xxx:', 123)
+    if (selectedSender.value && selectedSender.value.id === msg.fromUserId) {
+      console.log(selectedSender.value.id)
       markAsRead([msg])
     }
   })
 })
 
 onUnmounted(() => {
-  disconnect()
+  selectedSender.value = null
 })
 
 const markAsRead = async (messages) => {
   for (const msg of messages) {
     if (!msg.isRead) {
       await axios.post(`/api/chats/mark-read/${msg.id}`, { ...msg, isRead: true })
+      hasUnreadMessage.value = false
       msg.isRead = true
     }
   }

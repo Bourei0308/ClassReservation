@@ -1,30 +1,27 @@
 <template>
-  <div class="top-chatbox">
-    <div class="chatbox-header">Chatbox</div>
-    <div class="chatbox-body">
-      <div v-if="senderIds.length === 0" class="no-unread">未読メッセージがありません。</div>
+  <div class="chatbox-section">
+    <div class="top-chatbox">
+      <div class="chatbox-header">Chatbox</div>
+      <div class="chatbox-body">
+        <div v-if="senderIds.length === 0" class="no-unread">未読メッセージがありません。</div>
 
-      <div
-        v-else
-        v-for="userId in senderIds"
-        :key="userId"
-        class="sender-box"
-      >
-        <div class="sender-header">
-          <div class="sender-name-area">
-            <span v-if="unreadCount(userId)" class="unread-badge">
-              {{ unreadCount(userId) }}
-            </span>
-            <span class="sender-name">
-              {{ getUserName(userId) }}
-            </span>
+        <div v-else v-for="userId in senderIds" :key="userId" class="sender-box">
+          <div class="sender-header">
+            <div class="sender-name-area">
+              <span v-if="unreadCount(userId)" class="unread-badge">
+                {{ unreadCount(userId) }}
+              </span>
+              <span class="sender-name">
+                {{ getUserName(userId) }}
+              </span>
+            </div>
+            <div class="message-time">
+              {{ latestMsgTime(userId) }}
+            </div>
           </div>
-          <div class="message-time">
-            {{ latestMsgTime(userId) }}
+          <div class="sender-message">
+            {{ latestMsg(userId)?.message }}
           </div>
-        </div>
-        <div class="sender-message">
-          {{ latestMsg(userId)?.message }}
         </div>
       </div>
     </div>
@@ -69,9 +66,16 @@ const latestMsgTime = (uid) => latestTime(unreadChats.value, uid)
 </script>
 
 <style scoped>
+.chatbox-section{
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 60px;
+}
 .top-chatbox {
   width: 400px;
-  height: 600px;
+  height: 300px;
   border: 1px solid #ccc;
   display: flex;
   flex-direction: column;
@@ -145,5 +149,4 @@ const latestMsgTime = (uid) => latestTime(unreadChats.value, uid)
   font-size: 14px;
   margin-top: 20px;
 }
-
 </style>
