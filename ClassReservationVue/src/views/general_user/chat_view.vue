@@ -16,6 +16,7 @@ const { user } = useAuth()
 const chats = ref([])
 const users = ref([])
 const selectedUser = ref(null)
+const selectedSender = ref(null)
 
 const fetchChats = async () => {
   const res = await axios.get(`/api/chats/user/${user.value.id}`)
@@ -36,6 +37,7 @@ const fetchUsers = async () => {
 
 const selectUser = (u) => {
   selectedUser.value = u
+  selectedSender.value = u
   localStorage.setItem('lastSelectedUserId', u.id)
 }
 
@@ -75,10 +77,15 @@ onMounted(() => {
     const msg = JSON.parse(message.body)
     chats.value.push(msg)
 
-    if (selectedUser.value && selectedUser.value.id === msg.fromUserId) {
+    if (selectedSender.value && selectedSender.value.id === msg.fromUserId) {
+      console.log(selectedSender.value.id)
       markAsRead([msg])
     }
   })
+})
+
+onUnmounted(() => {
+  selectedSender.value = null
 })
 
 const markAsRead = async (messages) => {
