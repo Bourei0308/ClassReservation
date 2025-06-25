@@ -77,6 +77,7 @@ onMounted(() => {
     chats.value.push(msg)
 
     if (selectedUser.value && selectedUser.value.id === msg.fromUserId) {
+      console.log('xxx:', 123)
       markAsRead([msg])
     }
   })

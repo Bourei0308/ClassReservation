@@ -35,6 +35,8 @@ public class ChatController {
 	@PostMapping
 	@Operation(summary = "チャット追加")
 	public Chat sendMessage(@RequestBody Chat chat) {
+		System.out.println("Sending message to: /api/topic/chats/" + chat.getToUserId());
+	    messagingTemplate.convertAndSend("/api/topic/chats/" + chat.getToUserId(), chat);
 		return repository.save(chat);
 	}
 	
@@ -42,9 +44,5 @@ public class ChatController {
 	@Operation(summary = "未読メッセージ取得")
 	public List<Chat> getUnreadMessages(@PathVariable String userId) {
 	    return repository.findByToUserIdAndIsRead(userId, false);
-	}
-	
-	public void sendMessageToUser(String toUserId, Chat chat) {
-	    messagingTemplate.convertAndSend("/api/topic/chats/" + toUserId, chat);
 	}
 }

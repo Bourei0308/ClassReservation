@@ -87,6 +87,20 @@ const sortedMessages = computed(() => {
         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
 })
 
+watch(() => props.targetUser, async () => {
+    if (props.targetUser) {
+        const unread = props.chats.filter(c =>
+            c.fromUserId === props.targetUser.id &&
+            c.toUserId === props.user.id &&
+            !c.isRead
+        )
+        for (const msg of unread) {
+            await axios.post('/api/chats', { ...msg, isRead: true })
+        }
+        emit('sent')
+    }
+})
+
 watch(sortedMessages, () => {
     nextTick(() => {
         chatContainer.value?.scrollTo({
