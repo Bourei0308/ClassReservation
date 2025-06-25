@@ -70,11 +70,11 @@ public class ChargeHistoryController {
 
 	@PutMapping("/{id}")
 	@Operation(summary = "IDでチャージ時間を更新")
-	public ChargeHistory updateChargeById(@PathVariable String id, @RequestParam int deltaHours) {
+	public ChargeHistory updateChargeById(@PathVariable String id, @RequestParam float deltaHours) {
 		ChargeHistory history = chargeHistoryRepository.findById(id)
 				.orElseThrow(() -> new RuntimeException("指定されたIDのチャージ履歴が見つかりません"));
 
-		int updatedHours = history.getChargeHours() + deltaHours;
+		float updatedHours = history.getChargeHours() + deltaHours;
 
 		if (updatedHours < 0) {
 			throw new RuntimeException("残り時間が0未満になるため、処理を中止しました");
