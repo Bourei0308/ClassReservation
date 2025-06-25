@@ -42,13 +42,17 @@ const chatContainer = ref(null)
 
 const send = async () => {
     if (!text.value.trim()) return
-    await axios.post('/api/chats', {
+    const payload = {
         fromUserId: props.user.id,
         toUserId: props.targetUser.id,
         message: text.value,
         createdAt: new Date().toISOString(),
         isRead: false
-    })
+    }
+    await axios.post('/api/chats', payload)
+
+    // WebSocket 主动推送（可选，服务端也会广播）
+    stompClient.value.send("/app/chat", {}, JSON.stringify(payload))
 
 
     // 💌 メール送信処理（ここを追加）
@@ -70,9 +74,6 @@ const send = async () => {
   } catch (error) {
     console.error('メール送信失敗:', error)
   }
-
-
-
     text.value = ''
     emit('sent')
 }
@@ -85,23 +86,12 @@ const sortedMessages = computed(() => {
         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
 })
 
-watch(() => props.targetUser, async () => {
-    if (props.targetUser) {
-        const unread = props.chats.filter(c =>
-            c.fromUserId === props.targetUser.id &&
-            c.toUserId === props.user.id &&
-            !c.isRead
-        )
-        for (const msg of unread) {
-            await axios.post('/api/chats', { ...msg, isRead: true })
-        }
-        emit('sent')
-    }
-})
-
-onUpdated(() => {
+watch(sortedMessages, () => {
     nextTick(() => {
-        chatContainer.value?.scrollTo({ top: chatContainer.value.scrollHeight, behavior: 'smooth' })
+        chatContainer.value?.scrollTo({
+            top: chatContainer.value.scrollHeight,
+            behavior: 'smooth'
+        })
     })
 })
 </script>
