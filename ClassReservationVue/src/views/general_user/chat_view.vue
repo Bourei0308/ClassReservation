@@ -71,7 +71,7 @@ const { connect, disconnect, subscribe, send, isConnected } = useWebSocket()
 onMounted(() => {
   connect()
 
-  subscribe(`/topic/chats/${user.value.id}`, (message) => {
+  subscribe(`/api/topic/chats/${user.value.id}`, (message) => {
     const msg = JSON.parse(message.body)
     console.log('Received:', msg)
     chats.value.push(msg)

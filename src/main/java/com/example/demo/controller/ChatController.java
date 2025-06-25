@@ -45,6 +45,6 @@ public class ChatController {
 	}
 	
 	public void sendMessageToUser(String toUserId, Chat chat) {
-	    messagingTemplate.convertAndSend("/topic/chats/" + toUserId, chat);
+	    messagingTemplate.convertAndSend("/api/topic/chats/" + toUserId, chat);
 	}
 }
