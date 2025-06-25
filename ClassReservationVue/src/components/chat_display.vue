@@ -95,7 +95,7 @@ watch(() => props.targetUser, async () => {
             !c.isRead
         )
         for (const msg of unread) {
-            await axios.post('/api/chats', { ...msg, isRead: true })
+            await axios.post(`/api/chats/mark-read/${msg.id}`, { ...msg, isRead: true })
         }
         emit('sent')
     }

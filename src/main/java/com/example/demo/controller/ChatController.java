@@ -45,4 +45,14 @@ public class ChatController {
 	public List<Chat> getUnreadMessages(@PathVariable String userId) {
 	    return repository.findByToUserIdAndIsRead(userId, false);
 	}
+	
+	@PostMapping("/mark-read/{id}")
+	@Operation(summary = "指定IDのチャットを既読にする")
+	public void markAsReadById(@PathVariable String id) {
+	    Chat chat = repository.findById(id).orElse(null);
+	    if (chat != null && !chat.isRead()) {
+	        chat.setRead(true);
+	        repository.save(chat);
+	    }
+	}
 }
