@@ -80,6 +80,12 @@ const router = createRouter({
       component: () => import('../views/general_user/account_editinfo.vue'),
     },
     {
+      path: '/account/passwordinfo',
+      name: 'ユーザパスワード',
+      meta: { requiresAuth: true },
+      component: () => import('../views/general_user/account_passwordinfo.vue'),
+    },
+    {
       path: '/account/newpassword',
       name: 'ユーザパスワード変更',
       meta: { requiresAuth: true },

@@ -32,8 +32,10 @@
                         <!-- イベント: {{ dayObj.eventList.length }}件 -->
                         <ul class="event-list">
                             <li v-for="event in dayObj.eventList" :key="event.id">
-                                <span v-if="event && !event.studentName" class="event-title">{{ event.title }}</span>
-                                <span v-if="event && event.studentName" class="student-info">{{ event.title }}</span>
+                                <div v-if="event && !event.studentName" class="event-title">{{ event.title }}</div>
+                                <div v-if="event && event.studentName&&event.status==0" class="student-info-noconfirm">承認待ちの授業</div>
+                                <div v-if="event && event.studentName&&event.status==1" class="student-info-confirm">承認済みの授業</div>
+                                <div v-if="event && event.studentName&&event.status==3" class="student-info-complete">完了した授業</div>
                             </li>
                         </ul>
                     </div>
@@ -90,6 +92,12 @@
             </div>
             <div v-else-if="!selectedTeacher" class="message">
                 <label>先生を選択して下さい。</label>
+                <select id="teacher-select" v-model="selectedTeacher" @change="onTeacherChange" class="teacher-dropdown">
+                <option disabled value="">先生を選択してください</option>
+                <option v-for="teacher in tusers" :key="teacher.id" :value="teacher">
+                    {{ teacher.name }}
+                </option>
+            </select>
             </div>
             <div v-else class="message">
                 <label>先生の予約時間外です。</label>
@@ -236,7 +244,7 @@ const popupMode = ref('create'); // 'create' or 'edit'
 const editingEvent = ref(null); // 編集対象イベント
 const blueTimes = ref([]);
 const dateFlag = ref(false); // 日付が選択されたかどうかのフラグ
-
+const lastClickedDayObj = ref(null);
 // 算出プロパティ
 const currentMonthYear = computed(() => {
     return currentDate.value.format('YYYY年MM月');
@@ -512,6 +520,17 @@ const generateCalendar = async () => { // async キーワードを追加
     // console.log("カレンダーデータ:", calendarGrid.value);
 };
 
+const getTodayCell = () => {
+  for (const week of calendarGrid.value) {
+    for (const dayObj of week) {
+      if (dayObj.isToday) {
+        return dayObj;
+      }
+    }
+  }
+  return null; // 今日がカレンダーにない場合（例えば別月）
+};
+
 // イベントを取得する関数を分離
 const getEvents = async () => {
     const year = currentYear.value ? currentYear.value : null;
@@ -659,41 +678,48 @@ const getDayEvents = (date) => {
     }
 };
 
+const updateSelectedDayEvents = (dayObj) => {
+  if (!dayObj) return;
+
+  const events = getDayEvents(dayObj.date);
+
+  selectedDayEvents.value = {
+    ...dayObj,
+    eventList: events,
+  };
+  selectedDay.value = dayObj;
+};
+
 // 日付クリック時のハンドラ
 const handleDayClick = async (dayObj) => {
-    console.log('日付がクリックされました:', dayObj);
-    const blueTeacherID = selectedTeacher.value ? selectedTeacher.value.id :
-        teacherID.value ? teacherID.value : null
+  console.log('日付がクリックされました:', dayObj);
+  lastClickedDayObj.value = dayObj;
+  const blueTeacherID = selectedTeacher.value
+    ? selectedTeacher.value.id
+    : teacherID.value
+      ? teacherID.value
+      : null;
 
-    if (blueTeacherID && dayObj) {
-        blueTimes.value = await fetchAndProcessBlueTimes(blueTeacherID, dayObj.date);
-    }
-    if (dayObj.isPrev || dayObj.isNext) {
+  if (blueTeacherID && dayObj) {
+    blueTimes.value = await fetchAndProcessBlueTimes(blueTeacherID, dayObj.date);
+  }
 
-        selectedDayEvents.value = null;
-        selectedDay.value = null;
-    } else {
-        // イベントリストをクリック時にgetDayEventsで再取得して上書き
-        const events = getDayEvents(dayObj.date);
-
-        selectedDayEvents.value = {
-            ...dayObj,
-            eventList: events,
-        };
-        selectedDay.value = dayObj;
-        let eventInfo = '';
-        if (dayObj.eventList && dayObj.eventList.length > 0) {
-            // イベントタイトルをアラートに表示する例
-            eventInfo = `\nイベント: ${dayObj.eventList.map(event => event.title).join(', ')}`;
-        }
-        // alert(`${currentMonthYear.value}の${dayObj.day}日 がクリックされました！${eventInfo}`);
-    }
+  if (dayObj.isPrev || dayObj.isNext) {
+    selectedDayEvents.value = null;
+    selectedDay.value = null;
+  } else {
+    updateSelectedDayEvents(lastClickedDayObj.value);
+  }
 };
 
 // 先生が選択されたときの処理
 const onTeacherChange = async () => {
     await getEvents();
     await generateCalendar();
+    if (!lastClickedDayObj.value) {
+        lastClickedDayObj.value = getTodayCell(); // 最初の日を選択
+    }
+    handleDayClick(lastClickedDayObj.value);
 };
 
 // 画面が更新されたときの処理
@@ -749,7 +775,7 @@ const closeReservationPopup = () => {
     showPopup.value = false;
 };
 
-// 予約を登録する
+// 先生の予約を登録する
 const submitReservation = async () => {
     // バリデーション例
     if (!popupStartTime.value || !popupEndTime.value) {
@@ -805,6 +831,7 @@ const submitStudentEditReservation = async () => {
     try {
         await axios.put(`/api/class-schedules/${editingEvent.value.id}`, payload);
         alert('予定を更新しました');
+        emit('reservation-refreshed');  // イベントを親コンポーネントに通知
     } catch (error) {
         console.error('編集エラー:', error);
         alert('予定の更新に失敗しました');
@@ -846,6 +873,7 @@ const submitStudentReservation = async () => {
         alert('開始時間と終了時間を入力してください');
         return;
     }
+    console.log("生徒の予約申請",studentID.value);
     const date = selectedDayEvents.value.date;
     const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
     const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
@@ -864,6 +892,7 @@ const submitStudentReservation = async () => {
             mailSend(sc.data.id);
         }
         alert('予約申請を送信しました');
+        emit('reservation-refreshed');  // イベントを親コンポーネントに通知
     } catch (error) {
         console.error('生徒予約エラー:', error);
         alert('予約申請に失敗しました');
@@ -890,6 +919,7 @@ const submitDeleteReservation = async () => {
     }
     try {
         await axios.delete(url);
+        emit('reservation-refreshed'); // イベントを親コンポーネントに通知
         alert('予定を削除しました');
     } catch (error) {
         console.error('削除エラー:', error);
@@ -907,9 +937,9 @@ const formatDate = (date) => {
 // メールを送信する関数
 const mailSend = async (scheduleId) => {
     try {
-        // await axios.post("/api/mail/notify/teacher", {
-        //     classScheduleId: scheduleId
-        // });
+        await axios.post("/api/mail/notify/teacher", {
+            classScheduleId: scheduleId
+        });
     } catch (error) {
         console.error('生徒予約エラー:', error);
     }
@@ -920,6 +950,7 @@ onMounted(async () => {
     await getUsers();
     await getEvents();
     await generateCalendar();
+    await handleDayClick(getTodayCell());
 });
 
 // 入力時刻の整合性を保つ
@@ -933,6 +964,9 @@ const onEndTimeChange = () => {
         popupStartTime.value = popupEndTime.value;
     }
 };
+
+const emit = defineEmits(['reservation-refreshed'])
+
 </script>
 
 <style scoped>
@@ -1063,10 +1097,22 @@ const onEndTimeChange = () => {
     font-weight: bold;
 }
 
-.student-info {
-    font-size: 12px;
-    color: hsl(211, 100%, 50%);
-    margin-top: 5px;
+.student-info-confirm,.student-info-noconfirm,.student-info-complete {
+    font-size: 10px;
+    color: white;
+    margin-top: 2px;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.student-info-noconfirm {
+    background-color: hsl(0, 0%, 49%);
+}
+.student-info-confirm {
+    background-color: hsl(211, 100%, 50%);
+}
+.student-info-complete {
+    background-color: hsl(130, 100%, 24%);
 }
 
 .event-list {

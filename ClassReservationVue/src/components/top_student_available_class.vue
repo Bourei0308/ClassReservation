@@ -46,12 +46,14 @@ const formatHoursToHM = (hours) => {
 };
 
 const fetchHours = async () => {
+  if (!props.studentID) {
+    return;
+  }
   try {
     const [charged, used] = await Promise.all([
       fetch(`http://localhost:8080/api/charges/users/${props.studentID}/total`).then(res => res.json()),
       fetch(`http://localhost:8080/api/class-schedules/student/${props.studentID}/total-hours`).then(res => res.json())
     ]);
-
     totalCharged.value = charged;
     usedHours.value = used;
     remainingHours.value = Math.max(0, (charged - used)).toFixed(1);
@@ -61,8 +63,9 @@ const fetchHours = async () => {
     totalCharged.value = usedHours.value = remainingHours.value = remainingPercent.value = 0;
   }
 };
+defineExpose({ fetchHours })
 
-onMounted(() => fetchHours());
+onMounted(async() =>await fetchHours());
 watch(() => props.studentID, () => fetchHours());
 </script>
 

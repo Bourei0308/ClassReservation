@@ -1,21 +1,23 @@
 <template>
-    <div>
-        <Top_Calender account="student" :studentID=userid />
-        <div class="student_section">
-            <h2 class="center_title">今日の予定</h2>
-            <TimeBand :blue_time="blueTimes" :hourStep="2" />
-            <!-- <TopStudentAvailableClass :total="10" :remaining="3" /> -->
-            <TopStudentAvailableClass :studentID="userid" />
+  <div>
+    <Top_Calender v-if="userid" account="student" :studentID=userid @reservation-refreshed="handleReservationDeleted" />
+    <div class="student_section">
+      <h2 class="center_title">今日の予定</h2>
+      <TimeBand v-if="isBlueTimesLoaded" :blue_time="blueTimes" :hourStep="2" />
+      <!-- <TopStudentAvailableClass :total="10" :remaining="3" /> -->
+      <TopStudentAvailableClass v-if="userid" :studentID="userid" ref="classStatus" />
 
 
 
-        </div>
     </div>
+  </div>
 </template>
 <script setup>
 import { useRouter } from 'vue-router'
 import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '@/scripts/useAuth'
+import axios from 'axios'
+import moment from 'moment'
 
 import Top_Calender from '@/components/top_calendar.vue'
 import Top_ChatBox from '@/components/top_chatbox.vue'
@@ -30,44 +32,72 @@ const total = ref(0)
 const used = ref(0)
 const remaining = computed(() => Math.max(0, total.value - used.value))
 
-const fetchData = async () => {
-  if (!userid.value) return   // 念のためチェック
-  try {
-    const [chargedRes, usedRes] = await Promise.all([
-      fetch(`http://localhost:8080/api/charges/users/${userid.value}/total`),
-      fetch(`http://localhost:8080/api/class-schedules/student/${userid.value}/total-hours`)
-    ])
-    total.value = await chargedRes.json()
-    used.value = await usedRes.json()
-  } catch (err) {
-    console.error("データ取得エラー:", err)
-  }
-}
-
 onMounted(async () => {
   await restoreLogin()
   userid.value = user.value.id      // ✅ ここでセット
-  await fetchData()                 // ✅ そのあと fetch 実行
+  await fetchTodayBlueTimes()  // 今日の授業時間帯を取得
 })
 
-const blueTimes = [
-  ['2025-06-20 08:00', '2025-06-20 09:30'],
-  ['2025-06-20 14:15', '2025-06-20 15:00']
-]
+const blueTimes = ref([])
+const isBlueTimesLoaded = ref(false)
+
+const fetchTodayBlueTimes = async () => {
+  const studentId = user.value.id
+  if (!studentId) {
+    console.warn('studentId が取得できません')
+    return []
+  }
+
+  try {
+    isBlueTimesLoaded.value = false
+    const response = await axios.get(`/api/class-schedules/student/${studentId}`)
+    const classList = response.data // ClassSchedule[] 型
+
+    const today = moment().format('YYYY-MM-DD')
+
+    const todayClasses = classList.filter(cls => {
+      const start = moment(cls.startTime)
+      return start.isSame(today, 'day')
+    })
+
+    blueTimes.value = todayClasses.map(cls => {
+      const start = moment(cls.startTime).format('YYYY-MM-DD HH:mm')
+      const end = moment(cls.endTime).format('YYYY-MM-DD HH:mm')
+      return [start, end]
+    })
+  } catch (err) {
+    console.error('授業取得エラー:', err)
+    return []
+  } finally {
+    isBlueTimesLoaded.value = true
+  }
+}
+
+
+// 予約削除時に子コンポーネントのメソッドを呼び出すための ref
+const classStatus = ref(null)
+const handleReservationDeleted = () => {
+  // 直接调用子组件的 fetchHours 方法
+  if (classStatus.value?.fetchHours) {
+    classStatus.value.fetchHours()
+  }
+}
+
 </script>
 
 <style scoped>
 .student_section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 50px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 50px 0;
 }
+
 .center_title {
-    text-align: center;
-    font-size: 24px;
-    margin-bottom: 20px;
-    font-weight: bold;
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+  font-weight: bold;
 }
 </style>

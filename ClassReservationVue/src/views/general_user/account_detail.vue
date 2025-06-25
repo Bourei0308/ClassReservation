@@ -51,7 +51,7 @@ const goToPasswordChange = async () => {
     })
 
     // 認証コード入力画面へ
-    router.push('/account/passwordedit')
+    router.push('/account/passwordinfo')
   } catch (err) {
     alert('認証メールの送信に失敗しました')
   }
