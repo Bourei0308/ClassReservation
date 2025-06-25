@@ -30,7 +30,7 @@ public class MailController {
 	private EmailService emailService;
 	@PostMapping("/send")
 	@Operation(summary = "Gmailでメール送信（Vueのaccess_token使用）")
-	public ResponseEntity<String> sendMail(
+	public ResponseEntity<Map<String, String>> sendMail(
 			@RequestBody MailRequest mailRequest) {
 		try {
 			String accessToken = accessTokenProvider.getAccessToken();
@@ -38,10 +38,13 @@ public class MailController {
 					mailRequest.getTo(),
 					mailRequest.getSubject(),
 					mailRequest.getBody());
-			return ResponseEntity.ok("メール送信に成功しました。");
+			return ResponseEntity.ok(Map.of(
+				    "status", "success",
+				    "message", "メール送信に成功しました。"
+				));
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body("送信エラー: " + e.getMessage());
+	                .body(Map.of("error", "送信エラー: " + e.getMessage()));
 		}
 	}
 	@PostMapping("/notify/teacher")

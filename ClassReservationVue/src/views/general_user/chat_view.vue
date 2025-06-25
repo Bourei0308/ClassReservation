@@ -9,7 +9,7 @@
 import ChatAccountList from '@/components/chat_account_list.vue'
 import ChatDisplay from '@/components/chat_display.vue'
 import { useAuth } from '@/scripts/useAuth'
-import { ref, onMounted, watch,onUnmounted } from 'vue'
+import { ref, onMounted, watch, onUnmounted } from 'vue'
 import axios from 'axios'
 
 const { user } = useAuth()
@@ -64,32 +64,27 @@ watch(selectedUser, (newUser) => {
   }
 })
 
-import SockJS from 'sockjs-client/dist/sockjs.min.js'
-import { Client } from '@stomp/stompjs'
+import { useWebSocket } from '@/scripts/useWebSocket'
 
-const stompClient = new Client({
-  webSocketFactory: () => new SockJS('/api/ws'),
-  reconnectDelay: 5000,
-  heartbeatIncoming: 4000,
-  heartbeatOutgoing: 4000,
-  onConnect: () => {
-    console.log('WebSocket connected')
+const { connect, disconnect, subscribe, send, isConnected } = useWebSocket()
 
-    stompClient.subscribe(`/topic/chats/${user.value.id}`, (message) => {
-      const msg = JSON.parse(message.body)
-      console.log('Received:', msg)
-      chats.value.push(msg)
+onMounted(() => {
+  connect()
 
-      if (selectedUser.value && selectedUser.value.id === msg.fromUserId) {
-        markAsRead([msg])
-      }
-    })
-  },
-  onStompError: (frame) => {
-    console.error('Broker error', frame)
-  }
+  subscribe(`/topic/chats/${user.value.id}`, (message) => {
+    const msg = JSON.parse(message.body)
+    console.log('Received:', msg)
+    chats.value.push(msg)
+
+    if (selectedUser.value && selectedUser.value.id === msg.fromUserId) {
+      markAsRead([msg])
+    }
+  })
 })
 
+onUnmounted(() => {
+  disconnect()
+})
 
 const markAsRead = async (messages) => {
   for (const msg of messages) {
@@ -99,14 +94,6 @@ const markAsRead = async (messages) => {
     }
   }
 }
-
-onMounted(() => {
-  stompClient.activate()
-})
-
-onUnmounted(() => {
-  stompClient.deactivate()
-})
 
 </script>
 

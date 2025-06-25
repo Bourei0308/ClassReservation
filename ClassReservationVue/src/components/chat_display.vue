@@ -22,7 +22,7 @@
 
         <div class="chat-input">
             <input v-model="text" class="chat-textbox" placeholder="メッセージを入力..." @keyup.enter="send" />
-            <button @click="send" class="send-button">送信</button>
+            <button @click="sendMessage" class="send-button">送信</button>
         </div>
     </div>
 </template>
@@ -40,7 +40,11 @@ const emit = defineEmits(['sent'])
 const text = ref('')
 const chatContainer = ref(null)
 
-const send = async () => {
+import { useWebSocket } from '@/scripts/useWebSocket'
+
+const { send } = useWebSocket()
+
+const sendMessage = async () => {
     if (!text.value.trim()) return
     const payload = {
         fromUserId: props.user.id,
@@ -50,30 +54,27 @@ const send = async () => {
         isRead: false
     }
     await axios.post('/api/chats', payload)
-
-    // WebSocket 主动推送（可选，服务端也会广播）
-    stompClient.value.send("/app/chat", {}, JSON.stringify(payload))
-
+    send("/app/chat", {}, JSON.stringify(payload))
 
     // 💌 メール送信処理（ここを追加）
- // ② メールテンプレート生成と送信（ここが今回の追加）
-  try {
-    const template = EmailTemplates.teacherBookingNotification(
-      props.targetUser.name,  // 先生の名前
-      props.user.name,        // 学生の名前
-      new Date().toLocaleString() // 授業時間（今回は仮に今の時刻）
-    )
+    // ② メールテンプレート生成と送信（ここが今回の追加）
+    try {
+        const template = EmailTemplates.teacherBookingNotification(
+            props.targetUser.name,  // 先生の名前
+            props.user.name,        // 学生の名前
+            new Date().toLocaleString() // 授業時間（今回は仮に今の時刻）
+        )
 
-    await sendEmail({
-      to: props.targetUser.email, // 📧 送信先メールアドレス
-      subject: template.subject,
-      body: template.body
-    })
+        await sendEmail({
+            to: props.targetUser.email, // 📧 送信先メールアドレス
+            subject: template.subject,
+            body: template.body
+        })
 
-    console.log('メール送信成功')
-  } catch (error) {
-    console.error('メール送信失敗:', error)
-  }
+        console.log('メール送信成功')
+    } catch (error) {
+        console.error('メール送信失敗:', error)
+    }
     text.value = ''
     emit('sent')
 }
