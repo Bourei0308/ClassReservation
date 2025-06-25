@@ -2,6 +2,11 @@
 import { RouterLink, RouterView } from 'vue-router'
 import siteheader from './components/siteheader.vue'
 import sitefooter from './components/sitefooter.vue'
+
+import { ref, provide } from 'vue'
+const hasUnreadMessage = ref(false)
+provide('hasUnreadMessage', hasUnreadMessage)
+
 </script>
 
 <template>

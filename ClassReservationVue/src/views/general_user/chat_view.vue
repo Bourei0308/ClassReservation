@@ -40,8 +40,10 @@ const selectUser = (u) => {
 }
 
 // 自动恢复选中的用户
-
+import { inject } from 'vue'
+const hasUnreadMessage = inject('hasUnreadMessage')
 onMounted(async () => {
+  hasUnreadMessage.value = false
   await fetchUsers()
   await fetchChats()
 })
@@ -70,7 +72,6 @@ const { connect, disconnect, subscribe, send, isConnected } = useWebSocket()
 
 onMounted(() => {
   connect()
-
   subscribe(`/api/topic/chats/${user.value.id}`, (message) => {
     const msg = JSON.parse(message.body)
     chats.value.push(msg)

@@ -19,6 +19,7 @@
       <!-- Chat icon -->
       <div class="icon_link" @click="goTo('/chat')">
         <MessageCircleIcon class="header_icon" />
+        <div v-if="hasUnreadMessage" class="unread_dot"></div>
       </div>
 
       <!-- マイページ button -->
@@ -39,9 +40,15 @@ const router = useRouter()
 const goTo = (path) => {
   router.push(path)
 }
-import { ref, onMounted,watch,onBeforeUnmount  } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useAuth } from '@/scripts/useAuth'
-const { user, restoreLogin,isLoggedIn  } = useAuth()
+const { user, restoreLogin, isLoggedIn } = useAuth()
+
+import { inject } from 'vue'
+const hasUnreadMessage = inject('hasUnreadMessage')
+import { useWebSocket } from '@/scripts/useWebSocket'
+const { subscribe, disconnect } = useWebSocket()
+
 onMounted(async () => {
   await restoreLogin()
 })
@@ -49,12 +56,18 @@ onMounted(async () => {
 watch(() => user.value, (newUser) => {
   if (newUser) {
     role.value = newUser.role
+    subscribe(`/api/topic/unread/${newUser.id}`, () => {
+      hasUnreadMessage.value = true
+    })
   }
 })
 
+onBeforeUnmount(() => {
+  if (user.value) {
+    disconnect(`/api/topic/unread/${user.value.id}`)
+  }
+})
 
-const hasUnreadMessage = ref(false)
-const { subscribe, disconnect } = useWebSocket()
 
 </script>
 
@@ -120,5 +133,19 @@ const { subscribe, disconnect } = useWebSocket()
 
 .mypage_button:hover {
   background-color: #333;
+}
+
+.message_icon_wrapper {
+  position: relative;
+}
+
+.unread_dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 50%;
 }
 </style>
