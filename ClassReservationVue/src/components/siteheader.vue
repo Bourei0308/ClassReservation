@@ -32,7 +32,6 @@
 <script setup>
 
 const role = ref(1)
-
 import { useRouter } from 'vue-router'
 import { BellIcon, MessageCircleIcon } from 'lucide-vue-next'
 
@@ -40,7 +39,7 @@ const router = useRouter()
 const goTo = (path) => {
   router.push(path)
 }
-import { ref, onMounted,watch } from 'vue'
+import { ref, onMounted,watch,onBeforeUnmount  } from 'vue'
 import { useAuth } from '@/scripts/useAuth'
 const { user, restoreLogin,isLoggedIn  } = useAuth()
 onMounted(async () => {
@@ -52,6 +51,10 @@ watch(() => user.value, (newUser) => {
     role.value = newUser.role
   }
 })
+
+
+const hasUnreadMessage = ref(false)
+const { subscribe, disconnect } = useWebSocket()
 
 </script>
 

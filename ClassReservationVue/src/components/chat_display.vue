@@ -42,7 +42,7 @@ const chatContainer = ref(null)
 
 import { useWebSocket } from '@/scripts/useWebSocket'
 
-const { send,subscribe } = useWebSocket()
+const { send,subscribe,disconnect } = useWebSocket()
 
 const sendMessage = async () => {
     if (!text.value.trim()) return

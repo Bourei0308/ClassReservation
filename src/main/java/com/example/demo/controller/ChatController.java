@@ -45,7 +45,7 @@ public class ChatController {
 
 	    // 再发送给对方
 	    messagingTemplate.convertAndSend("/api/topic/chats/" + savedChat.getToUserId(), savedChat);
-
+	    messagingTemplate.convertAndSend("/api/topic/unread/" + savedChat.getToUserId(), "new_message");
 	    // 返回给发送者
 	    return savedChat;
 	}

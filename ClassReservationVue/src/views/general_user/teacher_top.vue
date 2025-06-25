@@ -5,7 +5,6 @@
             <h2 class="center_title">今日の予定</h2>
             <TimeBand :blue_time="blueTimes" :hourStep="2" />
         </div>
-        <Top_ChatBox />
     </div>
 </template>
 
