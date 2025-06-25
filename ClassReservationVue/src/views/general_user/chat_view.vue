@@ -90,7 +90,7 @@ onUnmounted(() => {
 const markAsRead = async (messages) => {
   for (const msg of messages) {
     if (!msg.isRead) {
-      await axios.post('/api/chats', { ...msg, isRead: true })
+      await axios.post(`/api/chats/mark-read/${msg.id}`, { ...msg, isRead: true })
       msg.isRead = true
     }
   }
