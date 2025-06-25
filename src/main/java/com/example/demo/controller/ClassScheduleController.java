@@ -63,6 +63,7 @@ public class ClassScheduleController {
 	            schedule.setStartTime(updatedSchedule.getStartTime());
 	            schedule.setEndTime(updatedSchedule.getEndTime());
 	            schedule.setCreatedAt(updatedSchedule.getCreatedAt());
+	            schedule.setStatus(updatedSchedule.getStatus());
 	            // 添加你需要更新的字段
 	            return repository.save(schedule);
 	        })

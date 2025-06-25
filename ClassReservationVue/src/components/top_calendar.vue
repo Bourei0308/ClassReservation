@@ -50,18 +50,43 @@
                         :class="event.studentName ? 'student-event' : 'teacher-event'">
                         {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{
                             moment(event.endTime).format('HH:mm') }})
-                        <TimeBand :blue_time="blueTimes" :hour-step="2" v-if="!event.studentName"/>
-                        <button v-if="account === 'teacher' || (account === 'student' && event.studentName)" @click="openEditPopup(event)">編集</button>
-                        <button v-if="account === 'teacher' || (account === 'student' && event.studentName)" @click="deleteEditPopup(event)">削除</button>
+                        <TimeBand :blue_time="blueTimes" :hour-step="2" v-if="!event.studentName" />
+                        <button v-if="shouldShowEditButton(event)" @click="openEditPopup(event)">編集</button>
+                        <button v-if="shouldShowDeleteButton(event)" @click="deleteEditPopup(event)">削除</button>
+
+                        <span v-if="event.status !== undefined" class="status-label"
+                            :style="{ color: event.status === 0 ? '#ff9800' : event.status === 1 ? '#2196f3' : event.status === 2 ? '#4caf50' : event.status === 3 ? '#f44336' : '#888' }">
+                            {{
+                                event.status === 0 ? '承認待ち' :
+                                    event.status === 1 ? '承認済み' :
+                                        event.status === 2 ? '完了' :
+                                            event.status === 3 ? 'キャンセル' :
+                                                '不明'
+                            }}
+                        </span>
+                        <!-- 先生用: ステータス表示とボタン -->
+                        <div v-if="account === 'teacher' && event.status !== undefined" class="teacher-status-actions">
+                            <button v-if="shouldShowAuthButton(event)" @click="approveReservation(event)">承認</button>
+                            <button v-if="shouldShowCompleteButton(event)"
+                                @click="completeReservation(event)">完了にする</button>
+                            <button v-if="event.status === 0 || event.status === 1"
+                                @click="cancelReservation(event)">キャンセル</button>
+                        </div>
+                        <!-- 先生の時はボタンを設置する -->
                     </li>
                 </ul>
             </div>
             <div v-else>
                 この日にはイベントがありません。
             </div>
-            <div v-if="account === 'teacher' || account === 'student' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.teacherName)"
+            <div v-if="(account === 'teacher' || (account === 'student' && selectedTeacher && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.teacherName)))
+                && !(account === 'teacher' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.studentName === ''))"
                 class="new">
                 <button class="reserve-btn" @click="openReservationPopup">新しい予約を入れる</button>
+            </div>
+            <div
+                v-else-if="(account === 'teacher' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.studentName === ''))">
+                <label></label>
             </div>
             <div v-else-if="!selectedTeacher" class="message">
                 <label>先生を選択して下さい。</label>
@@ -87,14 +112,14 @@
                                 disabled />
                         </label>
                         <label>開始時間:
-                            <input type="time" v-model="popupStartTime" />
+                            <input type="time" v-model="popupStartTime" @change="onStartTimeChange" />
                         </label>
                         <label>終了日:
                             <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
                                 disabled />
                         </label>
                         <label>終了時間:
-                            <input type="time" v-model="popupEndTime" />
+                            <input type="time" v-model="popupEndTime" @change="onEndTimeChange" />
                         </label>
                         <div style="margin-top:10px;">
                             <button v-if="popupMode === 'create'" @click="submitReservation">登録</button>
@@ -111,14 +136,14 @@
                                 disabled />
                         </label>
                         <label>開始時間:
-                            <input type="time" v-model="popupStartTime" />
+                            <input type="time" v-model="popupStartTime" @change="onStartTimeChange" />
                         </label>
                         <label>終了日:
                             <input type="date" :value="selectedDayEvents ? formatDate(selectedDayEvents.date) : ''"
                                 disabled />
                         </label>
                         <label>終了時間:
-                            <input type="time" v-model="popupEndTime" />
+                            <input type="time" v-model="popupEndTime" @change="onEndTimeChange" />
                         </label>
                         <label v-if="popupMode === 'edit'">承認状態:
                             <span v-if="popupMode === 'edit' && editingEvent" :style="{
@@ -218,6 +243,32 @@ const currentMonth = computed(() => {
     return currentDate.value.month();
 });
 
+// 先生の空き時間（生徒が紐づいていないevent）の範囲を取得
+const teacherAvailableTimeRange = computed(() => {
+    if (!selectedDayEvents.value || !selectedDayEvents.value.eventList) return null;
+    // 先生の空き時間（生徒が紐づいていないevent）
+    const available = selectedDayEvents.value.eventList.filter(e => !e.studentName);
+    if (available.length === 0) return null;
+    // 1日複数空き時間がある場合は一番早い開始と一番遅い終了を使う
+    const minStart = available.reduce((min, e) => e.startTime < min ? e.startTime : min, available[0].startTime);
+    const maxEnd = available.reduce((max, e) => e.endTime > max ? e.endTime : max, available[0].endTime);
+    return {
+        min: moment(minStart).format('HH:mm'),
+        max: moment(maxEnd).format('HH:mm')
+    };
+});
+
+// 生徒の入力が先生の空き時間内かどうか
+const isStudentTimeInRange = computed(() => {
+    if (account.value !== 'student' || !teacherAvailableTimeRange.value) return true;
+    if (!popupStartTime.value || !popupEndTime.value) return false;
+    return (
+        popupStartTime.value >= teacherAvailableTimeRange.value.min &&
+        popupEndTime.value <= teacherAvailableTimeRange.value.max &&
+        popupStartTime.value < popupEndTime.value
+    );
+});
+
 // メソッド
 const prevMonth = () => {
     currentDate.value = currentDate.value.clone().subtract(1, 'month');
@@ -227,6 +278,98 @@ const prevMonth = () => {
 const nextMonth = () => {
     currentDate.value = currentDate.value.clone().add(1, 'month');
     onChange();
+};
+
+//編集ボタンを表示するかを判定する関数
+const shouldShowEditButton = (event) => {
+    if (account.value === 'teacher') {
+        return !event.studentName;
+    } else if (account.value === 'student' && event.status === 0) {
+        return event.studentName;
+    }
+    return false;
+};
+
+//削除ボタンを表示するかを判定する関数
+const shouldShowDeleteButton = (event) => {
+    if (account.value === 'teacher') {
+        return !event.studentName;
+    } else if (account.value === 'student' && event.status === 0) {
+        return event.studentName;
+    }
+    return false;
+};
+
+//認証ボタンを表示するかを判定する関数
+const shouldShowAuthButton = (event) => {
+    if (account.value === 'teacher' && event.status === 0) {
+        return true; // 先生は承認待ちのイベントに対して承認ボタンを表示
+    } else if (account.value === 'student' && event.status === 0) {
+        return false; // 生徒は承認ボタンを表示しない
+    }
+    return false;
+};
+
+//完了ボタンを表示するかを判定する関数
+const shouldShowCompleteButton = (event) => {
+    if (account.value === 'teacher') {
+        return !event.studentName && event.status === 1; // 先生は承認済みのイベントに対して完了ボタンを表示
+    } else if (account.value === 'student') {
+        return event.studentName && event.status === 1; // 生徒は自分のイベントに対して完了ボタンを表示
+    }
+    return false;
+};
+
+// 予約を承認する処理を実装
+const approveReservation = async (event) => {
+    event.status = 1; // ステータスを承認済みに変更
+    console.log('承認するイベント:', event);
+    console.log('ID:', event.id);
+
+    const payload = {
+        id: event.id,
+        teacherId: event.teacher_id,
+        studentId: event.student_id || studentID.value, // 生徒IDは存在しない場合はstudentIDから取得
+        teacherId: event.teacher_id || (selectedTeacher.value ? selectedTeacher.value.id : null),
+        createdAt: event.createdAt || moment().format('YYYY-MM-DDTHH:mm:ss'),
+        startTime: event.startTime || startDateTime,
+        endTime: event.endTime || endDateTime,
+        status: event.status || 0, // 承認待ち
+    };
+    // 予約の更新
+    try {
+        await axios.put(`/api/class-schedules/${event.id}`, payload);
+        alert('予定を更新しました');
+    } catch (error) {
+        console.error('編集エラー:', error);
+        alert('予定の更新に失敗しました');
+    }
+};
+
+//キャンセルボタンが押されたとき
+const cancelReservation = async (event) => {
+    event.status = 3; // ステータスをキャンセル済みに変更
+    console.log('キャンセルするイベント:', event);
+    console.log('ID:', event.id);
+
+    const payload = {
+        id: event.id,
+        teacherId: event.teacher_id,
+        studentId: event.student_id || studentID.value, // 生徒IDは存在しない場合はstudentIDから取得
+        teacherId: event.teacher_id || (selectedTeacher.value ? selectedTeacher.value.id : null),
+        createdAt: event.createdAt || moment().format('YYYY-MM-DDTHH:mm:ss'),
+        startTime: event.startTime || startDateTime,
+        endTime: event.endTime || endDateTime,
+        status: event.status || 0, // 承認待ち
+    };
+    // 予約の更新
+    try {
+        await axios.put(`/api/class-schedules/${event.id}`, payload);
+        alert('予定を更新しました');
+    } catch (error) {
+        console.error('編集エラー:', error);
+        alert('予定の更新に失敗しました');
+    }
 };
 
 const getUsers = async () => {
@@ -316,7 +459,7 @@ const generateCalendar = async () => { // async キーワードを追加
     // 2次元配列にして calendarGrid にセット
     calendarGrid.value = _.chunk(flatCalendar, 7); // lodashのchunkを使って7日ごとに分割
 
-    console.log("カレンダーデータ:", calendarGrid.value);
+    // console.log("カレンダーデータ:", calendarGrid.value);
 };
 
 // イベントを取得する関数を分離
@@ -416,7 +559,6 @@ const getDayEvents = (date) => {
         return calendarEvent.value.filter(event => {
             const eventDate = moment(event.startTime).format('YYYY-MM-DD');
             // 自分が担当 or 生徒が登録
-            console.log("event", eventDate, event.teacher_id)
             const isTeacher = teacherID.value ? event.teacher_id == teacherID.value : (selectedTeacher.value && event.teacher_id == selectedTeacher.value.id);
             return (eventDate === targetDate) && isTeacher;
         }).map(event => {
@@ -470,10 +612,10 @@ const getDayEvents = (date) => {
 // 日付クリック時のハンドラ
 const handleDayClick = async (dayObj) => {
     console.log('日付がクリックされました:', dayObj);
-    const blueTeacherID =selectedTeacher.value?selectedTeacher.value.id:
-    teacherID.value?teacherID.value:null
+    const blueTeacherID = selectedTeacher.value ? selectedTeacher.value.id :
+        teacherID.value ? teacherID.value : null
 
-    if (blueTeacherID&&dayObj) {
+    if (blueTeacherID && dayObj) {
         blueTimes.value = await fetchAndProcessBlueTimes(blueTeacherID, dayObj.date);
     }
     if (dayObj.isPrev || dayObj.isNext) {
@@ -514,15 +656,25 @@ const onChange = async () => {
         ...selectedDay.value,
         eventList: events,
     };
+    const blueTeacherID = selectedTeacher.value ? selectedTeacher.value.id :
+        teacherID.value ? teacherID.value : null
 
+    if (blueTeacherID && selectedDay.value) {
+        blueTimes.value = await fetchAndProcessBlueTimes(blueTeacherID, selectedDay.value.date);
+    }
 };
 
 // 新しい予約のポップアップを開く
 const openReservationPopup = () => {
     showPopup.value = true;
     popupMode.value = 'create';
-    popupStartTime.value = '';
-    popupEndTime.value = '';
+    if (account.value === 'student' && teacherAvailableTimeRange.value) {
+        popupStartTime.value = teacherAvailableTimeRange.value.min;
+        popupEndTime.value = teacherAvailableTimeRange.value.max;
+    } else {
+        popupStartTime.value = '';
+        popupEndTime.value = '';
+    }
     editingEvent.value = null;
 };
 // 編集ポップアップを開く
@@ -705,9 +857,9 @@ const formatDate = (date) => {
 // メールを送信する関数
 const mailSend = async (scheduleId) => {
     try {
-        await axios.post("/api/mail/notify/teacher", {
-            classScheduleId: scheduleId
-        });
+        // await axios.post("/api/mail/notify/teacher", {
+        //     classScheduleId: scheduleId
+        // });
     } catch (error) {
         console.error('生徒予約エラー:', error);
     }
@@ -719,6 +871,18 @@ onMounted(async () => {
     await getEvents();
     await generateCalendar();
 });
+
+// 入力時刻の整合性を保つ
+const onStartTimeChange = () => {
+    if (popupEndTime.value && popupStartTime.value > popupEndTime.value) {
+        popupEndTime.value = popupStartTime.value;
+    }
+};
+const onEndTimeChange = () => {
+    if (popupStartTime.value && popupEndTime.value < popupStartTime.value) {
+        popupStartTime.value = popupEndTime.value;
+    }
+};
 </script>
 
 <style scoped>
