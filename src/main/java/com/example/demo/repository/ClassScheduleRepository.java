@@ -12,6 +12,8 @@ public interface ClassScheduleRepository extends MongoRepository<ClassSchedule, 
 
 	List<ClassSchedule> findByTeacherId(String teacherId);
 
+	List<ClassSchedule> findByStatus(int status);
+
 	// 日付の範囲で取得（メール当日分）
 	List<ClassSchedule> findByStartTimeBetween(LocalDateTime start, LocalDateTime end);
 

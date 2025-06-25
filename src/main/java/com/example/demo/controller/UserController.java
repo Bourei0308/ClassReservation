@@ -132,6 +132,13 @@ public class UserController {
 		}
 	}
 
+	//
+	@GetMapping("/students")
+	@Operation(summary = "生徒一覧（role=1）の取得")
+	public List<User> getStudents() {
+		return userRepository.findByRole(1); // 1 = 生徒
+	}
+
 	//  @PutMapping("/{id}/remove")
 	//  @Operation(summary = "ユーザ論理削除")
 	//  public ResponseEntity<String> softDeleteUser(@PathVariable String id) {
