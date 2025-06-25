@@ -73,11 +73,9 @@ onMounted(() => {
 
   subscribe(`/api/topic/chats/${user.value.id}`, (message) => {
     const msg = JSON.parse(message.body)
-    console.log('Received:', msg)
     chats.value.push(msg)
 
     if (selectedUser.value && selectedUser.value.id === msg.fromUserId) {
-      console.log('xxx:', 123)
       markAsRead([msg])
     }
   })
@@ -91,6 +89,7 @@ const markAsRead = async (messages) => {
   for (const msg of messages) {
     if (!msg.isRead) {
       await axios.post(`/api/chats/mark-read/${msg.id}`, { ...msg, isRead: true })
+      
       msg.isRead = true
     }
   }
