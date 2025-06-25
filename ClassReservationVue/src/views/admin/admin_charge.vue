@@ -60,9 +60,23 @@
     },
     methods: {
       updateCurrentHours() {
-        const user = this.students.find(u => u.id === this.selectedUserId);
-        this.currentHours = user?.remainingHours || 0; // サーバーのuserに `remainingHours` がある前提
-      },
+  const chargeUrl = `http://localhost:8080/api/charges/users/${this.selectedUserId}/total`;
+  const usageUrl = `http://localhost:8080/api/class-schedules/student/${this.selectedUserId}/total-hours`;
+
+  Promise.all([
+    fetch(chargeUrl).then(res => res.json()),
+    fetch(usageUrl).then(res => res.json())
+  ])
+    .then(([charged, used]) => {
+      const remaining = Math.max(0, charged - used); // 残りコマ数がマイナスにならないように制御
+      this.currentHours = remaining.toFixed(1); // 小数1桁まで表示
+    })
+    .catch(err => {
+      console.error("現在のコマ数取得エラー:", err);
+      this.currentHours = "取得失敗";
+    });
+}
+,
       charge() {
         if (!this.selectedUserId || this.chargeAmount <= 0) {
           alert("生徒とチャージ時間を正しく入力してください。");

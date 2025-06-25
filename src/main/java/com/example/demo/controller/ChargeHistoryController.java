@@ -82,4 +82,14 @@ public class ChargeHistoryController {
 		history.setChargeHours(updatedHours);
 		return chargeHistoryRepository.save(history);
 	}
+
+	@GetMapping("/users/{userId}/total")
+	@Operation(summary = "特定ユーザーのチャージ合計時間を取得")
+	public double getTotalChargeByUser(@PathVariable String userId) {
+		List<ChargeHistory> historyList = chargeHistoryRepository.findByStudentId(userId);
+		return historyList.stream()
+				.mapToDouble(ChargeHistory::getChargeHours)
+				.sum();
+	}
+
 }

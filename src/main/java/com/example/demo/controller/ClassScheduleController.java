@@ -54,18 +54,33 @@ public class ClassScheduleController {
 	public void delete(@PathVariable String id) {
 		repository.deleteById(id);
 	}
-	
+
 	@PutMapping("/{id}")
 	@Operation(summary = "idで授業を更新")
 	public ClassSchedule update(@PathVariable String id, @RequestBody ClassSchedule updatedSchedule) {
-	    return repository.findById(id)
-	        .map(schedule -> {
-	            schedule.setStartTime(updatedSchedule.getStartTime());
-	            schedule.setEndTime(updatedSchedule.getEndTime());
-	            schedule.setCreatedAt(updatedSchedule.getCreatedAt());
-	            // 添加你需要更新的字段
-	            return repository.save(schedule);
-	        })
-	        .orElseThrow(() -> new RuntimeException("指定された授業が見つかりません: " + id));
+		return repository.findById(id)
+				.map(schedule -> {
+					schedule.setStartTime(updatedSchedule.getStartTime());
+					schedule.setEndTime(updatedSchedule.getEndTime());
+					schedule.setCreatedAt(updatedSchedule.getCreatedAt());
+					// 添加你需要更新的字段
+					return repository.save(schedule);
+				})
+				.orElseThrow(() -> new RuntimeException("指定された授業が見つかりません: " + id));
 	}
+
+	@GetMapping("/student/{studentId}/total-hours")
+	@Operation(summary = "指定生徒の授業合計時間を取得（status != 3 のみ）")
+	public float getTotalClassHoursByStudent(@PathVariable String studentId) {
+		List<ClassSchedule> schedules = repository.findByStudentId(studentId);
+
+		return (float) schedules.stream()
+				.filter(s -> s.getStatus() != 3 && s.getStartTime() != null && s.getEndTime() != null)
+				.mapToDouble(s -> {
+					long minutes = java.time.Duration.between(s.getStartTime(), s.getEndTime()).toMinutes();
+					return minutes / 60.0; // 分 → 時間（小数）
+				})
+				.sum();
+	}
+
 }
