@@ -15,5 +15,5 @@ public class ChargeHistory {
 	@Id
 	private String id;
 	private String studentId;
-	private int chargeHours;
+	private float chargeHours;
 }

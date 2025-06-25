@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +23,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class ChatController {
 	@Autowired
 	private ChatRepository repository;
+	@Autowired
+	private SimpMessagingTemplate messagingTemplate;
 
 	@GetMapping("/user/{userId}")
 	@Operation(summary = "全てのチャット履歴取得")
@@ -39,5 +42,9 @@ public class ChatController {
 	@Operation(summary = "未読メッセージ取得")
 	public List<Chat> getUnreadMessages(@PathVariable String userId) {
 	    return repository.findByToUserIdAndIsRead(userId, false);
+	}
+	
+	public void sendMessageToUser(String toUserId, Chat chat) {
+	    messagingTemplate.convertAndSend("/topic/chats/" + toUserId, chat);
 	}
 }

@@ -26,7 +26,6 @@ export async function restoreLogin() {
 }
 
 export function useAuth() {
-    const router = useRouter()
 
     // ✅ ダミーユーザ
     const devLoginMockUser = () => {

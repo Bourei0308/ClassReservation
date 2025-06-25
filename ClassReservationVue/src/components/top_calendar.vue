@@ -470,8 +470,11 @@ const getDayEvents = (date) => {
 // 日付クリック時のハンドラ
 const handleDayClick = async (dayObj) => {
     console.log('日付がクリックされました:', dayObj);
-    if (selectedTeacher.value&&dayObj) {
-        blueTimes.value = await fetchAndProcessBlueTimes(selectedTeacher.value.id, dayObj.date);
+    const blueTeacherID =selectedTeacher.value?selectedTeacher.value.id:
+    teacherID.value?teacherID.value:null
+
+    if (blueTeacherID&&dayObj) {
+        blueTimes.value = await fetchAndProcessBlueTimes(blueTeacherID, dayObj.date);
     }
     if (dayObj.isPrev || dayObj.isNext) {
 
@@ -654,10 +657,9 @@ const submitStudentReservation = async () => {
     };
     try {
         const sc = await axios.post(`/api/class-schedules`, payload);
-        console.log('授業のID:' + sc.id)
         //登録したことを先生にメールで送信
         if (sc) {
-            mailSend(sc.id);
+            mailSend(sc.data.id);
         }
         alert('予約申請を送信しました');
     } catch (error) {

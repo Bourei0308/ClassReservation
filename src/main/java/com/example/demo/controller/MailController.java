@@ -49,6 +49,7 @@ public class MailController {
 	public ResponseEntity<String> notifyTeacher(@RequestBody Map<String, String> payload) {
 		try {
 			String scheduleId = payload.get("classScheduleId");
+			System.out.println(scheduleId);
 			emailService.sendTeacherBookingNotification(scheduleId);
 			return ResponseEntity.ok("先生に通知メールを送信しました。");
 		} catch (Exception e) {
