@@ -18,8 +18,11 @@
 
       <!-- Chat icon -->
       <div class="icon_link" @click="goTo('/chat')">
-        <MessageCircleIcon class="header_icon" />
-        <div v-if="hasUnreadMessage" class="unread_dot"></div>
+        <div class="icon_box">
+          <MessageCircleIcon class="header_icon" />
+          <div v-if="hasUnreadMessage" class="unread_dot"></div>
+        </div>
+
       </div>
 
       <!-- マイページ button -->
@@ -47,7 +50,7 @@ const { user, restoreLogin, isLoggedIn } = useAuth()
 import { inject } from 'vue'
 const hasUnreadMessage = inject('hasUnreadMessage')
 import { useWebSocket } from '@/scripts/useWebSocket'
-const { subscribe, disconnect } = useWebSocket()
+const { subscribe } = useWebSocket()
 
 onMounted(async () => {
   await restoreLogin()
@@ -57,6 +60,7 @@ watch(() => user.value, (newUser) => {
   if (newUser) {
     role.value = newUser.role
     subscribe(`/api/topic/unread/${newUser.id}`, () => {
+      console.log("message")
       hasUnreadMessage.value = true
     })
   }
@@ -64,7 +68,6 @@ watch(() => user.value, (newUser) => {
 
 onBeforeUnmount(() => {
   if (user.value) {
-    disconnect(`/api/topic/unread/${user.value.id}`)
   }
 })
 
@@ -119,6 +122,11 @@ onBeforeUnmount(() => {
 .header_icon {
   width: 24px;
   height: 24px;
+
+}
+
+.icon_box {
+  position: relative;
 }
 
 .mypage_button {

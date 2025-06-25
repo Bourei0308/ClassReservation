@@ -71,7 +71,6 @@ import { useWebSocket } from '@/scripts/useWebSocket'
 const { connect, disconnect, subscribe, send, isConnected } = useWebSocket()
 
 onMounted(() => {
-  connect()
   subscribe(`/api/topic/chats/${user.value.id}`, (message) => {
     const msg = JSON.parse(message.body)
     chats.value.push(msg)
@@ -82,15 +81,11 @@ onMounted(() => {
   })
 })
 
-onUnmounted(() => {
-  disconnect()
-})
-
 const markAsRead = async (messages) => {
   for (const msg of messages) {
     if (!msg.isRead) {
       await axios.post(`/api/chats/mark-read/${msg.id}`, { ...msg, isRead: true })
-      
+      hasUnreadMessage.value = false
       msg.isRead = true
     }
   }

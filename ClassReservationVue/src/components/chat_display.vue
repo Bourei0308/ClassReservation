@@ -124,10 +124,6 @@ onMounted(() => {
         })
     }
 })
-
-onUnmounted(() => {
-  disconnect()
-})
 </script>
 
 <style scoped>

@@ -104,7 +104,7 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if (to.meta.role_number!=null&& user.value.role !== to.meta.role_number) {
-      console.log("no")
+      console.log("no",to.meta.role_number,user.value.role)
       alert('認証情報が違います。')
       return next(`/top/${user.value.role}`)
     }
