@@ -1,0 +1,1 @@
+<template>ここは授業管理</template>

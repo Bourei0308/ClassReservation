@@ -50,6 +50,12 @@ const router = createRouter({
       component: () => import('../views/admin/admin_charge.vue'),
     },
     {
+      path: '/admin/lesson',
+      name: '授業管理',
+      meta: { requiresAuth: true, role_number: 0 },
+      component: () => import('../views/admin/admin_lesson.vue'),
+    },
+    {
       path: '/chat',
       name: 'チャット画面',
       meta: { requiresAuth: true },
