@@ -36,10 +36,13 @@
                                 <div v-if="event && event.studentName && event.status == 0"
                                     class="student-info-noconfirm">
                                     承認待ちの授業</div>
-                                <div v-if="event && event.studentName && event.status == 1"
-                                    class="student-info-confirm">
+                                <div v-else-if="event && event.studentName && event.status == 1 && isUncompleted(event)"
+                                    class="student-info-uncompleted">
+                                    未完了の授業</div>
+                                <div v-else-if="event && event.studentName && event.status == 1"
+                                    class="student-info-uncompleted">
                                     承認済みの授業</div>
-                                <div v-if="event && event.studentName && event.status == 3"
+                                <div v-else-if="event && event.studentName && event.status == 3"
                                     class="student-info-complete">
                                     完了した授業</div>
                             </li>
@@ -91,7 +94,7 @@
             <div v-if="(account === 'teacher' || (account === 'student' && selectedTeacher && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.teacherName)))
                 && !(account === 'teacher' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.studentName === ''))"
                 class="new">
-                <button class="reserve-btn" @click="openReservationPopup">新しい予約を入れる</button>
+                <button v-if="isEarlier(selectedDayEvents.date)" class="reserve-btn" @click="openReservationPopup">新しい予約を入れる</button>
             </div>
             <div
                 v-else-if="(account === 'teacher' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.studentName === ''))">
@@ -1053,6 +1056,18 @@ const onStartTimeChange = () => {
 defineExpose({ onChange });
 const emit = defineEmits(['reservation-refreshed'])
 
+// 判断是否是“未完成”
+const isUncompleted = (event) => {
+    // 如果 event 日期早于 dayObj 日期，且状态是已确认（1），则是未完成
+    return isEarlier(moment(event.startTime).format('YYYY-MM-DD')) && event.status == 1
+}
+
+const isEarlier = (date)=> {
+    console.log(date, moment(new Date()).format('YYYY-MM-DD'))
+    console.log(date < moment(new Date()).format('YYYY-MM-DD'))
+    return date < moment(new Date()).format('YYYY-MM-DD')
+}
+
 </script>
 
 <style scoped>
@@ -1185,7 +1200,8 @@ const emit = defineEmits(['reservation-refreshed'])
 
 .student-info-confirm,
 .student-info-noconfirm,
-.student-info-complete {
+.student-info-complete,
+.student-info-uncompleted {
     font-size: 10px;
     color: white;
     margin-top: 2px;
@@ -1199,6 +1215,10 @@ const emit = defineEmits(['reservation-refreshed'])
 
 .student-info-confirm {
     background-color: hsl(211, 100%, 50%);
+}
+
+.student-info-uncompleted {
+    background-color: hsl(0, 100%, 50%);
 }
 
 .student-info-complete {
