@@ -58,19 +58,41 @@
             <div v-if="selectedDayEvents.eventList && selectedDayEvents.eventList.length > 0">
                 <h4>この日のイベント:</h4>
                 <ul>
-                    <li v-for="event in selectedDayEvents.eventList" :key="event.id"
-                        :class="event.studentName ? 'student-event' : 'teacher-event'">
-                        <span v-if="event.status !== undefined" class="status-label"
-                            :style="{ backgroundColor: event.status === 0 ? 'hsl(51, 100%, 37%)' : event.status === 1 ? 'hsl(211, 100%, 50%)' : event.status === 2 ? 'hsl(130, 100%, 24%)' : event.status === 3 ? 'hsl(0, 100%, 50%)' : '#888' }">
+                    <li v-for="event in selectedDayEvents.eventList" :key="event.id" :class="event.status === 0 ? 'student-event-unconfirm' :
+                        event.status == 1 && isUncompleted(event) ? 'student-event-cancel' :
+                            event.status === 0 ? 'student-event-unconfirm' :
+                                event.status === 1 ? 'student-event' :
+                                    event.status === 2 ? 'student-event-comp' :
+                                        event.status === 3 ? 'student-event-cancel' :
+                                            'teacher-event'">
+                        <span v-if="event.status !== undefined" class="status-label" :style="{
+                            backgroundColor:
+                                event.status === 1 && isUncompleted(event) ? 'hsl(0, 100%, 50%)' :
+                                    event.status === 0 ? 'hsl(52, 100%, 34%)' :
+                                        event.status === 1 ? 'hsl(211, 100%, 50%)' :
+                                            event.status === 2 ? 'hsl(130, 100%, 24%)' :
+                                                event.status === 3 ? 'hsl(0, 100%, 50%)' :
+                                                    '#888'
+                        }">
                             {{
-                                event.status === 0 ? '承認待ち' :
-                                    event.status === 1 ? '承認済み' :
-                                        event.status === 2 ? '完了' :
-                                            event.status === 3 ? 'キャンセル' :
-                                                '不明'
+                                event.status === 1 && isUncompleted(event) ? '未完了' :
+                                    event.status === 0 ? '承認待ち' :
+                                        event.status === 1 ? '承認済み' :
+                                            event.status === 2 ? '完了' :
+                                                event.status === 3 ? 'キャンセル' :
+                                                    '不明'
                             }}
                         </span>
-                        <span class="event-title-box" :style="{ color: event.status === 0 ? 'hsl(51, 100%, 37%)' : event.status === 1 ? 'hsl(211, 100%, 50%)' : event.status === 2 ? 'hsl(130, 100%, 24%)' : event.status === 3 ? 'hsl(0, 100%, 50%)' : '#000' }">{{ event.title }}</span>
+                        <span class="event-title-box" :style="{
+                            color:
+                                event.status === 1 && isUncompleted(event) ? 'hsl(0, 100%, 50%)' :
+                                    event.status === 0 ? 'hsl(52, 100%, 34%)' :
+                                        event.status === 1 ? 'hsl(211, 100%, 50%)' :
+                                            event.status === 2 ? 'hsl(130, 100%, 24%)' :
+                                                event.status === 3 ? 'hsl(0, 100%, 50%)' :
+                                                    '#000'
+                        }">{{
+                            event.title }}</span>
                         <div class="event-box">
                             <div v-if="event.studentName" class="event-box-info">
 
@@ -79,6 +101,8 @@
                                     moment(event.startTime).format('HH:mm') }} -
                                         {{ moment(event.endTime).format('HH:mm') }}</span></div>
                                 <div><span class="class-head">先生：</span><span>{{ event.teacherName }}</span></div>
+                                <div class="red_hint" v-if="event.status === 1 && isUncompleted(event)">
+                                    先生が【完了】ボタンを押してください。</div>
                             </div>
                             <TimeBand :blue_time="blueTimes" :hour-step="2" v-if="!event.studentName" />
                             <div class="button-group">
@@ -86,6 +110,8 @@
                                     @click="openEditPopup(event)">編集</button>
                                 <button class="btn cancel" v-if="shouldShowDeleteButton(event)"
                                     @click="deleteEditPopup(event)">削除</button>
+                                <button class="btn cancel" v-if="shouldShowClassDeleteButton(event)"
+                                    @click="changeStatusOnClick(event.id, 4)">削除</button>
                             </div>
                             <!-- 先生用: ステータス表示とボタン -->
                             <div v-if="account === 'teacher' && event.status !== undefined"
@@ -93,10 +119,13 @@
                                 <div class="button-group">
                                     <button class="btn approve" v-if="shouldShowAuthButton(event)"
                                         @click="changeStatusOnClick(event.id, 1)">承認</button>
+                                    <button class="btn remove" v-if="shouldShowRepairButton(event)"
+                                        @click="changeStatusOnClick(event.id, 1)">承認に変更</button>
                                     <button class="btn approve" v-if="shouldShowCompleteButton(event)"
                                         @click="changeStatusOnClick(event.id, 2)">完了</button>
                                     <button class="btn cancel" v-if="event.status === 0 || event.status === 1"
                                         @click="changeStatusOnClick(event.id, 3)">キャンセル</button>
+
                                 </div>
                             </div>
                         </div>
@@ -364,11 +393,9 @@ const shouldShowEditButton = (event) => {
         if (isReserved()) {
             return false;
         }
-        return !event.studentName;
-    } else if (account.value === 'student' && event.status === 0) {
-        return event.studentName;
+        return true;
     }
-    return true;
+    return false;
 };
 
 //削除ボタンを表示するかを判定する関数
@@ -387,10 +414,18 @@ const shouldShowDeleteButton = (event) => {
 
 //認証ボタンを表示するかを判定する関数
 const shouldShowAuthButton = (event) => {
-    if (account.value === 'teacher' && (event.status === 0 || event.status === 3 || event.status === 2)) {
+    if (account.value === 'teacher' && (event.status === 0)) {
         return true; // 先生は承認待ちのイベントに対して承認ボタンを表示
     } else if (account.value === 'student' && event.status === 0) {
         return false; // 生徒は承認ボタンを表示しない
+    }
+    return false;
+};
+
+//復元ボタンを表示するかを判定する関数
+const shouldShowRepairButton = (event) => {
+    if (account.value === 'teacher' && (event.status === 3 || event.status === 2)) {
+        return true; // 先生は承認待ちのイベントに対して承認ボタンを表示
     }
     return false;
 };
@@ -401,6 +436,14 @@ const shouldShowCompleteButton = (event) => {
         return true; // 先生は承認済みのイベントに対して完了ボタンを表示
     } else if (account.value === 'student') {
         return false; // 生徒は自分のイベントに対して完了ボタンを表示
+    }
+    return false;
+};
+
+//授業削除ボタンを表示するかを判定する関数
+const shouldShowClassDeleteButton = (event) => {
+    if (account.value === 'student' && event.status === 3) {
+        return true; // 生徒はキャンセルした授業に対して削除ボタンを表示
     }
     return false;
 };
@@ -1216,6 +1259,39 @@ const isEarlier = (date) => {
     background-color: hsl(130, 100%, 24%);
 }
 
+.selected-day-info li {
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    font-size: 0.95em;
+    color: #333;
+}
+
+.student-event {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid hsl(211, 100%, 50%) !important;
+}
+
+.student-event-unconfirm {
+    background-color: hsl(60, 100%, 91%) !important;
+    border-left: 4px solid hsl(52, 100%, 34%) !important;
+}
+
+.student-event-comp {
+    background-color: hsl(129, 100%, 94%) !important;
+    border-left: 4px solid hsl(130, 100%, 24%) !important;
+}
+
+.student-event-cancel {
+    background-color: hsl(0, 80%, 96%) !important;
+    border-left: 4px solid hsl(0, 100%, 50%) !important;
+}
+
+.teacher-event {
+    background-color: #fff3e0 !important;
+    border-left: 4px solid #ff9800 !important;
+}
+
 .status-label {
     color: white;
     margin-bottom: 8px;
@@ -1223,6 +1299,9 @@ const isEarlier = (date) => {
     padding: 3px 6px;
     border-radius: 4px;
     margin-right: 10px;
+    width: 60px;
+    text-align: center;
+    display: inline-block;
 }
 
 .event-list {
@@ -1270,16 +1349,6 @@ const isEarlier = (date) => {
     list-style-type: none;
     padding: 0;
     margin: 0;
-}
-
-.selected-day-info li {
-    background-color: #e6f7ff;
-    border-left: 4px solid #a1b7ff;
-    padding: 10px;
-    margin-bottom: 8px;
-    border-radius: 4px;
-    font-size: 0.95em;
-    color: #333;
 }
 
 /* is-today より下に配置することで、is-selected の方が優先される可能性が高まります */
@@ -1436,18 +1505,12 @@ const isEarlier = (date) => {
     background-color: #22c55e;
 }
 
+.btn.remove {
+    background-color: #8d8d8d;
+}
+
 .btn.cancel {
     background-color: #ef4444;
-}
-
-.student-event {
-    background-color: #e3f2fd !important;
-    border-left: 4px solid #2196f3 !important;
-}
-
-.teacher-event {
-    background-color: #fff3e0 !important;
-    border-left: 4px solid #ff9800 !important;
 }
 
 .event-box {
@@ -1470,6 +1533,14 @@ const isEarlier = (date) => {
     font-size: 0.8em;
     margin-top: 5px;
     background-color: #8c8c8c;
+    padding: 3px 15px;
+    border-radius: 4px;
+}
+
+.red_hint {
+    font-size: 1.2em;
+    margin-top: 5px;
+    color: red;
     padding: 3px 15px;
     border-radius: 4px;
 }

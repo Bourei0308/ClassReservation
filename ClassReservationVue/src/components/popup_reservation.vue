@@ -71,8 +71,8 @@
                             <button class="btn approve" @click="handleChangeStatus(item.id, 2)">完了</button>
                             <button class="btn cancel" @click="handleChangeStatus(item.id, 3,'cancell')">キャンセル</button>
                         </template>
-                        <template v-else-if="item.status === 3 && role == 2">
-                            <button class="btn approve" @click="handleChangeStatus(item.id, 1,'confirm')">承認に変更</button>
+                        <template v-else-if="(item.status == 3||item.status == 2) && role == 2">
+                            <button class="btn remove" @click="handleChangeStatus(item.id, 1,'confirm')">承認に変更</button>
                         </template>
                     </div>
                 </div>
@@ -137,6 +137,8 @@ const refreshPopup = async () => {
     } else if (role.value === 1) {
         schedules.value = await getSchedulesByStudent(user.value.id)
     }
+    // 按 startTime 从晚到早排序
+    schedules.value.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
     users.value = await getUsers()
 }
 
@@ -362,6 +364,10 @@ defineExpose({
 
 .btn.close {
     background-color: #6b7280;
+}
+
+.btn.remove {
+    background-color: #8d8d8d;
 }
 
 .footer {

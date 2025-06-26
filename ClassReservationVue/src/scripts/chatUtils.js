@@ -54,18 +54,24 @@ export async function fetchAndProcessBlueTimes(teacherId, dateStr) {
   ])
 }
 
-export const changeStatus = async (id, newStatus,mode) => {
+export const changeStatus = async (id, newStatus) => {
+  if (newStatus==4) {
+    const confirmDelete = window.confirm('この予約を削除しますか？')
+    if (!confirmDelete) return
+    await axios.delete(`/api/class-schedules/${id}`)
+    return
+  }
     await updateScheduleStatus(id, newStatus)
 }
 
 export const getSchedulesByTeacher = (teacherId) =>
-    axios.get(`/api/class-schedules/teacher/${teacherId}`).then(res => res.data)
+  axios.get(`/api/class-schedules/teacher/${teacherId}`).then(res => res.data)
 export const getSchedulesByStudent = (userId) =>
-    axios.get(`/api/class-schedules/student/${userId}`).then(res => res.data)
+  axios.get(`/api/class-schedules/student/${userId}`).then(res => res.data)
 export const getUsers = () =>
-    axios.get('/api/users').then(res => res.data)
+  axios.get('/api/users').then(res => res.data)
 export const updateScheduleStatus = (id, status) =>
-    axios.put(`/api/class-schedules/${id}/status/${status}`).then(res => res.data)
+  axios.put(`/api/class-schedules/${id}/status/${status}`).then(res => res.data)
 
 function subtractTimeRanges(availableRanges, classRanges) {
   const result = []
