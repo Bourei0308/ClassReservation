@@ -388,7 +388,7 @@ const isReserved = () => {
 //編集ボタンを表示するかを判定する関数
 const shouldShowEditButton = (event) => {
     console.log('選択された先生1:', isReserved());
-    if (account.value === 'teacher') {
+    if (account.value === 'teacher'&& event.status == undefined) {
         // 先生の場合: 生徒が紐づいていないイベントのみ編集可能
         if (isReserved()) {
             return false;
