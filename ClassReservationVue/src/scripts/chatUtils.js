@@ -65,6 +65,8 @@ export const changeStatus = async (id, newStatus) => {
 
 export const getSchedulesByTeacher = (teacherId) =>
     axios.get(`/api/class-schedules/teacher/${teacherId}`).then(res => res.data)
+export const getSchedulesByStudent = (userId) =>
+    axios.get(`/api/class-schedules/student/${userId}`).then(res => res.data)
 export const getUsers = () =>
     axios.get('/api/users').then(res => res.data)
 export const updateScheduleStatus = (id, status) =>

@@ -4,7 +4,10 @@
     <div class="student_section">
       <h2 class="center_title">今日の予定</h2>
       <TimeBand v-if="isBlueTimesLoaded" :blue_time="blueTimes" :hourStep="2" />
-      <!-- <TopStudentAvailableClass :total="10" :remaining="3" /> -->
+      <button class="open-button" @click="openPopup">
+            今月の予約一覧
+        </button>
+      <SchedulePopup ref="popup" />
       <TopStudentAvailableClass v-if="userid" :studentID="userid" ref="classStatus" />
 
 
@@ -20,12 +23,13 @@ import axios from 'axios'
 import moment from 'moment'
 
 import Top_Calender from '@/components/top_calendar.vue'
-import Top_ChatBox from '@/components/top_chatbox.vue'
+import SchedulePopup from '@/components/popup_reservation.vue'
 import TopStudentAvailableClass from '@/components/top_student_available_class.vue'
 import TimeBand from '@/components/comp_timeband.vue'
 
 const router = useRouter()
 const { restoreLogin, user } = useAuth()
+const popup = ref(null)
 
 const userid = ref("")         // ✅ ref にする
 const total = ref(0)
@@ -73,6 +77,10 @@ const fetchTodayBlueTimes = async () => {
   }
 }
 
+function openPopup() {
+  popup.value.open()
+}
+
 
 // 予約削除時に子コンポーネントのメソッドを呼び出すための ref
 const classStatus = ref(null)
@@ -99,5 +107,22 @@ const handleReservationDeleted = () => {
   font-size: 24px;
   margin-bottom: 20px;
   font-weight: bold;
+}
+
+.open-button {
+    background-color: #3b82f6;
+    /* 蓝色 */
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.open-button:hover {
+    background-color: #2563eb;
+    /* hover 深蓝 */
 }
 </style>

@@ -3,18 +3,52 @@
         <div class="popup">
             <h2 class="title">今月の予約一覧</h2>
 
+            <!-- フィルター -->
+            <div class="filters">
+                <!-- 先生or生徒 -->
+                <select v-model="selectedUserId">
+                    <option value="">全ての先生</option>
+                    <option v-for="u in filterUserList" :key="u.id" :value="u.id">
+                        {{ u.name }}
+                    </option>
+                </select>
+
+                <!-- 期間 -->
+                <select v-model="selectedPeriod">
+                    <option value="month">今月</option>
+                    <option value="week">今週</option>
+                </select>
+
+                <!-- ステータス -->
+                <select v-model="selectedStatus">
+                    <option value="">全ての授業</option>
+                    <option value="0">承認待ち</option>
+                    <option value="1">承認済み</option>
+                    <option value="2">完了</option>
+                    <option value="3">キャンセル</option>
+                </select>
+                <button class="btn close" @click="close">閉じる</button>
+            </div>
+
+            <!-- ローディング -->
             <div v-if="loading" class="loading">読み込み中...</div>
 
+            <!-- コンテンツ -->
             <div v-else>
-                <div v-if="monthlySchedules.length === 0" class="empty">
-                    今月の予約はありません
+                <div v-if="filteredSchedules.length === 0" class="empty">
+                    該当する予約はありません
                 </div>
 
-                <div v-for="item in monthlySchedules" :key="item.id" class="schedule-box">
+                <div v-for="item in filteredSchedules" :key="item.id" class="schedule-box">
                     <!-- 左側 -->
                     <div class="schedule-info">
                         <div class="schedule-header">
-                            <div class="student-name">{{ getStudentName(item.studentId) }}</div>
+                            <div v-if="role == 2" class="student-name">
+                                {{ getStudentName(item.studentId) }}
+                            </div>
+                            <div v-else-if="role == 1" class="student-name">
+                                {{ getStudentName(item.teacherId) }}
+                            </div>
                             <div class="time-info">
                                 {{ formatTime(item.startTime) }} ~ {{ formatTime(item.endTime) }}
                                 ({{ getDuration(item.startTime, item.endTime) }}時間)
@@ -28,17 +62,17 @@
                     <!-- 右侧按钮 -->
                     <div class="button-group">
                         <template v-if="item.status === 0">
-                            <button class="btn approve" @click="handleChangeStatus(item.id, 1)">承認</button>
+                            <button v-if="role == 2" class="btn approve"
+                                @click="handleChangeStatus(item.id, 1)">承認</button>
                             <button class="btn cancel" @click="handleChangeStatus(item.id, 3)">キャンセル</button>
                         </template>
-                        <template v-else-if="item.status === 1">
+                        <template v-else-if="item.status === 1 && role == 2">
                             <button class="btn approve" @click="handleChangeStatus(item.id, 2)">完了</button>
                             <button class="btn cancel" @click="handleChangeStatus(item.id, 3)">キャンセル</button>
                         </template>
-                        <template v-else-if="item.status === 3">
+                        <template v-else-if="item.status === 3 && role == 2">
                             <button class="btn approve" @click="handleChangeStatus(item.id, 1)">承認に変更</button>
                         </template>
-                        <!-- status === 2 無ボタン -->
                     </div>
                 </div>
             </div>
@@ -61,48 +95,66 @@ const show = ref(false)
 const schedules = ref([])
 const users = ref([])
 const loading = ref(false)
+const role = ref(0)
 
+// フィルター用
+const selectedUserId = ref('')
+const selectedPeriod = ref('month')
+const selectedStatus = ref('')
 
-import { getSchedulesByTeacher, getUsers, changeStatus } from '@/scripts/chatUtils.js'
+// API
+import { getSchedulesByTeacher, getSchedulesByStudent, getUsers, changeStatus } from '@/scripts/chatUtils.js'
 
+// 開く
 const open = async () => {
     show.value = true
     loading.value = true
+    if (!user.value?.role) return
     try {
-        refreshPopup()
+        role.value = user.value.role
+        await refreshPopup()
     } finally {
         loading.value = false
     }
 }
 
+// 閉じる
+const close = () => {
+    show.value = false
+}
+
+// データ再取得
 const refreshPopup = async () => {
-    schedules.value = await getSchedulesByTeacher(user.value.id)
+    if (role.value === 2) {
+        schedules.value = await getSchedulesByTeacher(user.value.id)
+    } else if (role.value === 1) {
+        schedules.value = await getSchedulesByStudent(user.value.id)
+    }
     users.value = await getUsers()
 }
 
+// ステータス変更
 const handleChangeStatus = async (id, newStatus) => {
     await changeStatus(id, newStatus)
     await refreshPopup()
 }
 
-const close = () => {
-    show.value = false
-}
-
-const getStudentName = (studentId) => {
-    const found = users.value.find(u => u.id === studentId)
+// 名前取得
+const getStudentName = (id) => {
+    const found = users.value.find(u => u.id === id)
     return found ? found.name : '不明なユーザー'
 }
 
-const formatTime = (time) => {
-    return moment(time).format('MM/DD HH:mm')
-}
+// 時間表示
+const formatTime = (time) => moment(time).format('MM/DD HH:mm')
 
+// 時間差
 const getDuration = (start, end) => {
     const diff = moment(end).diff(moment(start), 'minutes')
     return (diff / 60).toFixed(1)
 }
 
+// ステータスラベル
 const statusLabel = (status) => {
     switch (status) {
         case 0: return '承認待ち'
@@ -113,6 +165,7 @@ const statusLabel = (status) => {
     }
 }
 
+// ステータスカラー
 const statusColor = (status) => {
     switch (status) {
         case 0: return 'waiting'
@@ -123,25 +176,60 @@ const statusColor = (status) => {
     }
 }
 
-const currentMonth = moment().month() // 0 ~ 11
-const currentYear = moment().year()
+// ---------- ✅ フィルター処理 ----------
 
-const monthlySchedules = computed(() => {
-    return schedules.value.filter(item => {
-        const date = moment(item.startTime)
-        return date.year() === currentYear && date.month() === currentMonth
-    })
+// ユーザーリスト
+const filterUserList = computed(() => {
+    if (role.value === 2) {
+        // 先生なら生徒
+        const studentIds = [...new Set(schedules.value.map(s => s.studentId))]
+        return users.value.filter(u => studentIds.includes(u.id))
+    } else if (role.value === 1) {
+        // 生徒なら先生
+        const teacherIds = [...new Set(schedules.value.map(s => s.teacherId))]
+        return users.value.filter(u => teacherIds.includes(u.id))
+    }
+    return []
 })
 
+// フィルターされた予約
+const filteredSchedules = computed(() => {
+    return schedules.value.filter(item => {
+        const date = moment(item.startTime)
 
+        // 期間フィルター
+        const isInPeriod = selectedPeriod.value === 'month'
+            ? date.isSame(moment(), 'month')
+            : date.isSame(moment(), 'week')
+
+        // ユーザーフィルター
+        const userMatch = !selectedUserId.value ||
+            (role.value === 2 && item.studentId === selectedUserId.value) ||
+            (role.value === 1 && item.teacherId === selectedUserId.value)
+
+        // ステータスフィルター
+        const statusMatch = selectedStatus.value === '' ||
+            String(item.status) === selectedStatus.value
+
+        return isInPeriod && userMatch && statusMatch
+    })
+})
 
 defineExpose({
     open,
     close
 })
 </script>
+
 <style scoped>
-/* 弹窗背景 */
+/* フィルター */
+.filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+/* その他はそのまま */
 .overlay {
     position: fixed;
     inset: 0;
@@ -152,7 +240,6 @@ defineExpose({
     z-index: 50;
 }
 
-/* 弹窗框体 */
 .popup {
     background-color: white;
     border-radius: 8px;
@@ -162,25 +249,21 @@ defineExpose({
     overflow-y: auto;
 }
 
-/* 标题 */
 .title {
     font-size: 20px;
     font-weight: bold;
     margin-bottom: 16px;
 }
 
-/* 加载中 */
 .loading {
     text-align: center;
 }
 
-/* 无数据提示 */
 .empty {
     text-align: center;
     color: gray;
 }
 
-/* 每个预约box */
 .schedule-box {
     border: 1px solid #ccc;
     border-radius: 8px;
@@ -191,31 +274,26 @@ defineExpose({
     align-items: center;
 }
 
-/* 左侧信息 */
 .schedule-info {
     flex: 1;
 }
 
-/* 学生名+时间 */
 .schedule-header {
     display: flex;
     align-items: center;
 }
 
-/* 学生名 */
 .student-name {
     font-size: 18px;
     font-weight: bold;
 }
 
-/* 时间 */
 .time-info {
     font-size: 14px;
     color: gray;
     margin-left: 8px;
 }
 
-/* 状态文字 */
 .status {
     margin-top: 8px;
     font-size: 14px;
@@ -237,14 +315,12 @@ defineExpose({
     color: red;
 }
 
-/* 右侧按钮 */
 .button-group {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-/* 通用按钮 */
 .btn {
     padding: 6px 12px;
     border: none;
@@ -265,7 +341,6 @@ defineExpose({
     background-color: #6b7280;
 }
 
-/* 底部按钮 */
 .footer {
     margin-top: 16px;
     display: flex;
