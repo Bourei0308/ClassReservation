@@ -16,6 +16,8 @@ export function latestTime(chats, uid) {
 
 import axios from 'axios'
 import moment from 'moment'
+import { useAuth } from '@/scripts/useAuth'
+const { user } = useAuth()
 
 export async function fetchAndProcessBlueTimes(teacherId, dateStr) {
   const date = moment(dateStr, 'YYYY-MM-DD')
@@ -52,6 +54,22 @@ export async function fetchAndProcessBlueTimes(teacherId, dateStr) {
   ])
 }
 
+export const changeStatus = async (id, newStatus) => {
+    await updateScheduleStatus(id, newStatus)
+    const schedules =await getSchedulesByTeacher(user.value.id)
+    const target = schedules.find(s => s.id === id)
+    if (target) {
+        target.status = newStatus
+    }
+}
+
+export const getSchedulesByTeacher = (teacherId) =>
+    axios.get(`/api/class-schedules/teacher/${teacherId}`).then(res => res.data)
+export const getUsers = () =>
+    axios.get('/api/users').then(res => res.data)
+export const updateScheduleStatus = (id, status) =>
+    axios.put(`/api/class-schedules/${id}/status/${status}`).then(res => res.data)
+
 function subtractTimeRanges(availableRanges, classRanges) {
   const result = []
 
@@ -82,3 +100,5 @@ function subtractTimeRanges(availableRanges, classRanges) {
 
   return result
 }
+
+

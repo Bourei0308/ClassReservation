@@ -28,15 +28,15 @@
                     <!-- 右侧按钮 -->
                     <div class="button-group">
                         <template v-if="item.status === 0">
-                            <button class="btn approve" @click="changeStatus(item.id, 1)">承認</button>
-                            <button class="btn cancel" @click="changeStatus(item.id, 3)">キャンセル</button>
+                            <button class="btn approve" @click="handleChangeStatus(item.id, 1)">承認</button>
+                            <button class="btn cancel" @click="handleChangeStatus(item.id, 3)">キャンセル</button>
                         </template>
                         <template v-else-if="item.status === 1">
-                            <button class="btn approve" @click="changeStatus(item.id, 2)">完了</button>
-                            <button class="btn cancel" @click="changeStatus(item.id, 3)">キャンセル</button>
+                            <button class="btn approve" @click="handleChangeStatus(item.id, 2)">完了</button>
+                            <button class="btn cancel" @click="handleChangeStatus(item.id, 3)">キャンセル</button>
                         </template>
                         <template v-else-if="item.status === 3">
-                            <button class="btn approve" @click="changeStatus(item.id, 1)">承認に変更</button>
+                            <button class="btn approve" @click="handleChangeStatus(item.id, 1)">承認に変更</button>
                         </template>
                         <!-- status === 2 無ボタン -->
                     </div>
@@ -51,7 +51,6 @@
 </template>
 
 <script setup>
-console.log("???")
 import { ref, computed } from 'vue'
 import { useAuth } from '@/scripts/useAuth'
 import moment from 'moment'
@@ -63,23 +62,27 @@ const schedules = ref([])
 const users = ref([])
 const loading = ref(false)
 
-import axios from 'axios'
-const getSchedulesByTeacher = (teacherId) =>
-    axios.get(`/api/class-schedules/teacher/${teacherId}`).then(res => res.data)
-const getUsers = () =>
-    axios.get('/api/users').then(res => res.data)
-const updateScheduleStatus = (id, status) =>
-    axios.put(`/api/class-schedules/${id}/status/${status}`).then(res => res.data)
+
+import { getSchedulesByTeacher, getUsers, changeStatus } from '@/scripts/chatUtils.js'
 
 const open = async () => {
     show.value = true
     loading.value = true
     try {
-        schedules.value = await getSchedulesByTeacher(user.value.id)
-        users.value = await getUsers()
+        refreshPopup()
     } finally {
         loading.value = false
     }
+}
+
+const refreshPopup = async () => {
+    schedules.value = await getSchedulesByTeacher(user.value.id)
+    users.value = await getUsers()
+}
+
+const handleChangeStatus = async (id, newStatus) => {
+    await changeStatus(id, newStatus)
+    await refreshPopup()
 }
 
 const close = () => {
@@ -130,13 +133,7 @@ const monthlySchedules = computed(() => {
     })
 })
 
-const changeStatus = async (id, newStatus) => {
-    await updateScheduleStatus(id, newStatus)
-    const target = schedules.value.find(s => s.id === id)
-    if (target) {
-        target.status = newStatus
-    }
-}
+
 
 defineExpose({
     open,
