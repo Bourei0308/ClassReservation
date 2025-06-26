@@ -81,15 +81,20 @@
             <div class="footer">
                 <button class="btn close" @click="close">閉じる</button>
             </div>
+            <button @click="testEmit">测试emit</button>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+const emit = defineEmits(['list-refreshed'])
+import { ref, computed,onMounted } from 'vue'
 import { useAuth } from '@/scripts/useAuth'
 import moment from 'moment'
-
+const testEmit = () => {
+  console.log('test emit called')
+  emit('list-refreshed')
+}
 const { user } = useAuth()
 
 const show = ref(false)
@@ -141,7 +146,7 @@ const handleChangeStatus = async (id, newStatus,mode) => {
     if (!confirm) {
         return;
     }
-    emit('list-refreshed');  // イベントを親コンポーネントに通知
+      // イベントを親コンポーネントに通知
     await changeStatus(id, newStatus)
     if (mode) {
         if(mode=="cancell") {
@@ -151,6 +156,9 @@ const handleChangeStatus = async (id, newStatus,mode) => {
         }
     }
     await refreshPopup()
+    console.log("emit 1")
+    emit('list-refreshed')
+    console.log("emit 2")
 }
 
 // 名前取得
@@ -234,7 +242,6 @@ defineExpose({
     close
 })
 
-const emit = defineEmits(['list-refreshed'])
 </script>
 
 <style scoped>

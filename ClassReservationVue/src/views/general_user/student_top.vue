@@ -1,5 +1,4 @@
 <template>
-  <div>
     <Top_Calender v-if="userid" account="student" :studentID=userid @reservation-refreshed="handleReservationDeleted" ref="calendar" />
     <div class="student_section">
       <h2 class="center_title">今日の予定</h2>
@@ -7,13 +6,9 @@
       <button class="open-button" @click="openPopup">
             今月の予約一覧
         </button>
-      <SchedulePopup ref="popup" @list-refreshed="handleListRefreshed" />
+      <SchedulePopup  @list-refreshed="handleListRefreshed" ref="popup" />
       <TopStudentAvailableClass v-if="userid" :studentID="userid" ref="classStatus" />
-
-
-
     </div>
-  </div>
 </template>
 <script setup>
 import { useRouter } from 'vue-router'
@@ -84,7 +79,6 @@ function openPopup() {
 
 // 予約削除時に子コンポーネントのメソッドを呼び出すための ref
 const classStatus = ref(null)
-const calendar = ref(null)
 const handleReservationDeleted = () => {
   // 直接调用子组件的 fetchHours 方法
   if (classStatus.value?.fetchHours) {
@@ -92,10 +86,11 @@ const handleReservationDeleted = () => {
   }
 }
 
-const handleListRefreshed = () => {
+const calendar = ref(null)
+const handleListRefreshed = async () => {
   // 直接调用子组件的 fetchHours 方法
   if (calendar.value?.onChange) {
-    calendar.value.onChange()
+    await calendar.value.onChange()
   }
 }
 

@@ -1,11 +1,11 @@
 <template>
     <div>
-        <Top_Calender account="teacher" :teacherID=userid />
+        <Top_Calender account="teacher" :teacherID=userid ref="calendar" />
         <button class="open-button" @click="openPopup">
             今月の予約一覧
         </button>
 
-        <SchedulePopup ref="popup" />
+        <SchedulePopup ref="popup"   @list-refreshed="handleListRefreshed" />
         <div class="timeband_section">
             <h2 class="center_title">今日の予定</h2>
             <TimeBand :blue_time="blueTimes" :hourStep="2" />
@@ -61,7 +61,6 @@ async function fetchTodayTeacherSchedules() {
       moment(s.startTime).format('YYYY-MM-DD HH:mm'),
       moment(s.endTime).format('YYYY-MM-DD HH:mm')
     ])
-    console.log(blueTimes)
 
   } catch (error) {
     console.error('Failed to fetch schedules:', error)
@@ -71,6 +70,16 @@ async function fetchTodayTeacherSchedules() {
 function openPopup() {
   popup.value.open()
 }
+
+const calendar = ref(null)
+const handleListRefreshed = async () => {
+  // 直接调用子组件的 fetchHours 方法
+  if (calendar.value?.onChange) {
+    await calendar.value.onChange()
+  }
+}
+
+
 </script>
 
 <style scoped>
