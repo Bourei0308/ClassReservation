@@ -32,7 +32,8 @@
                         <!-- イベント: {{ dayObj.eventList.length }}件 -->
                         <ul class="event-list">
                             <li v-for="event in dayObj.eventList" :key="event.id">
-                                <div v-if="event && !event.studentName" class="event-title">{{ event.title }}</div>
+                                <div v-if="event && !event.studentName" class="event-title">
+                                    {{ event.title }}</div>
                                 <div v-if="event && event.studentName && event.status == 0"
                                     class="student-info-noconfirm">
                                     承認待ちの授業</div>
@@ -59,14 +60,8 @@
                 <ul>
                     <li v-for="event in selectedDayEvents.eventList" :key="event.id"
                         :class="event.studentName ? 'student-event' : 'teacher-event'">
-                        {{ event.title }} ({{ moment(event.startTime).format('HH:mm') }} - {{
-                            moment(event.endTime).format('HH:mm') }})
-                        <TimeBand :blue_time="blueTimes" :hour-step="2" v-if="!event.studentName" />
-                        <button v-if="shouldShowEditButton(event)" @click="openEditPopup(event)">編集</button>
-                        <button v-if="shouldShowDeleteButton(event)" @click="deleteEditPopup(event)">削除</button>
-
                         <span v-if="event.status !== undefined" class="status-label"
-                            :style="{ color: event.status === 0 ? '#ff9800' : event.status === 1 ? '#2196f3' : event.status === 2 ? '#4caf50' : event.status === 3 ? '#f44336' : '#888' }">
+                            :style="{ backgroundColor: event.status === 0 ? 'hsl(51, 100%, 37%)' : event.status === 1 ? 'hsl(211, 100%, 50%)' : event.status === 2 ? 'hsl(130, 100%, 24%)' : event.status === 3 ? 'hsl(0, 100%, 50%)' : '#888' }">
                             {{
                                 event.status === 0 ? '承認待ち' :
                                     event.status === 1 ? '承認済み' :
@@ -75,15 +70,38 @@
                                                 '不明'
                             }}
                         </span>
-                        <!-- 先生用: ステータス表示とボタン -->
-                        <div v-if="account === 'teacher' && event.status !== undefined" class="teacher-status-actions">
-                            <button v-if="shouldShowAuthButton(event)"
-                                @click="changeStatusOnClick(event.id, 1)">承認</button>
-                            <button v-if="shouldShowCompleteButton(event)"
-                                @click="changeStatusOnClick(event.id, 2)">完了</button>
-                            <button v-if="event.status === 0 || event.status === 1"
-                                @click="changeStatusOnClick(event.id, 3)">キャンセル</button>
+                        <span class="event-title-box" :style="{ color: event.status === 0 ? 'hsl(51, 100%, 37%)' : event.status === 1 ? 'hsl(211, 100%, 50%)' : event.status === 2 ? 'hsl(130, 100%, 24%)' : event.status === 3 ? 'hsl(0, 100%, 50%)' : '#000' }">{{ event.title }}</span>
+                        <div class="event-box">
+                            <div v-if="event.studentName" class="event-box-info">
+
+
+                                <div><span class="class-head">授業時間：</span><span>{{
+                                    moment(event.startTime).format('HH:mm') }} -
+                                        {{ moment(event.endTime).format('HH:mm') }}</span></div>
+                                <div><span class="class-head">先生：</span><span>{{ event.teacherName }}</span></div>
+                            </div>
+                            <TimeBand :blue_time="blueTimes" :hour-step="2" v-if="!event.studentName" />
+                            <div class="button-group">
+                                <button class="btn approve" v-if="shouldShowEditButton(event)"
+                                    @click="openEditPopup(event)">編集</button>
+                                <button class="btn cancel" v-if="shouldShowDeleteButton(event)"
+                                    @click="deleteEditPopup(event)">削除</button>
+                            </div>
+                            <!-- 先生用: ステータス表示とボタン -->
+                            <div v-if="account === 'teacher' && event.status !== undefined"
+                                class="teacher-status-actions">
+                                <div class="button-group">
+                                    <button class="btn approve" v-if="shouldShowAuthButton(event)"
+                                        @click="changeStatusOnClick(event.id, 1)">承認</button>
+                                    <button class="btn approve" v-if="shouldShowCompleteButton(event)"
+                                        @click="changeStatusOnClick(event.id, 2)">完了</button>
+                                    <button class="btn cancel" v-if="event.status === 0 || event.status === 1"
+                                        @click="changeStatusOnClick(event.id, 3)">キャンセル</button>
+                                </div>
+                            </div>
                         </div>
+
+
                         <!-- 先生の時はボタンを設置する -->
                     </li>
                 </ul>
@@ -592,7 +610,7 @@ const getDayEvents = (date) => {
             const student = susers.value.find(s => s.id == event.student_id);
             let title = '';
             if (teacher && student) {
-                title = `${teacher.name}先生・${student.name}さん出席`;
+                title = `${student.name}さんの授業`;
             } else if (teacher) {
                 title = `${teacher.name}先生出席`;
             } else if (student) {
@@ -619,7 +637,7 @@ const getDayEvents = (date) => {
             const student = susers.value.find(s => s.id == event.student_id);
             let title = '';
             if (teacher && student) {
-                title = `${teacher.name}先生・${student.name}さん出席`;
+                title = `${student.name}さんの授業`;
             } else if (teacher) {
                 title = `${teacher.name}先生出席`;
             } else if (student) {
@@ -644,7 +662,7 @@ const getDayEvents = (date) => {
             const student = susers.value.find(s => s.id == event.student_id);
             let title = '';
             if (teacher && student) {
-                title = `${teacher.name}先生・${student.name}さん出席`;
+                title = `${student.name}さんの授業`;
             } else if (teacher) {
                 title = `${teacher.name}先生出席`;
             } else if (student) {
@@ -1183,7 +1201,7 @@ const isEarlier = (date) => {
 }
 
 .student-info-noconfirm {
-    background-color: hsl(0, 0%, 49%);
+    background-color: hsl(51, 100%, 37%);
 }
 
 .student-info-confirm {
@@ -1198,6 +1216,15 @@ const isEarlier = (date) => {
     background-color: hsl(130, 100%, 24%);
 }
 
+.status-label {
+    color: white;
+    margin-bottom: 8px;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
 .event-list {
     list-style: none;
     padding: 0;
@@ -1210,6 +1237,10 @@ const isEarlier = (date) => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.event-title-box {
+    font-weight: 700;
 }
 
 /* このCSSを<style scoped>セクションに追加してください */
@@ -1393,6 +1424,22 @@ const isEarlier = (date) => {
     box-shadow: 0 2px 8px rgba(255, 215, 0, 0.08);
 }
 
+.btn {
+    padding: 6px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+}
+
+.btn.approve {
+    background-color: #22c55e;
+}
+
+.btn.cancel {
+    background-color: #ef4444;
+}
+
 .student-event {
     background-color: #e3f2fd !important;
     border-left: 4px solid #2196f3 !important;
@@ -1401,6 +1448,13 @@ const isEarlier = (date) => {
 .teacher-event {
     background-color: #fff3e0 !important;
     border-left: 4px solid #ff9800 !important;
+}
+
+.event-box {
+    display: flex;
+    justify-content: space-between;
+    margin-right: 20px;
+    align-items: center;
 }
 
 .disabled-btn {
@@ -1419,6 +1473,24 @@ const isEarlier = (date) => {
     padding: 3px 15px;
     border-radius: 4px;
 }
+
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.class-head {
+    display: inline-block;
+    width: 80px;
+    text-align: center;
+
+}
+
+.event-box-info {
+    margin-left: 65px;
+}
+
 
 /* .popup-remaining-hours-label {
     font-weight: bold;
