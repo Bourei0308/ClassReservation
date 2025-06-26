@@ -7,7 +7,7 @@
       <button class="open-button" @click="openPopup">
             今月の予約一覧
         </button>
-      <SchedulePopup ref="popup" @reservation-refreshed="handleListRefreshed" />
+      <SchedulePopup ref="popup" @list-refreshed="handleListRefreshed" />
       <TopStudentAvailableClass v-if="userid" :studentID="userid" ref="classStatus" />
 
 
