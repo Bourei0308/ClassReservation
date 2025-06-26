@@ -11,5 +11,8 @@ public class LessonViewDto {
 	private String date;
 	private String time;
 	private int status;
+	
+	private String teacherId;
+	private String studentId;
 	private String comment;
 }

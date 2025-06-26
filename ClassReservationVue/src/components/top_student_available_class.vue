@@ -51,8 +51,8 @@ const fetchHours = async () => {
   }
   try {
     const [charged, used] = await Promise.all([
-      fetch(`http://localhost:8080/api/charges/users/${props.studentID}/total`).then(res => res.json()),
-      fetch(`http://localhost:8080/api/class-schedules/student/${props.studentID}/total-hours`).then(res => res.json())
+      fetch(`/api/charges/users/${props.studentID}/total`).then(res => res.json()),
+      fetch(`/api/class-schedules/student/${props.studentID}/total-hours`).then(res => res.json())
     ]);
     totalCharged.value = charged;
     usedHours.value = used;

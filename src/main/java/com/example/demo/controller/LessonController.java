@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,13 +32,18 @@ public class LessonController {
 				.collect(Collectors.toMap(User::getId, User::getName));
 
 		return schedules.stream().map(s -> {
-			String teacherName = userIdToName.getOrDefault(s.getTeacherId(), "不明");
-			String studentName = userIdToName.getOrDefault(s.getStudentId(), "不明");
+			String teacherName = userIdToName.getOrDefault(
+				    Optional.ofNullable(s.getTeacherId()).orElse(""), "不明"
+				);
+				String studentName = userIdToName.getOrDefault(
+				    Optional.ofNullable(s.getStudentId()).orElse(""), "不明"
+				);
 			String date = s.getStartTime().toLocalDate().toString();
 			String time = s.getStartTime().toLocalTime().toString() + "〜" + s.getEndTime().toLocalTime().toString();
-
+			String teacherId=s.getTeacherId();
+			String studentId=s.getStudentId();
 			return new LessonViewDto(
-					teacherName, studentName, date, time, s.getStatus(), "なし");
+					teacherName, studentName, date, time, s.getStatus(),teacherId,studentId, "なし");
 		}).toList();
 	}
 }
