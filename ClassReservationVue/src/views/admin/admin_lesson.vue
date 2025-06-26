@@ -48,6 +48,8 @@
 
     <button @click="openMonthlySummary(2)">先生の月別授業一覧</button>
     <button @click="openMonthlySummary(1)">生徒の月別授業一覧</button>
+    <button @click="openMonthlySummary(2,'calendar')">先生の日別授業一覧</button>
+    <button @click="openMonthlySummary(1,'calendar')">生徒の日別授業一覧</button>
 
     <!-- 📋 授業テーブル -->
     <table class="lesson-table">
@@ -78,8 +80,10 @@
       @close="showTeacherModal = false" />
     <UserSelectModal :show="showStudentModal" :role="1" title="生徒を選択" @select="onSelectStudent"
       @close="showStudentModal = false" />
-    <MonthlySummaryModal :show="showMonthlySummary" :role="monthlySummaryRole" :lessons="lessons"
+    <MonthlySummaryModal :show="showMonthlySummary" :role="selectedRole" :lessons="lessons"
       @close="showMonthlySummary = false" @select="onSelectMonthlySummary" />
+    <MonthlyLessonCalendar :show="showMonthlyCalendar" :role="selectedRole" :lessons="lessons"
+      @close="showMonthlyCalendar = false" @select="onSelectDailySummary" />
   </div>
 </template>
 
@@ -88,6 +92,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import axios from "axios";
 import UserSelectModal from '@/components/popup_select_user.vue';
 import MonthlySummaryModal from '@/components/popup_monthly_class.vue';
+import MonthlyLessonCalendar from '@/components/popup_daily_class.vue';
 import { getUsers, getSchedulesByTeacher, getSchedulesByStudent } from '@/scripts/chatUtils';
 
 const lessons = ref([]);
@@ -359,18 +364,24 @@ function statusClass(status) {
 }
 
 const showMonthlySummary = ref(false);
-const monthlySummaryRole = ref(2);  // 2=先生, 1=生徒
+const showMonthlyCalendar = ref(false);
+const selectedRole = ref(2);  // 2=先生, 1=生徒
 
-function openMonthlySummary(role) {
-  monthlySummaryRole.value = role;
-  showMonthlySummary.value = true;
+function openMonthlySummary(role,mode) {
+  selectedRole.value = role;
+  if (mode === 'calendar') {
+    showMonthlyCalendar.value = true;
+    return;
+  } else {
+    showMonthlySummary.value = true;
+  }
 }
 
 function onSelectMonthlySummary({ id, name, month }) {
   showMonthlySummary.value = false;
   resetFilters();
 
-  if (monthlySummaryRole.value === 2) {
+  if (selectedRole.value === 2) {
     selectedTeacher.value = { id, name };
     filter.value.teacher = name;
   } else {
@@ -385,6 +396,25 @@ function onSelectMonthlySummary({ id, name, month }) {
   filter.value.endDate = `${year}-${month.toString().padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
 
   console.log({ id, name, month });
+}
+
+function onSelectDailySummary({ id, name, date }) {
+  showMonthlyCalendar.value = false;  // 关闭弹窗（如有）
+  resetFilters();                  // 清空原有筛选条件
+
+  if (selectedRole.value === 2) {
+    selectedTeacher.value = { id, name };
+    filter.value.teacher = name;
+  } else {
+    selectedStudent.value = { id, name };
+    filter.value.student = name;
+  }
+
+  filter.value.status = 2;
+
+  // 设置过滤用的日期范围：当天
+  filter.value.startDate = date;
+  filter.value.endDate = date;
 }
 
 
