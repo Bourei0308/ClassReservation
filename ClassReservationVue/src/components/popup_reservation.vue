@@ -141,6 +141,7 @@ const handleChangeStatus = async (id, newStatus,mode) => {
     if (!confirm) {
         return;
     }
+    emit('list-refreshed');  // イベントを親コンポーネントに通知
     await changeStatus(id, newStatus)
     if (mode) {
         if(mode=="cancell") {
@@ -232,6 +233,8 @@ defineExpose({
     open,
     close
 })
+
+const emit = defineEmits(['list-refreshed'])
 </script>
 
 <style scoped>
