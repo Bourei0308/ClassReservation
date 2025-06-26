@@ -24,56 +24,79 @@ export async function sendEmail({ to, subject, body }) {
   }
 }
 
+// メールを送信する関数
+
+/* =========================
+📧 先生：予約通知
+========================= */
+export const sendTeacherNotifyMail = async (scheduleId) => {
+    try {
+        await axios.post("/api/mail/notify/teacher", {
+            classScheduleId: scheduleId
+        });
+    } catch (error) {
+        console.error('sendTeacherNotifyMain:', error);
+    }
+}
+
+/* =========================
+📧 学生：先生が予約承認
+========================= */
+export const sendStudentConfirmMail = async (scheduleId) => {
+    try {
+        await axios.post("/api/mail/notify/student/confirmed", {
+            classScheduleId: scheduleId
+        });
+    } catch (error) {
+        console.error('sendStudentConfirmMail:', error);
+    }
+}
+
+/* =========================
+📧 学生：先生が予約キャンセル
+========================= */
+export const sendStudentCancellMail = async (scheduleId) => {
+    try {
+        await axios.post("/api/mail/notify/student/cancelled", {
+            classScheduleId: scheduleId
+        });
+    } catch (error) {
+        console.error('sendStudentCancellMail:', error);
+    }
+}
+
+/* =========================
+📧 パスワード変更メール
+========================= */
+export const sendPasswordChangedMail = async (userId) => {
+    try {
+        await axios.post("/api/mail/notify/passwordchange", {
+            userId: userId
+        });
+    } catch (error) {
+        console.error('sendPasswordChangedMail:', error);
+    }
+}
+
 // ----------------------------
 // 📧 メールテンプレート定義
 // ----------------------------
 
-export const EmailTemplates = {
-  // 学生：予約成功
-  studentBookingConfirmed(studentName, classTime) {
-    return {
-      subject: "【じゅくポン】予約完了のお知らせ",
-      body: `${studentName}さん、こんにちは！\n\n授業の予約が正常に完了しました。\n開始時間: ${classTime}\n\n引き続きよろしくお願いいたします。\n\nじゅくポン運営より🐶`,
-    };
-  },
+/* =========================
+📧 学生：授業前日リマインド
+========================= */
+export async function sendStudentReminderEmail(to, studentName, classTime) {
+  const subject = '【じゅくポン】明日は授業の日です！'
+  const body = `${studentName}さん、こんにちは！\n\n明日 ${classTime} に授業があります。\nお忘れのないようご準備ください。\n\nじゅくポンより🐶`
 
-  // 学生：先生が予約承認
-  studentBookingApproved(studentName, classTime) {
-    return {
-      subject: "【じゅくポン】先生が授業予約を承認しました",
-      body: `${studentName}さん、\n\nご予約の授業が先生により承認されました。\n授業日時: ${classTime}\n\n準備してお待ちください！`,
-    };
-  },
+  await sendEmail({ to, subject, body })
+}
 
-  // 学生：授業前日リマインド
-  studentReminder(studentName, classTime) {
-    return {
-      subject: "【じゅくポン】明日は授業の日です！",
-      body: `${studentName}さん、こんにちは！\n\n明日 ${classTime} に授業があります。\nお忘れのないようご準備ください。\n\nじゅくポンより🐶`,
-    };
-  },
-
-  // 先生：予約通知
-  teacherBookingNotification(teacherName, studentName, classTime) {
-    return {
-      subject: "【じゅくポン】新しい予約があります",
-      body: `${teacherName}先生、\n\n${studentName}さんより授業の予約が入りました。\n日時: ${classTime}\nご確認の上、承認をお願いいたします。`,
-    };
-  },
-
-  // 先生：前日授業リマインド
-  teacherReminder(teacherName, classTime) {
-    return {
-      subject: "【じゅくポン】明日の授業予定",
-      body: `${teacherName}先生、\n\n明日 ${classTime} に授業の予定があります。\n準備をお願いいたします。\n\nじゅくポン運営`,
-    };
-  },
-
-// パスワード変更完了
-passwordChanged(userName) {
-  return {
-    subject: "【じゅくポン】パスワード変更完了のお知らせ",
-    body: `${userName}さん\n\nパスワードの変更が正常に完了しました。\n\nご本人による操作でない場合は、速やかにご連絡ください。\n\n引き続き「じゅくポン」をご利用いただけますようお願いいたします。\n\nじゅくポン運営`,
-  };
-},
-};
+/* =========================
+📧 先生：前日授業リマインド
+========================= */
+export async function sendTeacherReminderEmail(to, teacherName, classTime) {
+  const subject = '【じゅくポン】明日の授業予定'
+  const body = `${teacherName}先生、\n\n明日 ${classTime} に授業の予定があります。\n準備をお願いいたします。\n\nじゅくポン運営`
+  await sendEmail({ to, subject, body })
+}

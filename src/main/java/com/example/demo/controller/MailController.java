@@ -52,9 +52,47 @@ public class MailController {
 	public ResponseEntity<String> notifyTeacher(@RequestBody Map<String, String> payload) {
 		try {
 			String scheduleId = payload.get("classScheduleId");
-			System.out.println(scheduleId);
 			emailService.sendTeacherBookingNotification(scheduleId);
 			return ResponseEntity.ok("先生に通知メールを送信しました。");
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("通知メール送信失敗: " + e.getMessage());
+		}
+	}
+
+	@PostMapping("/notify/student/confirmed")
+	@Operation(summary = "学生：先生が予約承認")
+	public ResponseEntity<String> notifyStudentConfirm(@RequestBody Map<String, String> payload) {
+		try {
+			String scheduleId = payload.get("classScheduleId");
+			emailService.sendStudentBookingApproved(scheduleId);
+			return ResponseEntity.ok("学生に通知メールを送信しました。");
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("通知メール送信失敗: " + e.getMessage());
+		}
+	}
+
+	@PostMapping("/notify/student/cancelled")
+	@Operation(summary = "学生：先生が予約キャンセル")
+	public ResponseEntity<String> notifyStudentCancelled(@RequestBody Map<String, String> payload) {
+		try {
+			String scheduleId = payload.get("classScheduleId");
+			emailService.sendStudentBookingCancelled(scheduleId);
+			return ResponseEntity.ok("学生に通知メールを送信しました。");
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("通知メール送信失敗: " + e.getMessage());
+		}
+	}
+
+	@PostMapping("/notify/passwordchange")
+	@Operation(summary = "パスワード変更完了通知")
+	public ResponseEntity<String> notifyPasswordChanged(@RequestBody Map<String, String> payload) {
+		try {
+			String userId = payload.get("userId");	
+			emailService.sendPasswordChanged(userId);
+			return ResponseEntity.ok("学生に通知メールを送信しました。");
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body("通知メール送信失敗: " + e.getMessage());
