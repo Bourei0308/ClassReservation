@@ -14,6 +14,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Data
 public class ClassSchedule {
+	public ClassSchedule(String id2, String teacherName, String studentName, LocalDateTime startTime2,
+			LocalDateTime endTime2, int status2) {
+		// TODO 自動生成されたコンストラクター・スタブ
+	}
+
 	@Id
 	private String id;
 	private String studentId;

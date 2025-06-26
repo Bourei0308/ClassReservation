@@ -1,15 +1,19 @@
 package com.example.demo.controller;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.dto.LessonViewDto;
 import com.example.demo.entity.ClassSchedule;
+import com.example.demo.entity.User;
 import com.example.demo.repository.ClassScheduleRepository;
+import com.example.demo.repository.UserRepository;
 
-import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -17,11 +21,23 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LessonController {
 
-	private final ClassScheduleRepository classScheduleRepository;
+	private final ClassScheduleRepository scheduleRepo;
+	private final UserRepository userRepo;
 
 	@GetMapping("/completed")
-	@Operation(summary = "完了状態の授業一覧取得")
-	public List<ClassSchedule> getCompletedLessons() {
-		return classScheduleRepository.findByStatus(2); // status = 2 は完了
+	public List<LessonViewDto> getCompletedLessons() {
+		List<ClassSchedule> schedules = scheduleRepo.findAll(); // status 2 = 完了
+		Map<String, String> userIdToName = userRepo.findAll().stream()
+				.collect(Collectors.toMap(User::getId, User::getName));
+
+		return schedules.stream().map(s -> {
+			String teacherName = userIdToName.getOrDefault(s.getTeacherId(), "不明");
+			String studentName = userIdToName.getOrDefault(s.getStudentId(), "不明");
+			String date = s.getStartTime().toLocalDate().toString();
+			String time = s.getStartTime().toLocalTime().toString() + "〜" + s.getEndTime().toLocalTime().toString();
+
+			return new LessonViewDto(
+					teacherName, studentName, date, time, s.getStatus(), "なし");
+		}).toList();
 	}
 }
