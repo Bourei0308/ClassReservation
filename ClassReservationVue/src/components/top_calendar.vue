@@ -40,7 +40,7 @@
                                     class="student-info-uncompleted">
                                     未完了の授業</div>
                                 <div v-else-if="event && event.studentName && event.status == 1"
-                                    class="student-info-uncompleted">
+                                    class="student-info-confirm">
                                     承認済みの授業</div>
                                 <div v-else-if="event && event.studentName && event.status == 3"
                                     class="student-info-complete">
@@ -94,7 +94,8 @@
             <div v-if="(account === 'teacher' || (account === 'student' && selectedTeacher && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.teacherName)))
                 && !(account === 'teacher' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.studentName === ''))"
                 class="new">
-                <button v-if="isEarlier(selectedDayEvents.date)" class="reserve-btn" @click="openReservationPopup">新しい予約を入れる</button>
+                <button v-if="isEarlier(selectedDayEvents.date)" class="reserve-btn"
+                    @click="openReservationPopup">新しい予約を入れる</button>
             </div>
             <div
                 v-else-if="(account === 'teacher' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.studentName === ''))">
@@ -134,6 +135,7 @@
                             <input type="time" list="time-options" v-model="popupStartTime"
                                 @change="onStartTimeChange" />
                         </label>
+                        <label class="gray_hint" v-if="!popupStartTime">開始時間を入力してから、予約時間を選択してください</label>
                         <label>予約時間 (30分単位):
                             <select v-model.number="popupDuration">
                                 <option v-for="d in durationOptions" :key="d" :value="d">
@@ -202,62 +204,10 @@
                             <button @click="closeReservationPopup">キャンセル</button>
                         </div>
                     </div>
-
                     <div v-else>
                         <span>予約はこのアカウントでは入力できません。</span>
                         <button @click="closeReservationPopup">閉じる</button>
                     </div>
-
-                    <datalist id="time-options">
-                        <option value="00:00"></option>
-                        <option value="00:30"></option>
-                        <option value="01:00"></option>
-                        <option value="01:30"></option>
-                        <option value="02:00"></option>
-                        <option value="02:30"></option>
-                        <option value="03:00"></option>
-                        <option value="03:30"></option>
-                        <option value="04:00"></option>
-                        <option value="04:30"></option>
-                        <option value="05:00"></option>
-                        <option value="05:30"></option>
-                        <option value="06:00"></option>
-                        <option value="06:30"></option>
-                        <option value="07:00"></option>
-                        <option value="07:30"></option>
-                        <option value="08:00"></option>
-                        <option value="08:30"></option>
-                        <option value="09:00"></option>
-                        <option value="09:30"></option>
-                        <option value="10:00"></option>
-                        <option value="10:30"></option>
-                        <option value="11:00"></option>
-                        <option value="11:30"></option>
-                        <option value="12:00"></option>
-                        <option value="12:30"></option>
-                        <option value="13:00"></option>
-                        <option value="13:30"></option>
-                        <option value="14:00"></option>
-                        <option value="14:30"></option>
-                        <option value="15:00"></option>
-                        <option value="15:30"></option>
-                        <option value="16:00"></option>
-                        <option value="16:30"></option>
-                        <option value="17:00"></option>
-                        <option value="17:30"></option>
-                        <option value="18:00"></option>
-                        <option value="18:30"></option>
-                        <option value="19:00"></option>
-                        <option value="19:30"></option>
-                        <option value="20:00"></option>
-                        <option value="20:30"></option>
-                        <option value="21:00"></option>
-                        <option value="21:30"></option>
-                        <option value="22:00"></option>
-                        <option value="22:30"></option>
-                        <option value="23:00"></option>
-                        <option value="23:30"></option>
-                    </datalist>
                 </div>
             </div>
         </div>
@@ -363,22 +313,6 @@ const isStudentTimeInRange = computed(() => {
     );
 });
 
-// blueTimesのどれかの範囲に開始・終了が両方とも含まれていればボタン有効、それ以外は無効
-const isOverlappingBlueTimes = computed(() => {
-    if (!popupStartTime.value || !popupEndTime.value || !Array.isArray(blueTimes.value) || !selectedDayEvents.value) return true;
-    const dateStr = selectedDayEvents.value.date ? moment(selectedDayEvents.value.date).format('YYYY-MM-DD') : '';
-    const inputStart = moment(`${dateStr} ${popupStartTime.value}`, 'YYYY-MM-DD HH:mm');
-    const inputEnd = moment(`${dateStr} ${popupEndTime.value}`, 'YYYY-MM-DD HH:mm');
-    // どれか一つでも両方が範囲内なら有効（falseを返す）
-    const inAny = blueTimes.value.some(time => {
-        if (!Array.isArray(time) || time.length !== 2) return false;
-        const blueStart = moment(time[0], 'YYYY-MM-DD HH:mm');
-        const blueEnd = moment(time[1], 'YYYY-MM-DD HH:mm');
-        return inputStart.isSameOrAfter(blueStart) && inputEnd.isSameOrBefore(blueEnd);
-    });
-    return !inAny; // trueなら無効, falseなら有効
-});
-
 // メソッド
 const prevMonth = () => {
     currentDate.value = currentDate.value.clone().subtract(1, 'month');
@@ -390,19 +324,42 @@ const nextMonth = () => {
     onChange();
 };
 
+const isReserved = () => {
+    // 選択された先生の予定があるかどうかを確認
+    let flag = false
+    if (lastClickedDayObj.value && Array.isArray(lastClickedDayObj.value.eventList)) {
+        const hasInvalidStatusEvent = lastClickedDayObj.value.eventList.some(e => {
+            console.log('選択された先生2:', e.status);
+            if (e.status != null && (e.status == 1 || e.status == 3)) {
+                flag = true
+            }
+        });
+    }
+    return flag;
+};
+
 //編集ボタンを表示するかを判定する関数
 const shouldShowEditButton = (event) => {
+    console.log('選択された先生1:', isReserved());
     if (account.value === 'teacher') {
+        // 先生の場合: 生徒が紐づいていないイベントのみ編集可能
+        if (isReserved()) {
+            return false;
+        }
         return !event.studentName;
     } else if (account.value === 'student' && event.status === 0) {
         return event.studentName;
     }
-    return false;
+    return true;
 };
 
 //削除ボタンを表示するかを判定する関数
 const shouldShowDeleteButton = (event) => {
     if (account.value === 'teacher') {
+        // 先生の場合: 生徒が紐づいていないイベントのみ編集可能
+        if (isReserved()) {
+            return false;
+        }
         return !event.studentName;
     } else if (account.value === 'student' && event.status === 0) {
         return event.studentName;
@@ -447,62 +404,6 @@ const getComa = async () => {
     ]);
     remainingHours.value = Math.max(0, (charged - used)).toFixed(1);
 }
-
-const durationOptions = computed(() => {
-    // 開始時間が選択されている場合
-    const start = moment(popupStartTime.value, 'HH:mm');
-    // その日の24:00（翌日の00:00）
-    let end = null;
-    if (account.value === 'teacher') {
-        end = start.clone().set({ hour: 0, minute: 0 }).add(1, 'day');
-    }
-    else if (account.value === 'student') {
-        const targetDateArray = searchDay();
-        if (!targetDateArray || targetDateArray.length === 0) {
-            console.warn("選択された日付の空き時間が見つかりません。");
-            return [];
-        } else if (targetDateArray.length > 0) {
-            // 生徒の場合は選択された日の先生の空き時間を使う
-            // 選択された時間分、終了時間から引く
-            end = moment(targetDateArray[0][1], 'YYYY-MM-DD HH:mm').add(-popupStartTime.value, 'minutes');
-        } else {
-            console.warn("選択された日付の空き時間が見つかりません。");
-            return [];
-        }
-        // 生徒の場合は先生の空き時間の最大値を使う
-        // end = moment(teacherAvailableTimeRange.value.max, 'HH:mm');
-    }
-    const options = [];
-    let current = start.clone().add(30, 'minutes');
-    while (current.isSameOrBefore(end)) {
-        options.push(current.diff(start, 'minutes'));
-        current.add(30, 'minutes');
-    }
-    // searchDayのデバッグ出力
-    console.log(searchDay());
-    return options;
-});
-
-const searchDay = () => {
-    //選択された日付がある場合、選択された日付が先生の空き時間内かどうかをチェック
-    if (selectedDay.value) {
-        //blueTimesの中に選択された日付が含まれているかをチェック
-        const dateStr = selectedDayEvents.value.date ? moment(selectedDayEvents.value.date).format('YYYY-MM-DD') : '';
-        const target = moment(`${dateStr} ${popupStartTime.value}`, 'YYYY-MM-DD HH:mm');
-
-        return blueTimes.value.filter(([start, end]) => {
-            const startDate = new Date(start);
-            const endDate = new Date(end);
-            return target >= startDate && target <= endDate;
-        });
-    }
-};
-
-const formatDuration = (minutes) => {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return `${h}時${m}分`;
-};
 
 // // 予約の更新
 // try {
@@ -860,6 +761,81 @@ const closeReservationPopup = () => {
     showPopup.value = false;
 };
 
+
+//-----------------------予約当たりメソッド-----------------------//
+
+
+const durationOptions = computed(() => {
+    // 開始時間が選択されている場合
+    let start = moment(popupStartTime.value, 'HH:mm');
+    // その日の24:00（翌日の00:00）
+    let end = null;
+    if (account.value === 'teacher') {
+        end = start.clone().set({ hour: 0, minute: 0 }).add(1, 'day');
+    }
+    else if (account.value === 'student') {
+        const targetDateArray = searchDay();
+        if (!targetDateArray || targetDateArray.length === 0) {
+            console.warn("選択された日付の空き時間が見つかりません。");
+            return [];
+        } else if (targetDateArray.length > 0) {
+            // 生徒の場合は選択された日の先生の空き時間を使う
+            // 選択された時間分、終了時間から引く
+            const [availableStartStr, availableEndStr] = targetDateArray[0];
+            const dateStr = moment(availableStartStr, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DD');
+            start = moment(`${dateStr} ${popupStartTime.value}`, 'YYYY-MM-DD HH:mm');
+            end = moment(targetDateArray[0][1], 'YYYY-MM-DD HH:mm');
+        } else {
+            console.warn("選択された日付の空き時間が見つかりません。");
+            return [];
+        }
+    }
+    const options = [];
+    let current = start.clone().add(30, 'minutes');
+    while (current.isSameOrBefore(end)) {
+        options.push(current.diff(start, 'minutes'));
+        current.add(30, 'minutes');
+    }
+    return options;
+});
+
+const searchDay = () => {
+    //選択された日付がある場合、選択された日付が先生の空き時間内かどうかをチェック
+    if (selectedDay.value) {
+        //blueTimesの中に選択された日付が含まれているかをチェック
+        const dateStr = selectedDayEvents.value.date ? moment(selectedDayEvents.value.date).format('YYYY-MM-DD') : '';
+        const target = moment(`${dateStr} ${popupStartTime.value}`, 'YYYY-MM-DD HH:mm');
+
+        return blueTimes.value.filter(([start, end]) => {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            return target >= startDate && target <= endDate;
+        });
+    }
+};
+
+const formatDuration = (minutes) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h}時${m}分`;
+};
+
+// blueTimesのどれかの範囲に開始・終了が両方とも含まれていればボタン有効、それ以外は無効
+const isOverlappingBlueTimes = computed(() => {
+    if (!popupStartTime.value || !popupEndTime.value || !Array.isArray(blueTimes.value) || !selectedDayEvents.value) return true;
+    const dateStr = selectedDayEvents.value.date ? moment(selectedDayEvents.value.date).format('YYYY-MM-DD') : '';
+    const inputStart = moment(`${dateStr} ${popupStartTime.value}`, 'YYYY-MM-DD HH:mm');
+    const inputEnd = inputStart.clone().add(popupDuration.value, 'minutes');
+    // どれか一つでも両方が範囲内なら有効（falseを返す）
+    const inAny = blueTimes.value.some(time => {
+        if (!Array.isArray(time) || time.length !== 2) return false;
+        const blueStart = moment(time[0], 'YYYY-MM-DD HH:mm');
+        const blueEnd = moment(time[1], 'YYYY-MM-DD HH:mm');
+        return inputStart.isSameOrAfter(blueStart) && inputEnd.isSameOrBefore(blueEnd);
+    });
+    return !inAny; // trueなら無効, falseなら有効
+});
+
 // 先生の予約を登録する
 const submitReservation = async () => {
     // バリデーション例
@@ -887,6 +863,40 @@ const submitReservation = async () => {
     } catch (error) {
         console.error("データ登録エラー:", error);
         alert('イベントの情報を登録中にエラーが起きました。');
+    }
+    onChange();
+    showPopup.value = false;
+};
+
+// 生徒用の予約申請
+const submitStudentReservation = async () => {
+    if (!popupStartTime.value || !popupEndTime.value) {
+        alert('開始時間と終了時間を入力してください');
+        return;
+    }
+    console.log("生徒の予約申請", studentID.value);
+    const date = selectedDayEvents.value.date;
+    const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
+    const endDateTime = moment(startDateTime, 'YYYY-MM-DDTHH:mm').add(popupDuration.value, 'minutes').format('YYYY-MM-DDTHH:mm');
+    const payload = {
+        studentId: studentID.value,
+        teacherId: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
+        startTime: startDateTime,
+        endTime: endDateTime,
+        createdAt: moment().format('YYYY-MM-DDTHH:mm:ss'),
+        status: 0 // 承認待ち
+    };
+    try {
+        const sc = await axios.post(`/api/class-schedules`, payload);
+        //登録したことを先生にメールで送信
+        if (sc) {
+            mailSend(sc.data.id);
+        }
+        alert('予約申請を送信しました');
+        emit('reservation-refreshed');  // イベントを親コンポーネントに通知
+    } catch (error) {
+        console.error('生徒予約エラー:', error);
+        alert('予約申請に失敗しました');
     }
     onChange();
     showPopup.value = false;
@@ -947,41 +957,6 @@ const submitStudentEditReservation = async () => {
     } catch (error) {
         console.error('編集エラー:', error);
         alert('予定の更新に失敗しました');
-    }
-    onChange();
-    showPopup.value = false;
-};
-
-
-// 生徒用の予約申請
-const submitStudentReservation = async () => {
-    if (!popupStartTime.value || !popupEndTime.value) {
-        alert('開始時間と終了時間を入力してください');
-        return;
-    }
-    console.log("生徒の予約申請", studentID.value);
-    const date = selectedDayEvents.value.date;
-    const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
-    const endDateTime = `${formatDate(date)}T${popupEndTime.value}`;
-    const payload = {
-        studentId: studentID.value,
-        teacherId: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
-        startTime: startDateTime,
-        endTime: endDateTime,
-        createdAt: moment().format('YYYY-MM-DDTHH:mm:ss'),
-        status: 0 // 承認待ち
-    };
-    try {
-        const sc = await axios.post(`/api/class-schedules`, payload);
-        //登録したことを先生にメールで送信
-        if (sc) {
-            mailSend(sc.data.id);
-        }
-        alert('予約申請を送信しました');
-        emit('reservation-refreshed');  // イベントを親コンポーネントに通知
-    } catch (error) {
-        console.error('生徒予約エラー:', error);
-        alert('予約申請に失敗しました');
     }
     onChange();
     showPopup.value = false;
@@ -1059,13 +1034,11 @@ const emit = defineEmits(['reservation-refreshed'])
 // 判断是否是“未完成”
 const isUncompleted = (event) => {
     // 如果 event 日期早于 dayObj 日期，且状态是已确认（1），则是未完成
-    return isEarlier(moment(event.startTime).format('YYYY-MM-DD')) && event.status == 1
+    return !isEarlier(event.startTime) && event.status == 1
 }
 
-const isEarlier = (date)=> {
-    console.log(date, moment(new Date()).format('YYYY-MM-DD'))
-    console.log(date < moment(new Date()).format('YYYY-MM-DD'))
-    return date < moment(new Date()).format('YYYY-MM-DD')
+const isEarlier = (date) => {
+    return moment(date).format('YYYY-MM-DD') >= moment(new Date()).format('YYYY-MM-DD')
 }
 
 </script>
@@ -1436,6 +1409,15 @@ const isEarlier = (date)=> {
     cursor: not-allowed !important;
     opacity: 0.7;
     box-shadow: none !important;
+}
+
+.gray_hint {
+    color: white;
+    font-size: 0.8em;
+    margin-top: 5px;
+    background-color: #8c8c8c;
+    padding: 3px 15px;
+    border-radius: 4px;
 }
 
 /* .popup-remaining-hours-label {
