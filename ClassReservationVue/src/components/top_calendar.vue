@@ -446,28 +446,54 @@ const getComa = async () => {
 }
 
 const durationOptions = computed(() => {
-    ｄｄｄ
     // 開始時間が選択されている場合
     const start = moment(popupStartTime.value, 'HH:mm');
     // その日の24:00（翌日の00:00）
-    let end = start.clone().set({ hour: 0, minute: 0 }).add(1, 'day');
+    let end = null;
+    if (account.value === 'teacher') {
+        end = start.clone().set({ hour: 0, minute: 0 }).add(1, 'day');
+    }
+    else if (account.value === 'student') {
+        const targetDateArray = searchDay();
+        if (!targetDateArray || targetDateArray.length === 0) {
+            console.warn("選択された日付の空き時間が見つかりません。");
+            return [];
+        } else if (targetDateArray.length > 0) {
+            // 生徒の場合は選択された日の先生の空き時間を使う
+            // 選択された時間分、終了時間から引く
+            end = moment(targetDateArray[0][1], 'YYYY-MM-DD HH:mm').add(-popupStartTime.value, 'minutes');
+        } else {
+            console.warn("選択された日付の空き時間が見つかりません。");
+            return [];
+        }
+        // 生徒の場合は先生の空き時間の最大値を使う
+        // end = moment(teacherAvailableTimeRange.value.max, 'HH:mm');
+    }
     const options = [];
     let current = start.clone().add(30, 'minutes');
     while (current.isSameOrBefore(end)) {
         options.push(current.diff(start, 'minutes'));
         current.add(30, 'minutes');
     }
+    // searchDayのデバッグ出力
+    console.log(searchDay());
     return options;
 });
 
-const canSubmit = computed(() => {
-    if (!popupStartTime.value || !popupDuration.value) return false;
-    const start = moment(popupStartTime.value, 'HH:mm');
-    const end = start.clone().add(popupDuration.value, 'minutes');
-    const min = moment(teacherAvailableTimeRange.value.min, 'HH:mm');
-    const max = moment(teacherAvailableTimeRange.value.max, 'HH:mm');
-    return start.isSameOrAfter(min) && end.isSameOrBefore(max);
-});
+const searchDay = () => {
+    //選択された日付がある場合、選択された日付が先生の空き時間内かどうかをチェック
+    if (selectedDay.value) {
+        //blueTimesの中に選択された日付が含まれているかをチェック
+        const dateStr = selectedDayEvents.value.date ? moment(selectedDayEvents.value.date).format('YYYY-MM-DD') : '';
+        const target = moment(`${dateStr} ${popupStartTime.value}`, 'YYYY-MM-DD HH:mm');
+
+        return blueTimes.value.filter(([start, end]) => {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            return target >= startDate && target <= endDate;
+        });
+    }
+};
 
 const formatDuration = (minutes) => {
     const h = Math.floor(minutes / 60);
