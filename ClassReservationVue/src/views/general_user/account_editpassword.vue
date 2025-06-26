@@ -12,7 +12,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { sendPasswordChangedMail } from '@/scripts/emailSender' // ✅ 追加
+import { sendPasswordChangedMail } from '@/scripts/emailSender'
 
 import { useAuth } from '@/scripts/useAuth'
 const { logout  } = useAuth()

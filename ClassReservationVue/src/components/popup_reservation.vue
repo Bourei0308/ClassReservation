@@ -63,15 +63,16 @@
                     <div class="button-group">
                         <template v-if="item.status === 0">
                             <button v-if="role == 2" class="btn approve"
-                                @click="handleChangeStatus(item.id, 1)">承認</button>
-                            <button class="btn cancel" @click="handleChangeStatus(item.id, 3)">キャンセル</button>
+                                @click="handleChangeStatus(item.id, 1,'confirm')">承認</button>
+                            <button v-if="role == 2" class="btn cancel" @click="handleChangeStatus(item.id, 3,'cancell')">キャンセル</button>
+                            <button v-if="role == 1" class="btn cancel" @click="handleChangeStatus(item.id, 3)">キャンセル</button>
                         </template>
                         <template v-else-if="item.status === 1 && role == 2">
                             <button class="btn approve" @click="handleChangeStatus(item.id, 2)">完了</button>
-                            <button class="btn cancel" @click="handleChangeStatus(item.id, 3)">キャンセル</button>
+                            <button class="btn cancel" @click="handleChangeStatus(item.id, 3,'cancell')">キャンセル</button>
                         </template>
                         <template v-else-if="item.status === 3 && role == 2">
-                            <button class="btn approve" @click="handleChangeStatus(item.id, 1)">承認に変更</button>
+                            <button class="btn approve" @click="handleChangeStatus(item.id, 1,'confirm')">承認に変更</button>
                         </template>
                     </div>
                 </div>
@@ -104,6 +105,7 @@ const selectedStatus = ref('')
 
 // API
 import { getSchedulesByTeacher, getSchedulesByStudent, getUsers, changeStatus } from '@/scripts/chatUtils.js'
+import { sendStudentConfirmMail,sendStudentCancellMail } from '@/scripts/emailSender'
 
 // 開く
 const open = async () => {
@@ -134,8 +136,19 @@ const refreshPopup = async () => {
 }
 
 // ステータス変更
-const handleChangeStatus = async (id, newStatus) => {
+const handleChangeStatus = async (id, newStatus,mode) => {
+    const confirm = window.confirm('ステータスを変更してもよろしいですか？');
+    if (!confirm) {
+        return;
+    }
     await changeStatus(id, newStatus)
+    if (mode) {
+        if(mode=="cancell") {
+            sendStudentCancellMail(id)
+        } else if (mode=="confirm") {
+            sendStudentConfirmMail(id)
+        }
+    }
     await refreshPopup()
 }
 

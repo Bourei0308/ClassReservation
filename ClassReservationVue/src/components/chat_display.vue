@@ -31,9 +31,6 @@
 import { ref, watch, onUpdated, nextTick, computed } from 'vue'
 import axios from 'axios'
 
-import { sendEmail, EmailTemplates } from '@/scripts/emailSender' // ← 追加
-
-
 const props = defineProps(['user', 'targetUser', 'chats'])
 const emit = defineEmits(['sent'])
 

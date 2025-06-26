@@ -1,7 +1,7 @@
 
 
 // 📁 scripts/emailSender.js
-
+import axios from 'axios'
 // 共通メール送信関数（Gmail API経由で使うことを想定）
 export async function sendEmail({ to, subject, body }) {
   try {

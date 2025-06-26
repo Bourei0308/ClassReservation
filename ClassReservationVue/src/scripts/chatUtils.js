@@ -54,13 +54,8 @@ export async function fetchAndProcessBlueTimes(teacherId, dateStr) {
   ])
 }
 
-export const changeStatus = async (id, newStatus) => {
+export const changeStatus = async (id, newStatus,mode) => {
     await updateScheduleStatus(id, newStatus)
-    const schedules =await getSchedulesByTeacher(user.value.id)
-    const target = schedules.find(s => s.id === id)
-    if (target) {
-        target.status = newStatus
-    }
 }
 
 export const getSchedulesByTeacher = (teacherId) =>
