@@ -49,6 +49,14 @@ public class UserController {
 		return "ユーザデータ初期化しました";
 	}
 
+	@GetMapping("/email/{email}")
+	public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
+		String decodedEmail = java.net.URLDecoder.decode(email, java.nio.charset.StandardCharsets.UTF_8);
+		return userRepository.findByEmail(decodedEmail)
+				.map(ResponseEntity::ok)
+				.orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+	}
+
 	@GetMapping("")
 	@Operation(summary = "ユーザ一覧取得")
 	public List<User> getAllUsers() {

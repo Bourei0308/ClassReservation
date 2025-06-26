@@ -14,10 +14,17 @@ const { connect, disconnect } = useWebSocket()
 import { useAuth } from '@/scripts/useAuth'
 const { user,restoreLogin } = useAuth()
 
-onMounted(async() => {
-  await restoreLogin()
-  connect()
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'include' })
+    if (res.status === 401) return  // 未ログインならスキップ
+    const data = await res.json()
+    user.value = data
+  } catch (e) {
+    console.log("auth/me skipped or failed", e)
+  }
 })
+
 
 onUnmounted(() => {
   disconnect()
