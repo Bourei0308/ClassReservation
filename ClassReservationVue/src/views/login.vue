@@ -14,6 +14,11 @@
       </div>
       <button v-if="!TEST_MODE" @click="login(account, password)" class="login-button primary-login-button">ログイン</button>
       <button v-if="TEST_MODE" @click="devLoginMockUser" class="login-button test">ログイン</button>
+      <button @click="router.push('/account/reset-request')" class="forgot-password-button">
+  パスワードをお忘れの方はこちら
+</button>
+
+
     </div>
   </div>
 </template>
@@ -21,6 +26,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuth } from '@/scripts/useAuth'
+// login.vue の <script setup> の最初の方に追加してください
+import { useRouter } from 'vue-router'
+
 const { user, login, devLoginMockUser, TEST_MODE } = useAuth()
 // restoreLogin, useAuth はこのスニペットでは使用されていないため、明確化のために削除しています。
 // 実際のログインロジックで必要であれば、インポートしてください。
@@ -29,6 +37,43 @@ const account = ref('');
 const password = ref('');
 const accountError = ref('');
 const passwordError = ref('');
+
+const resetError = ref('')
+
+
+const router = useRouter()
+
+const goToResetPage = async () => {
+  resetError.value = ''
+
+  if (!account.value.trim()) {
+    resetError.value = 'アカウントを入力してください'
+    return
+  }
+
+  try {
+    const res = await fetch(`/api/users/account/${account.value}`)
+    if (!res.ok) throw new Error('ユーザーが見つかりません')
+
+    const userData = await res.json()
+
+    const sendRes = await fetch('/api/auth/send-code', {
+      method: 'POST',
+      credentials: 'include', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userData.email })
+    })
+
+    if (!sendRes.ok) throw new Error('認証コードの送信に失敗しました')
+
+    router.push('/account/passwordinfo')
+  } catch (err) {
+    resetError.value = err.message || 'エラーが発生しました'
+  }
+}
+
+
+
 
 const doLogin = () => {
   // 以前のエラーをリセット
@@ -55,11 +100,23 @@ const doLogin = () => {
     console.log('ログイン失敗: 入力エラー');
   }
 };
+onMounted(async () => {
+  if (!user.value) return  // ← user が未ログインなら処理しない
+  // or
+  // useAuth.js や onMounted 内で
+try {
+  const res = await fetch('/api/auth/me', { credentials: 'include' })
+  if (res.status === 401) return  // 未ログイン時はスキップ
+  const data = await res.json()
+  user.value = data
+} catch (e) {
+  console.warn('auth/me failed', e)
+}
 
-onMounted(() => {
+});
   // 初期表示でデフォルトのログインタイプを'1'（生徒）に設定
   // これは元のコードのコメントのままで、ここにロジックは実装されていません。
-});
+
 </script>
 
 <style scoped>
@@ -236,4 +293,19 @@ onMounted(() => {
 .new-account-link:hover {
   text-decoration: underline;
 }
+
+.forgot-password-button {
+  margin-top: 15px;
+  font-size: 0.9em;
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.forgot-password-button:hover {
+  color: #0056b3;
+}
+
 </style>

@@ -9,6 +9,10 @@ const router = createRouter({
       component: () => import('../views/login.vue'),
     },
     {
+      path: '/account/reset-request',
+      component: () => import('../views/general_user/ResetRequest.vue')
+    },
+    {
       path: '/top/0',
       name: '管理者トップ',
       meta: { requiresAuth: true, role_number: 0 },
@@ -84,14 +88,7 @@ const router = createRouter({
       name: 'ユーザパスワード',
       meta: { requiresAuth: true },
       component: () => import('../views/general_user/account_passwordinfo.vue'),
-    },
-    {
-      path: '/account/newpassword',
-      name: 'ユーザパスワード変更',
-      meta: { requiresAuth: true },
-      component: () => import('../views/general_user/account_editpassword.vue'),
-    },
-
+    }
   ],
 })
 
