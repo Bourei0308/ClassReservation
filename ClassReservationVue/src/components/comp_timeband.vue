@@ -22,87 +22,87 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import moment from 'moment'
 
 const props = defineProps({
-    blue_time: {
-        type: Array,
-        required: true
-    },
-    hourStep: {
-        type: Number,
-        default: 1
-    },
+  blue_time: {
+    type: Array,
+    required: true
+  },
+  hourStep: {
+    type: Number,
+    default: 1
+  },
 })
 
 function getTimeRangeFromBlueTimes(blueTimes) {
-    if (!blueTimes || blueTimes.length === 0) {
-        return { start: '00:00', end: '24:00' }
-    }
+  if (!blueTimes || blueTimes.length === 0) {
+    return { start: '00:00', end: '24:00' }
+  }
 
-    // 提取所有时间为 moment 对象
-    const allTimes = blueTimes.flat().map(time => moment(time, 'YYYY-MM-DD HH:mm'))
+  const allTimes = blueTimes.flat().map(time => moment(time, 'YYYY-MM-DD HH:mm'))
 
-    // 获取最早和最晚
-    const minTime = moment.min(allTimes)
-    const maxTime = moment.max(allTimes)
+  const minTime = moment.min(allTimes)
+  const maxTime = moment.max(allTimes)
 
-    // 向前/向后调整 1 小时
-    const adjustedStart = minTime.clone().subtract(1, 'hours')
-    const adjustedEnd = maxTime.clone().add(1, 'hours')
+  const adjustedStart = minTime.clone().subtract(1, 'hours')
+  const adjustedEnd = maxTime.clone().add(1, 'hours')
 
-    // 格式化为 HH:mm 输出
-    return {
-        start: adjustedStart.format('HH:mm') < '00:00' ? '00:00' : adjustedStart.format('HH:mm'),
-        end: adjustedEnd.format('HH:mm') > '24:00' ? '24:00' : adjustedEnd.format('HH:mm')
-    }
-}
-const timeRange = getTimeRangeFromBlueTimes(props.blue_time)
-
-// 起始小时和持续小时数
-const rangeStartHour = parseInt(timeRange.start.split(':')[0])
-const rangeEndHour = parseInt(timeRange.end.split(':')[0])
-const rangeStartMinutes = rangeStartHour * 60 + parseInt(timeRange.start.split(':')[1])
-const rangeEndMinutes = rangeEndHour * 60 + parseInt(timeRange.end.split(':')[1])
-const rangeDurationMinutes = rangeEndMinutes - rangeStartMinutes
-const rangeDurationHours = rangeDurationMinutes / 60
-
-// 时刻标签数组
-const hourLabels = []
-for (let i = rangeStartHour; i <= rangeEndHour; i += props.hourStep) {
-    hourLabels.push(i)
+  return {
+    start: adjustedStart.format('HH:mm') < '00:00' ? '00:00' : adjustedStart.format('HH:mm'),
+    end: adjustedEnd.format('HH:mm') > '24:00' ? '24:00' : adjustedEnd.format('HH:mm')
+  }
 }
 
-// 格式化为 HH:mm
+const timeRange = computed(() => getTimeRangeFromBlueTimes(props.blue_time))
+
+const rangeStartHour = computed(() => parseInt(timeRange.value.start.split(':')[0]))
+const rangeEndHour = computed(() => parseInt(timeRange.value.end.split(':')[0]))
+
+const rangeStartMinutes = computed(() => rangeStartHour.value * 60 + parseInt(timeRange.value.start.split(':')[1]))
+const rangeEndMinutes = computed(() => rangeEndHour.value * 60 + parseInt(timeRange.value.end.split(':')[1]))
+
+const rangeDurationMinutes = computed(() => rangeEndMinutes.value - rangeStartMinutes.value)
+const rangeDurationHours = computed(() => rangeDurationMinutes.value / 60)
+
+const hourLabels = computed(() => {
+  const labels = []
+  for (let i = rangeStartHour.value; i <= rangeEndHour.value; i += props.hourStep) {
+    labels.push(i)
+  }
+  return labels
+})
+
 const formatTime = (datetime) => {
-    return moment(datetime, 'YYYY-MM-DD HH:mm').format('HH:mm')
+  return moment(datetime, 'YYYY-MM-DD HH:mm').format('HH:mm')
 }
 
-// 蓝色段样式计算
 const calculateStyle = (startStr, endStr) => {
-    const start = moment(startStr, 'YYYY-MM-DD HH:mm')
-    const end = moment(endStr, 'YYYY-MM-DD HH:mm')
+  const start = moment(startStr, 'YYYY-MM-DD HH:mm')
+  const end = moment(endStr, 'YYYY-MM-DD HH:mm')
 
-    const startMin = Math.max(
-        start.hours() * 60 + start.minutes(),
-        rangeStartMinutes
-    )
-    const endMin = Math.min(
-        end.hours() * 60 + end.minutes(),
-        rangeEndMinutes
-    )
+  const startMin = Math.max(
+    start.hours() * 60 + start.minutes(),
+    rangeStartMinutes.value
+  )
+  const endMin = Math.min(
+    end.hours() * 60 + end.minutes(),
+    rangeEndMinutes.value
+  )
 
-    if (endMin <= rangeStartMinutes || startMin >= rangeEndMinutes) return { display: 'none' }
+  if (endMin <= rangeStartMinutes.value || startMin >= rangeEndMinutes.value) return { display: 'none' }
 
-    const leftPercent = ((startMin - rangeStartMinutes) / rangeDurationMinutes) * 100
-    const widthPercent = ((endMin - startMin) / rangeDurationMinutes) * 100
+  const leftPercent = ((startMin - rangeStartMinutes.value) / rangeDurationMinutes.value) * 100
+  const widthPercent = ((endMin - startMin) / rangeDurationMinutes.value) * 100
 
-    return {
-        left: `${leftPercent}%`,
-        width: `${widthPercent}%`
-    }
+  return {
+    left: `${leftPercent}%`,
+    width: `${widthPercent}%`
+  }
 }
 </script>
+
 
 
 <style scoped>
