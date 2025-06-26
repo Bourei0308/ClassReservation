@@ -18,6 +18,10 @@
       <label>ロール:</label>
       <div class="radio-group">
         <label>
+          <input type="radio" value="0" v-model="form.role" required />
+          管理者
+        </label>
+        <label>
           <input type="radio" value="2" v-model="form.role" required />
           先生
         </label>
