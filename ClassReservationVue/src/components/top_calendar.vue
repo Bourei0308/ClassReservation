@@ -58,7 +58,7 @@
                                     完了した授業</div>
                                 <div v-else-if="event && event.studentName && event.status == 3"
                                     class="student-info-cancel">
-                                    キャンセルした授業</div>
+                                    取消した授業</div>
                             </li>
                         </ul>
                     </div>
@@ -92,7 +92,7 @@
                                     event.status === 0 ? '承認待ち' :
                                         event.status === 1 ? '承認済み' :
                                             event.status === 2 ? '完了' :
-                                                event.status === 3 ? 'キャンセル' :
+                                                event.status === 3 ? '取消' :
                                                     '不明'
                             }}
                         </span>
@@ -137,7 +137,7 @@
                                     <button class="btn approve" v-if="shouldShowCompleteButton(event)"
                                         @click="changeStatusOnClick(event.id, 2)">完了</button>
                                     <button class="btn cancel" v-if="event.status === 0 || event.status === 1"
-                                        @click="changeStatusOnClick(event.id, 3)">キャンセル</button>
+                                        @click="changeStatusOnClick(event.id, 3)">取消</button>
 
                                 </div>
                             </div>
@@ -183,7 +183,7 @@
                         <p>本当にこの予定を削除しますか？</p>
                         <div style="margin-top:10px;">
                             <button @click="submitDeleteReservation">削除</button>
-                            <button @click="closeReservationPopup">キャンセル</button>
+                            <button @click="closeReservationPopup">取消</button>
                         </div>
                     </div>
                     <div v-else-if="account === 'teacher'">
@@ -211,7 +211,7 @@
                             <button v-else-if="popupMode === 'edit'" @click="submitEditReservation">
                                 更新
                             </button>
-                            <button @click="closeReservationPopup">キャンセル</button>
+                            <button @click="closeReservationPopup">取消</button>
                         </div>
                     </div>
                     <div v-else-if="account === 'student'">
@@ -248,7 +248,7 @@
                                     editingEvent.status === 0 ? '承認待ち' :
                                         editingEvent.status === 1 ? '承認済み' :
                                             editingEvent.status === 2 ? '完了' :
-                                                editingEvent.status === 3 ? 'キャンセル' :
+                                                editingEvent.status === 3 ? '取消' :
                                                     '不明'
                                 }}
                             </span>
@@ -261,7 +261,7 @@
                             <button v-else-if="popupMode === 'edit'" @click="submitStudentEditReservation"
                                 :disabled="popupStartTime >= popupEndTime || isOverlappingBlueTimes"
                                 :class="{ 'disabled-btn': popupStartTime >= popupEndTime || isOverlappingBlueTimes }">更新</button>
-                            <button @click="closeReservationPopup">キャンセル</button>
+                            <button @click="closeReservationPopup">取消</button>
                         </div>
                     </div>
                     <div v-else>
@@ -291,7 +291,7 @@
             </div>
             <div class="bulk-booking-actions">
                 <button @click="submitBulkBooking">まとめて予約する</button>
-                <button @click="cancelBulkBooking">キャンセル</button>
+                <button @click="cancelBulkBooking">取消</button>
             </div>
 
         </div>
@@ -1354,7 +1354,8 @@ const isEarlier = (date) => {
 }
 
 .selected-day-info h3 {
-    color: #333;
+    color: #2d2d69;
+    font-weight: 700;
     font-size: 1.8em;
     margin-bottom: 15px;
     text-align: center;
@@ -1556,17 +1557,17 @@ const isEarlier = (date) => {
     text-align: center;
     font-weight: bold;
     padding: 10px 0;
-    background-color: #e9e9e9;
+    background-color: #2d2d69;
     border-radius: 3px;
-    color: #555;
+    color: #fff;
 }
 
 .weekday-name:first-child {
-    color: #d9534f;
+    color: #ff5650;
 }
 
 .weekday-name:last-child {
-    color: #0275d8;
+    color: #88c8ff;
 }
 
 .calendar-week {
@@ -1714,11 +1715,6 @@ const isEarlier = (date) => {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.selected-day-info h3 {
-    color: #007bff;
-    margin-top: 0;
-    margin-bottom: 15px;
-}
 
 .selected-day-info h4 {
     color: #555;
@@ -1851,7 +1847,7 @@ const isEarlier = (date) => {
 }
 
 .reserve-btn {
-    background: linear-gradient(90deg, #ff9800 0%, #ffc107 100%);
+    background: linear-gradient(90deg, #2d2d69 0%, #53539d 100%);
     color: #fff;
     border: none;
     border-radius: 6px;
@@ -1863,13 +1859,14 @@ const isEarlier = (date) => {
     transition: background 0.2s, box-shadow 0.2s, transform 0.2s ease;
     /* Add transform */
     margin: 10px 0;
+    width: 100%;
 }
 
 .reserve-btn:hover {
-    background: linear-gradient(90deg, #ffb74d 0%, #ffe082 100%);
-    color: #ff9800;
+    background: linear-gradient(90deg, #53539d 0%, #2d2d69 100%);
     box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
     transform: translateY(-2px);
+    
     /* Lift effect */
 }
 
