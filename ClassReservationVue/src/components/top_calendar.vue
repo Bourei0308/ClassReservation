@@ -15,6 +15,15 @@
             <button @click="nextMonth">次月 &gt;</button>
         </div>
 
+        <div class="calendar-controls">
+            <!-- まとめて予約にするためのチェックボックス -->
+            <label>
+                <input type="checkbox" v-model="isBulkBooking" v-if="account == 'teacher'"
+                    @change="onBulkBookingChange" />
+                まとめて予約する
+            </label>
+        </div>
+
         <div class="calendar-grid">
             <div class="weekday-names">
                 <span v-for="dayName in weekdayNames" :key="dayName" class="weekday-name">{{ dayName }}</span>
@@ -26,7 +35,9 @@
                     'is-selected': (() => {
                         const isSelected = selectedDay && moment(selectedDay).isSame(dayObj.date, 'day');
                         return isSelected;
-                    })()
+                    })(),
+                    'is-bulk-booking': isDateInDayList(dayObj.date),
+
                 }]" @click="handleDayClick(dayObj)">
                     {{ dayObj.day }}<div v-if="dayObj.eventList && dayObj.eventList.length > 0">
                         <!-- イベント: {{ dayObj.eventList.length }}件 -->
@@ -43,9 +54,12 @@
                                 <div v-else-if="event && event.studentName && event.status == 1"
                                     class="student-info-confirm">
                                     承認済みの授業</div>
-                                <div v-else-if="event && event.studentName && event.status == 3"
+                                <div v-else-if="event && event.studentName && event.status == 2"
                                     class="student-info-complete">
                                     完了した授業</div>
+                                <div v-else-if="event && event.studentName && event.status == 3"
+                                    class="student-info-cancel">
+                                    キャンセルした授業</div>
                             </li>
                         </ul>
                     </div>
@@ -318,7 +332,8 @@ const dateFlag = ref(false); // 日付が選択されたかどうかのフラグ
 const lastClickedDayObj = ref(null);
 const remainingHours = ref(0); // 残りのコマ数
 const popupDuration = ref(30); // default 30 minutes
-
+const isBulkBooking = ref(false); // まとめて予約するかどうか
+const dayList = ref([]); // まとめて予約する日付のリスト
 
 
 // 算出プロパティ
@@ -376,7 +391,6 @@ const isReserved = () => {
     let flag = false
     if (lastClickedDayObj.value && Array.isArray(lastClickedDayObj.value.eventList)) {
         const hasInvalidStatusEvent = lastClickedDayObj.value.eventList.some(e => {
-            console.log('選択された先生2:', e.status);
             if (e.status != null && (e.status == 1 || e.status == 3)) {
                 flag = true
             }
@@ -387,8 +401,7 @@ const isReserved = () => {
 
 //編集ボタンを表示するかを判定する関数
 const shouldShowEditButton = (event) => {
-    console.log('選択された先生1:', isReserved());
-    if (account.value === 'teacher'&& event.status == undefined) {
+    if (account.value === 'teacher' && event.status == undefined) {
         // 先生の場合: 生徒が紐づいていないイベントのみ編集可能
         if (isReserved()) {
             return false;
@@ -406,7 +419,7 @@ const shouldShowDeleteButton = (event) => {
             return false;
         }
         return !event.studentName;
-    } else if (account.value === 'student' && event.status === 0) {
+    } else if (account.value === 'student' && event.status === 0 || event.status === 2) {
         return event.studentName;
     }
     return false;
@@ -735,9 +748,48 @@ const updateSelectedDayEvents = (dayObj) => {
     selectedDay.value = dayObj;
 };
 
+// 一括設定のクリック
+const onBulkBookingChange = () => {
+    if (!isBulkBooking.value) {
+        // 一括設定をオフにする場合は、最後にクリックした日をリセット
+        dayList.value = [];
+    } else {
+        // 一括設定をオンにする場合は
+    }
+};
+
+// 日付を受け取りその日がdayListに含まれているかを確認し、真偽値で返す関数
+const isDateInDayList = (date) => {
+    return dayList.value.some(d => moment(d).isSame(date));
+};
+
 // 日付クリック時のハンドラ
 const handleDayClick = async (dayObj) => {
-    console.log('日付がクリックされました:', dayObj);
+
+    // 一括設定が有効な場合
+    if (isBulkBooking.value) {
+        // 選択された日付が今日より前の時は追加しない
+        if (moment(dayObj.date).isBefore(moment(), 'day')) {
+            console.log('過去の日付は選択できません。');
+            return;
+        }
+        // 選択された日付にすでに予定が入っていたら追加しない
+        if (dayObj.eventList && dayObj.eventList.length > 0) {
+            console.log('選択された日付にはすでに予定があります。');
+            return;
+        }
+        // クリックした日付がすでにリストにあるか確認
+        const index = dayList.value.findIndex(date => moment(date).isSame(dayObj.date));
+        // すでにリストにない場合は追加
+        if (index === -1) {
+            dayList.value.push(dayObj.date);
+        } else {
+            // すでにリストにある場合は削除
+            dayList.value.splice(index, 1);
+        }
+        console.log('一括設定の日付リスト:', dayList.value);
+    }
+
     lastClickedDayObj.value = dayObj;
     const blueTeacherID = selectedTeacher.value
         ? selectedTeacher.value.id
@@ -1105,6 +1157,14 @@ const isEarlier = (date) => {
 </script>
 
 <style scoped>
+.calendar-controls {
+    /* 右寄せで配置 */
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
 .calendar-view {
     font-family: Arial, sans-serif;
     padding: 20px;
@@ -1235,6 +1295,7 @@ const isEarlier = (date) => {
 .student-info-confirm,
 .student-info-noconfirm,
 .student-info-complete,
+.student-info-cancel,
 .student-info-uncompleted {
     font-size: 10px;
     color: white;
@@ -1257,6 +1318,10 @@ const isEarlier = (date) => {
 
 .student-info-complete {
     background-color: hsl(130, 100%, 24%);
+}
+
+.student-info-cancel {
+    background-color: hsl(0, 0%, 74%);
 }
 
 .selected-day-info li {
@@ -1358,6 +1423,12 @@ const isEarlier = (date) => {
     border-color: #ff4e4e;
     /* 選択された日のボーダー色 */
     box-shadow: 0 0 8px rgba(250, 111, 111, 0.4);
+}
+
+.calendar-day.is-bulk-booking {
+    background-color: rgba(255, 152, 0, 0.2);
+    border: 1px dashed #ff9800;
+    box-shadow: 0 0 5px rgba(255, 152, 0, 0.3);
 }
 
 .teacher-select-box {
