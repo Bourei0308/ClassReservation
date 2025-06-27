@@ -155,7 +155,7 @@
             <div v-if="(account === 'teacher' || (account === 'student' && selectedTeacher && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.teacherName)))
                 && !(account === 'teacher' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.studentName === ''))"
                 class="new">
-                <button v-if="isEarlier(selectedDayEvents.date)" class="reserve-btn"
+                <button v-if="!isEarlier(selectedDayEvents.date)" class="reserve-btn"
                     @click="openReservationPopup">新しい予約を入れる</button>
             </div>
             <div
@@ -392,9 +392,13 @@ const nextMonth = () => {
 const isReserved = () => {
     // 選択された先生の予定があるかどうかを確認
     let flag = false
+
     if (lastClickedDayObj.value && Array.isArray(lastClickedDayObj.value.eventList)) {
+
         const hasInvalidStatusEvent = lastClickedDayObj.value.eventList.some(e => {
-            if (e.status != null && (e.status == 1 || e.status == 3)) {
+            console.log("hasInvalidStatusEvent", e.title, e.status)
+            if (e.status != null && (e.status == 1 || e.status == 2)) {
+
                 flag = true
             }
         });
@@ -406,7 +410,7 @@ const isReserved = () => {
 const shouldShowEditButton = (event) => {
     if (account.value === 'teacher' && event.status == undefined) {
         // 先生の場合: 生徒が紐づいていないイベントのみ編集可能
-        if (isReserved()) {
+        if (isReserved() || isEarlier(lastClickedDayObj.value.date)) {
             return false;
         }
         return true;
@@ -416,14 +420,14 @@ const shouldShowEditButton = (event) => {
 
 //削除ボタンを表示するかを判定する関数
 const shouldShowDeleteButton = (event) => {
-    if (account.value === 'teacher') {
+    if (account.value === 'teacher' && event.status === undefined) {
         // 先生の場合: 生徒が紐づいていないイベントのみ編集可能
-        if (isReserved()) {
+        if (isReserved() || isEarlier(lastClickedDayObj.value.date)) {
             return false;
         }
-        return !event.studentName;
+        return true;
     } else if (account.value === 'student' && event.status === 0 || event.status === 2) {
-        return event.studentName;
+        return false;
     }
     return false;
 };
@@ -455,6 +459,7 @@ const shouldShowCompleteButton = (event) => {
     }
     return false;
 };
+
 
 const getComa = async () => {
     const [charged, used] = await Promise.all([
@@ -810,7 +815,6 @@ const onChange = async () => {
     await generateCalendar();
     const events = getDayEvents(selectedDay.value.date);
     await getComa();
-
     selectedDayEvents.value = {
         ...selectedDay.value,
         eventList: events,
@@ -821,6 +825,8 @@ const onChange = async () => {
     if (blueTeacherID && selectedDay.value) {
         blueTimes.value = await fetchAndProcessBlueTimes(blueTeacherID, selectedDay.value.date);
     }
+    console.log("refreshed", selectedDayEvents.value)
+    lastClickedDayObj.value = selectedDayEvents.value
 };
 
 // 新しい予約のポップアップを開く
@@ -1157,7 +1163,7 @@ const changeStatusOnClick = async (eventId, newStatus) => {
         if (newStatus === 3 && event) {
             await handleCancelAndNotify(event); // メール + お知らせ
         }
-        await onChange(); // カレンダー再読み込み
+        onChange(); // カレンダー再読み込み
     } catch (error) {
         console.error('ステータス変更エラー:', error);
         alert('ステータスの変更に失敗しました');
@@ -1245,11 +1251,12 @@ const emit = defineEmits(['reservation-refreshed'])
 // 判断是否是“未完成”
 const isUncompleted = (event) => {
     // 如果 event 日期早于 dayObj 日期，且状态是已确认（1），则是未完成
-    return !isEarlier(event.startTime) && event.status == 1
+    return isEarlier(event.startTime) && event.status == 1
 }
 
 const isEarlier = (date) => {
-    return moment(date).format('YYYY-MM-DD') >= moment(new Date()).format('YYYY-MM-DD')
+    const flag = moment(date).format('YYYY-MM-DD') >= moment(new Date()).format('YYYY-MM-DD')
+    return !flag
 }
 
 </script>
