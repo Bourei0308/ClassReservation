@@ -3,10 +3,13 @@
     @じゅくぽん運営
     <br>
     amemiya・butusaka・mizushima・riku・you
+    <br>
+    <RouterLink to="/contact">お問い合わせ</RouterLink>
   </footer>
 </template>
 
 <script setup>
+import { useRouter, RouterLink } from 'vue-router'
 // 无需脚本
 </script>
 

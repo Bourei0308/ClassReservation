@@ -13,6 +13,11 @@ const router = createRouter({
       component: () => import('../views/general_user/ResetRequest.vue')
     },
     {
+      path: '/contact',
+      name: 'お問い合わせ',
+      component: () => import('../views/general_user/ContactForm.vue')
+    },
+    {
       path: '/top/0',
       name: '管理者トップ',
       meta: { requiresAuth: true, role_number: 0 },

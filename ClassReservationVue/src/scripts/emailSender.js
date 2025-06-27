@@ -1,5 +1,3 @@
-
-
 // 📁 scripts/emailSender.js
 import axios from 'axios'
 // 共通メール送信関数（Gmail API経由で使うことを想定）
@@ -76,6 +74,16 @@ export const sendPasswordChangedMail = async (userId) => {
     } catch (error) {
         console.error('sendPasswordChangedMail:', error);
     }
+}
+
+/* =========================
+📧 お問い合わせフォーム送信
+========================= */
+export async function sendContactFormMail({ name, email, message }) {
+  const to = 'admin@gmail.com'; // 管理者やサポートのメールアドレスに変更してください
+  const subject = '【じゅくポン】お問い合わせフォームからのメッセージ';
+  const body = `お名前: ${name}\n\nメールアドレス: ${email}\n\nお問い合わせ内容:\n${message}`;
+  await sendEmail({ to, subject, body });
 }
 
 // ----------------------------

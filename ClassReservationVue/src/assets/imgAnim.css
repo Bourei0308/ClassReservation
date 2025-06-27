@@ -1,0 +1,38 @@
+.background-container {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden; /* コンテナからはみ出る部分を非表示 */
+  position: relative;
+}
+
+.background-image {
+  position: absolute;
+  top: 0;
+  height: 100%; /* 高さをコンテナに合わせる */
+  width: auto; /* 幅はアスペクト比を維持 */
+  animation: slideImages 60s linear infinite; /* アニメーション定義 */
+}
+
+.background-image:nth-child(1) {
+  left: 0; /* 1枚目の初期位置 */
+}
+
+.background-image:nth-child(2) {
+  left: 100%; /* 2枚目の初期位置（1枚目の右隣） */
+}
+
+/* もし3枚目を使うなら */
+/*
+.background-image:nth-child(3) {
+  left: 200%;
+}
+*/
+
+@keyframes slideImages {
+  from {
+    transform: translateX(0); /* 開始位置 */
+  }
+  to {
+    transform: translateX(-100%); /* 要素の幅分だけ左に移動 */
+  }
+}
