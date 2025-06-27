@@ -108,7 +108,7 @@ watch(() => props.studentID, () => fetchHours());
 
 
 .bar-remaining {
-  background-color: #0085fc;
+  background-color: #2d2d69;
   height: 100%;
   transition: width 0.3s ease;
   display: flex; 
@@ -134,7 +134,7 @@ watch(() => props.studentID, () => fetchHours());
 
 
 .bar-remaining {
-  background-color: #0085fc;
+  background-color: #2d2d69;
   height: 100%;
   transition: width 0.3s ease;
 }

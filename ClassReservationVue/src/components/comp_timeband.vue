@@ -143,7 +143,7 @@ const calculateStyle = (startStr, endStr) => {
     position: absolute;
     top: 0;
     bottom: 0;
-    background-color: #0085fc;
+    background-color: #2d2d69eb;
     border-radius: 4px;
     color: white;
     font-size: 10px;

@@ -209,12 +209,12 @@ onMounted(() => {
 }
 
 .chat-textbox:focus {
-    border-color: #007bff;
+    border-color: #2d2d69;
 }
 
 .send-button {
     padding: 8px 16px;
-    background-color: #007bff;
+    background-color: #2d2d69;
     color: white;
     font-weight: bold;
     border: none;

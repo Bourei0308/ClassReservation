@@ -15,6 +15,7 @@ import { useAuth } from '@/scripts/useAuth'
 const { user, restoreLogin } = useAuth()
 
 onMounted(async () => {
+  restoreLogin()
   try {
     const res = await fetch('/api/auth/me', { credentials: 'include' })
     if (res.status === 401) return  // 未ログインならスキップ

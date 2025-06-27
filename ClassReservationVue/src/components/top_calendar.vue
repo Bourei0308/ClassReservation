@@ -1525,7 +1525,7 @@ const isEarlier = (date) => {
 }
 
 .calendar-header button {
-    background-color: #007bff;
+    background-color: #2d2d69;
     color: white;
     border: none;
     padding: 8px 15px;
