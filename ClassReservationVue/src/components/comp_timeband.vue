@@ -107,11 +107,13 @@ const calculateStyle = (startStr, endStr) => {
 
 <style scoped>
 .bandbox {
-    border: 2px solid black;
+    border: 1px solid rgb(230, 230, 230);
     border-radius: 10px;
     padding: 10px;
     width: 80%;
     box-sizing: border-box;
+    background-color: rgb(244, 248, 255);
+    box-shadow: 0px 0px 4px rgb(156, 156, 156);
 }
 
 .hour-labels {
@@ -125,8 +127,9 @@ const calculateStyle = (startStr, endStr) => {
     position: absolute;
     transform: translateX(-50%);
     font-size: 12px;
-    color: #333;
+    color: #2d2d69;
     white-space: nowrap;
+    font-weight: 700;
 }
 
 .time-band {

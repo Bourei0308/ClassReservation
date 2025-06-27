@@ -103,8 +103,8 @@
                                         event.status === 1 ? 'hsl(211, 100%, 50%)' :
                                             event.status === 2 ? 'hsl(130, 100%, 24%)' :
                                                 event.status === 3 ? 'hsl(0, 100%, 50%)' :
-                                                    '#000'
-                        }">{{
+                                                    '#fff'
+                        }" :class="{ 'teacher-title': event.status === undefined }">{{
                             event.title }}</span>
                         <div class="event-box">
                             <div v-if="event.studentName" class="event-box-info">
@@ -117,7 +117,9 @@
                                 <div class="red_hint" v-if="event.status === 1 && isUncompleted(event)">
                                     先生が【完了】ボタンを押してください。</div>
                             </div>
-                            <TimeBand :blue_time="blueTimes" :hour-step="2" v-if="!event.studentName" />
+                            <div class="timeband-box" v-if="!event.studentName">
+                                <TimeBand :blue_time="blueTimes" :hour-step="2" />
+                            </div>
                             <div class="button-group">
                                 <button class="btn approve" v-if="shouldShowEditButton(event)"
                                     @click="openEditPopup(event)">編集</button>
@@ -1670,8 +1672,8 @@ const isEarlier = (date) => {
 }
 
 .teacher-event {
-    background-color: #fff3e0 !important;
-    border-left: 4px solid #ff9800 !important;
+    background-color: #e5e5fa !important;
+    border-left: 4px solid #2d2d69 !important;
 }
 
 .status-label {
@@ -1693,11 +1695,12 @@ const isEarlier = (date) => {
 }
 
 .event-title {
-    font-size: 12px;
-    color: #ff9800;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 10px;
+    color: white;
+    margin-top: 2px;
+    text-align: center;
+    border-radius: 4px;
+    background-color: #2d2d69;
 }
 
 .event-title-box {
@@ -1866,7 +1869,7 @@ const isEarlier = (date) => {
     background: linear-gradient(90deg, #53539d 0%, #2d2d69 100%);
     box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
     transform: translateY(-2px);
-    
+
     /* Lift effect */
 }
 
@@ -1937,6 +1940,13 @@ const isEarlier = (date) => {
     /* Ensure disabled buttons don't lift */
 }
 
+.timeband-box {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .gray_hint {
     color: white;
     font-size: 0.8em;
@@ -1944,6 +1954,19 @@ const isEarlier = (date) => {
     background-color: #8c8c8c;
     padding: 3px 15px;
     border-radius: 4px;
+}
+
+.teacher-title {
+    background-color:#2d2d69;
+    width: 100%;
+    display: inline-block;
+    padding: 5px 0px;
+    margin-bottom: 10px;
+    color: white;
+    font-size: 16px;
+    text-align: center;
+    border-radius: 20px;
+
 }
 
 .red_hint {
