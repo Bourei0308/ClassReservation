@@ -392,11 +392,8 @@ const nextMonth = () => {
 const isReserved = () => {
     // 選択された先生の予定があるかどうかを確認
     let flag = false
-
     if (lastClickedDayObj.value && Array.isArray(lastClickedDayObj.value.eventList)) {
-
         const hasInvalidStatusEvent = lastClickedDayObj.value.eventList.some(e => {
-            console.log("hasInvalidStatusEvent", e.title, e.status)
             if (e.status != null && (e.status == 1 || e.status == 2)) {
 
                 flag = true
@@ -825,7 +822,6 @@ const onChange = async () => {
     if (blueTeacherID && selectedDay.value) {
         blueTimes.value = await fetchAndProcessBlueTimes(blueTeacherID, selectedDay.value.date);
     }
-    console.log("refreshed", selectedDayEvents.value)
     lastClickedDayObj.value = selectedDayEvents.value
 };
 
@@ -1157,9 +1153,10 @@ const shouldShowClassDeleteButton = (event) => {
 const changeStatusOnClick = async (eventId, newStatus) => {
     try {
         // イベントの詳細を取得（これが null/undefined だと通知失敗します）
-        const event = allEvents.value.find(e => e.id === eventId);
+        const event = selectedDayEvents.value.eventList.find(e => e.id === eventId);
         await changeStatus(eventId, newStatus); // ステータス変更
         //  ステータスが「キャンセル」の場合のみ通知送信
+        console.log("changeStatusOnClick",newStatus,selectedDayEvents.value.eventList)
         if (newStatus === 3 && event) {
             await handleCancelAndNotify(event); // メール + お知らせ
         }
