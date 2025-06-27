@@ -122,8 +122,8 @@
       @close="showMonthlySummary = false" @select="onSelectMonthlySummary" />
     <MonthlyLessonCalendar :show="showMonthlyCalendar" :role="selectedRole" :lessons="lessons"
       @close="showMonthlyCalendar = false" @select="onSelectDailySummary" />
-    <EditLessonModal :show="showEditModal" :start-time="startTime" :end-time="endTime" :lesson="editingLesson"
-      @close="showEditModal = false" @updated="handleLessonUpdated" />
+    <EditLessonModal :show="showEditModal" :start-time="startTime" :end-time="endTime" :lesson="editingLesson" 
+      @close="showEditModal = false" @updated="init" />
   </div>
 </template>
 
@@ -137,8 +137,7 @@ import EditLessonModal from "@/components/popup_schedule_edit.vue";
 import { getUsers, getSchedulesByTeacher, getSchedulesByStudent } from '@/scripts/chatUtils';
 
 const lessons = ref([]);
-const startTime = ref('');
-const endTime = ref('');
+
 
 const filter = ref({
   teacher: '',
@@ -479,27 +478,29 @@ const deleteLesson = async (id) => {
 };
 
 // ✔️ モーダル関連
+const startTime = ref('');
+const endTime = ref('');
 const showEditModal = ref(false);
 const editingLesson = ref(null);
 // ✔️ 編集モーダルを開く
 const openEditModal = (lesson) => {
-  editingLesson.value = { ...lesson };
+    editingLesson.value = { ...lesson }
 
-  // 从lesson.time字段或者startTime/endTime字段提取
-  if (lesson.time) {
-    const [start, end] = lesson.time.split('〜');
-    startTime.value = start;
-    endTime.value = end;
-  } else if (lesson.startTime && lesson.endTime) {
-    startTime.value = lesson.startTime.slice(11, 16); // 取出"HH:mm"
-    endTime.value = lesson.endTime.slice(11, 16);
-  } else {
-    startTime.value = '';
-    endTime.value = '';
-  }
+    if (lesson.startTime && lesson.endTime) {
+        // 提取时间部分，比如从 "2025-06-27T09:00" 提取 "09:00"
+        startTime.value = lesson.startTime.slice(11, 16)
+        endTime.value = lesson.endTime.slice(11, 16)
+    } else if (lesson.time) {
+        const [start, end] = lesson.time.split('〜')
+        startTime.value = start
+        endTime.value = end
+    } else {
+        startTime.value = ''
+        endTime.value = ''
+    }
 
-  showEditModal.value = true;
-};
+    showEditModal.value = true
+}
 
 
 
