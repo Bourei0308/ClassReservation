@@ -35,15 +35,18 @@
     </div>
 
     <!-- 🪟 モーダル -->
-    <UserSelectModal :show="showUserSelect" :role="1" title="生徒を選択" @select="handleUserSelect"
-      @close="showUserSelect = false" />
+    <ChargeHistoryModal v-if="showHistoryModal" :show="showHistoryModal" :student="selectedUser" title="チャージ履歴"
+      @close="showHistoryModal = false" />
+    <button @click="showHistoryModal = true">チャージ履歴を見る</button>
   </div>
 </template>
 
 
 <script>
+import { ref } from 'vue'
 import axios from "axios";
 import UserSelectModal from "@/components/popup_select_user.vue";
+import ChargeHistoryModal from "@/components/popup_edit_charge.vue";
 
 // ✅ data
 const data = () => ({
@@ -52,7 +55,7 @@ const data = () => ({
   chargeAmount: 0,
   currentHours: null,
   studentHoursList: [],
-  showUserSelect: false    // ← 弹窗控制
+  showHistoryModal: false    // ← 弹窗控制
 });
 
 // ✅ computed
@@ -96,7 +99,7 @@ const handleUserSelect = async function (user) {
   this.selectedUser = user;
   [this.currentHours, this.totalCharged] = await this.loadCurrentHours(user.id);
 };
-
+import moment from 'moment'
 // 🔸 チャージ処理
 const charge = async function () {
   if (!this.canCharge) {
@@ -107,7 +110,7 @@ const charge = async function () {
   try {
     await axios.post(
       `/api/charges/users/${this.selectedUser.id}`,
-      { chargeHours: this.chargeAmount }
+      { chargeHours: this.chargeAmount, createdAt: moment().format('YYYY-MM-DDTHH:mm:ss') }
     );
 
     alert("チャージが完了しました！");
@@ -147,7 +150,7 @@ const initialize = async function () {
 
 const app = {
   name: "AdminCharge",
-  components: { UserSelectModal },
+  components: { UserSelectModal,ChargeHistoryModal },
   data,
   computed: { canCharge },
   mounted: initialize,

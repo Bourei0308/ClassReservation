@@ -1,5 +1,7 @@
 package com.example.demo.entity;
 
+import java.time.LocalDateTime;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -16,4 +18,5 @@ public class ChargeHistory {
 	private String id;
 	private String studentId;
 	private float chargeHours;
+	private LocalDateTime CreatedAt;
 }
