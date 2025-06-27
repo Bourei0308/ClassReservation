@@ -48,32 +48,70 @@
 
     <button @click="openMonthlySummary(2)">先生の月別授業一覧</button>
     <button @click="openMonthlySummary(1)">生徒の月別授業一覧</button>
-    <button @click="openMonthlySummary(2,'calendar')">先生の日別授業一覧</button>
-    <button @click="openMonthlySummary(1,'calendar')">生徒の日別授業一覧</button>
+    <button @click="openMonthlySummary(2, 'calendar')">先生の日別授業一覧</button>
+    <button @click="openMonthlySummary(1, 'calendar')">生徒の日別授業一覧</button>
 
     <!-- 📋 授業テーブル -->
-    <table class="lesson-table">
-      <thead>
-        <tr>
-          <th>先生名</th>
-          <th>授業日</th>
-          <th>時間</th>
-          <th>生徒名</th>
-          <th>ステータス</th>
-          <th>備考</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(lesson, index) in filteredLessons" :key="index" :class="statusClass(lesson.status)">
-          <td>{{ lesson.teacherName }}</td>
-          <td>{{ lesson.date }}</td>
-          <td>{{ lesson.time }}（{{ getDurationHours(lesson.time) }}時間）</td>
-          <td>{{ lesson.studentName }}</td>
-          <td>{{ statusText(lesson.status) }}</td>
-          <td>{{ lesson.comment }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- 🔢 授業ボックス表示 -->
+    <div class="lesson-box-container">  
+      <div v-for="lesson in filteredLessons" :key="lesson.id" class="lesson-box" :style="{
+        backgroundColor:
+          lesson.status === 0 ? 'hsl(60, 100%, 91%)' :
+            lesson.status === 1 ? '#e3f2fd' :
+              lesson.status === 2 ? 'hsl(129, 100%, 94%)' :
+                lesson.status === 3 ? 'hsl(0, 80%, 96%)' :
+                  '#888'
+      }">
+        <!-- 🔸 1行目 -->
+        <div class="lesson-header">
+          <div v-if="lesson.status !== undefined" class="status-label" :style="{
+            backgroundColor:
+              lesson.status === 0 ? 'hsl(52, 100%, 34%)' :
+                lesson.status === 1 ? 'hsl(211, 100%, 50%)' :
+                  lesson.status === 2 ? 'hsl(130, 100%, 24%)' :
+                    lesson.status === 3 ? 'hsl(0, 100%, 50%)' :
+                      '#888'
+          }">
+            {{
+              lesson.status === 0 ? '承認待ち' :
+                lesson.status === 1 ? '承認済み' :
+                  lesson.status === 2 ? '完了' :
+                    lesson.status === 3 ? 'キャンセル' :
+                      '不明'
+            }}
+          </div>
+          <div class="">
+            <span class="teacher">{{ lesson.teacherName }}</span>
+            <span class="role-label">（先生）</span>
+            →
+            <span class="student">{{ lesson.studentName }}</span>
+            <span class="role-label">（生徒）</span>
+          </div>
+
+        </div>
+
+        <!-- 🔹 2行目 -->
+        <div class="lesson-info">
+          <div class="label-box">
+            <div class="time-label">
+              <span class="label-tag">日付</span><span class="time-label-content">{{ lesson.date }}</span>
+            </div>
+            <div class="time-label">
+              <span class="label-tag">時間</span><span class="time-label-content">{{ lesson.time }}</span>
+            </div>
+            <div class="time-label">
+              <span class="label-tag">コマ</span><span class="time-label-content">{{ getDurationHours(lesson.time)
+              }} 時間</span>
+            </div>
+          </div>
+
+          <div class="lesson-actions">
+            <button class="edit-button" @click="openEditModal(lesson)">編集</button>
+            <button class="delete-button" @click="deleteLesson(lesson.id)">削除</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 弹窗 -->
     <UserSelectModal :show="showTeacherModal" :role="2" title="先生を選択" @select="onSelectTeacher"
@@ -84,6 +122,8 @@
       @close="showMonthlySummary = false" @select="onSelectMonthlySummary" />
     <MonthlyLessonCalendar :show="showMonthlyCalendar" :role="selectedRole" :lessons="lessons"
       @close="showMonthlyCalendar = false" @select="onSelectDailySummary" />
+    <EditLessonModal :show="showEditModal" :start-time="startTime" :end-time="endTime" :lesson="editingLesson"
+      @close="showEditModal = false" @updated="handleLessonUpdated" />
   </div>
 </template>
 
@@ -93,9 +133,12 @@ import axios from "axios";
 import UserSelectModal from '@/components/popup_select_user.vue';
 import MonthlySummaryModal from '@/components/popup_monthly_class.vue';
 import MonthlyLessonCalendar from '@/components/popup_daily_class.vue';
+import EditLessonModal from "@/components/popup_schedule_edit.vue";
 import { getUsers, getSchedulesByTeacher, getSchedulesByStudent } from '@/scripts/chatUtils';
 
 const lessons = ref([]);
+const startTime = ref('');
+const endTime = ref('');
 
 const filter = ref({
   teacher: '',
@@ -127,13 +170,17 @@ const remainingHours = ref(0);
 const pendingHours = ref(0);
 
 onMounted(async () => {
+  init();
+});
+
+const init = async () => {
   try {
     const { data } = await axios.get("/api/lessons/completed");
     lessons.value = data;
   } catch (error) {
     console.error("データ取得エラー:", error);
   }
-});
+};
 
 function resetFilters() {
   selectedTeacher.value = null;
@@ -367,7 +414,7 @@ const showMonthlySummary = ref(false);
 const showMonthlyCalendar = ref(false);
 const selectedRole = ref(2);  // 2=先生, 1=生徒
 
-function openMonthlySummary(role,mode) {
+function openMonthlySummary(role, mode) {
   selectedRole.value = role;
   if (mode === 'calendar') {
     showMonthlyCalendar.value = true;
@@ -416,6 +463,45 @@ function onSelectDailySummary({ id, name, date }) {
   filter.value.startDate = date;
   filter.value.endDate = date;
 }
+
+// ✔️ 削除
+const deleteLesson = async (id) => {
+  if (confirm("本当に削除しますか？")) {
+    try {
+      console.log(id)
+      await axios.delete(`/api/class-schedules/${id}`);
+      alert("削除しました");
+      await init();
+    } catch (e) {
+      alert("削除失敗: " + e.message);
+    }
+  }
+};
+
+// ✔️ モーダル関連
+const showEditModal = ref(false);
+const editingLesson = ref(null);
+// ✔️ 編集モーダルを開く
+const openEditModal = (lesson) => {
+  editingLesson.value = { ...lesson };
+
+  // 从lesson.time字段或者startTime/endTime字段提取
+  if (lesson.time) {
+    const [start, end] = lesson.time.split('〜');
+    startTime.value = start;
+    endTime.value = end;
+  } else if (lesson.startTime && lesson.endTime) {
+    startTime.value = lesson.startTime.slice(11, 16); // 取出"HH:mm"
+    endTime.value = lesson.endTime.slice(11, 16);
+  } else {
+    startTime.value = '';
+    endTime.value = '';
+  }
+
+  showEditModal.value = true;
+};
+
+
 
 
 </script>
@@ -488,5 +574,107 @@ h2 {
 .status-canceled {
   background-color: #f0f0f0;
   /* グレー（キャンセル） */
+}
+
+.lesson-box-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.lesson-box {
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 12px;
+  width: 320px;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.lesson-header {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.teacher {
+  color: red;
+}
+
+.student {
+  color: green;
+}
+
+.role-label {
+  font-size: 12px;
+  color: #888;
+}
+
+.lesson-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.label-box {
+  display: flex;
+  flex-direction: column;
+
+}
+
+.label-tag {
+  background-color: rgb(0, 157, 255);
+  color: white;
+  padding: 3px 6px;
+  border-radius: 4px;
+  margin-right: 10px;
+
+}
+
+.time-label {
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.time-label-content {
+  width: 100px;
+  display: inline-block;
+  border-bottom: 1px solid rgb(0, 157, 255);
+}
+
+.lesson-actions button {
+  margin-left: 4px;
+}
+
+.edit-button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.delete-button {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.lesson-comment {
+  font-size: 13px;
+  color: #555;
+}
+
+.status-label {
+  color: white;
+  margin-bottom: 2px;
+  font-size: 12px;
+  padding: 6px 0px;
+  border-radius: 4px;
+  text-align: center;
+  display: inline-block;
+  width: 100%;
 }
 </style>

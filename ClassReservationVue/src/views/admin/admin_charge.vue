@@ -1,215 +1,306 @@
 <template>
-
-  <h2>学生授業時間チャージ</h2>
-
-  <label>生徒を選択:</label>
-  <select v-model="selectedUserId" @change="updateCurrentHours">
-    <option disabled value="">選択してください</option>
-    <option v-for="user in filteredStudents" :key="user.id" :value="user.id">
-      {{ user.name }}
-      <!-- （{{ user.account }}） -->
-    </option>
-  </select>
-
   <div class="container">
 
-    <div class="charge-row">
+    <h2>学生授業時間チャージ</h2>
 
+    <!-- 👤 生徒選択 -->
+    <label>生徒を選択:</label>
+    <div class="user-select-box">
+      <div class="selected-user" @click="showUserSelect = true">
+        {{ selectedUser ? selectedUser.name : '生徒を選択' }}
+      </div>
+      <button @click="showUserSelect = true">選択</button>
+    </div>
+
+    <!-- 💳 チャージ操作 -->
+    <div class="charge-row">
       <p v-if="currentHours !== null" class="current-hours">
         現在のコマ数：{{ currentHours }}
       </p>
 
-      <div>
-        <input type="number" v-model.number="chargeAmount" min="0" step="0.5" required />
-      </div>
+      <input class="charge-input" type="number" v-model.number="chargeAmount" min="0" step="0.5" required />
 
       <button @click="charge">追加</button>
     </div>
+
+    <!-- 📄 一覧表示 -->
+    <h2 style="margin-top: 30px;">全生徒の現在のコマ数</h2>
+    <div class="student-list">
+      <div v-for="student in studentHoursList" :key="student.id" class="student-box">
+        <span class="student-name">{{ student.name }}</span><span class="student-hour">残り <span
+            class="student-hour-number">{{ student.hours }}</span> 時間</span><span>チャージ <span
+            class="student-hour-number">{{ student.charge }}</span> 時間</span>
+      </div>
+    </div>
+
+    <!-- 🪟 モーダル -->
+    <UserSelectModal :show="showUserSelect" :role="1" title="生徒を選択" @select="handleUserSelect"
+      @close="showUserSelect = false" />
   </div>
 </template>
 
+
 <script>
-  export default {
-    name: "AdminCharge",
-    data() {
+import axios from "axios";
+import UserSelectModal from "@/components/popup_select_user.vue";
+
+// ✅ data
+const data = () => ({
+  students: [],
+  selectedUser: null,      // ← user对象
+  chargeAmount: 0,
+  currentHours: null,
+  studentHoursList: [],
+  showUserSelect: false    // ← 弹窗控制
+});
+
+// ✅ computed
+const canCharge = function () {
+  return this.selectedUser && this.chargeAmount > 0;
+};
+
+// ✅ methods
+
+// 🔸 学生リスト
+const loadStudents = async function () {
+  try {
+    const res = await axios.get("/api/users");
+    this.students = res.data.filter((user) => user.role === 1);
+  } catch (err) {
+    alert("ユーザー一覧取得失敗: " + err.message);
+  }
+};
+
+// 🔸 特定生徒の現在のコマ数
+const loadCurrentHours = async function (userId) {
+  try {
+    const chargeUrl = `/api/charges/users/${userId}/total`;
+    const usageUrl = `/api/class-schedules/student/${userId}/total-hours`;
+
+    const [charged, used] = await Promise.all([
+      axios.get(chargeUrl),
+      axios.get(usageUrl)
+    ]);
+
+    const remaining = Math.max(0, charged.data - used.data);
+    return [remaining.toFixed(1), charged.data];
+  } catch (err) {
+    console.error("現在のコマ数取得失敗", err);
+    return "取得失敗";
+  }
+};
+
+// 🔸 ユーザー選択時
+const handleUserSelect = async function (user) {
+  this.selectedUser = user;
+  [this.currentHours, this.totalCharged] = await this.loadCurrentHours(user.id);
+};
+
+// 🔸 チャージ処理
+const charge = async function () {
+  if (!this.canCharge) {
+    alert("生徒とチャージ時間を正しく入力してください。");
+    return;
+  }
+
+  try {
+    await axios.post(
+      `/api/charges/users/${this.selectedUser.id}`,
+      { chargeHours: this.chargeAmount }
+    );
+
+    alert("チャージが完了しました！");
+    this.chargeAmount = 0;
+    [this.currentHours, this.totalCharged] = await this.loadCurrentHours(this.selectedUser.id);
+    await this.loadAllStudentHours();
+  } catch (err) {
+    alert("チャージ失敗: " + err.message);
+  }
+};
+
+// 🔸 全生徒の現在のコマ数
+const loadAllStudentHours = async function () {
+  const results = await Promise.all(
+    this.students.map(async (user) => {
+      const [hours, charge] = await this.loadCurrentHours(user.id);
       return {
-        students: [],
-        selectedUserId: "",
-        chargeAmount: 0,
-        searchKeyword: "",
-        currentHours: ""
+        id: user.id,
+        name: user.name,
+        hours, charge
       };
-    },
-    computed: {
-      filteredStudents() {
-        const keyword = this.searchKeyword.toLowerCase();
-        return this.students.filter(u =>
-          u.name.toLowerCase().includes(keyword) || u.account.toLowerCase().includes(keyword)
-        );
-      }
-    },
-    mounted() {
-      fetch("http://localhost:8080/api/users")
-        .then(res => res.json())
-        .then(data => {
-          this.students = data.filter(u => u.role === 1);
-        })
-        .catch(err => {
-          alert("ユーザー一覧取得失敗: " + err.message);
-        });
-    },
-    methods: {
-      updateCurrentHours() {
-  const chargeUrl = `http://localhost:8080/api/charges/users/${this.selectedUserId}/total`;
-  const usageUrl = `http://localhost:8080/api/class-schedules/student/${this.selectedUserId}/total-hours`;
-
-  Promise.all([
-    fetch(chargeUrl).then(res => res.json()),
-    fetch(usageUrl).then(res => res.json())
-  ])
-    .then(([charged, used]) => {
-      const remaining = Math.max(0, charged - used); // 残りコマ数がマイナスにならないように制御
-      this.currentHours = remaining.toFixed(1); // 小数1桁まで表示
     })
-    .catch(err => {
-      console.error("現在のコマ数取得エラー:", err);
-      this.currentHours = "取得失敗";
-    });
-}
-,
-      charge() {
-        if (!this.selectedUserId || this.chargeAmount <= 0) {
-          alert("生徒とチャージ時間を正しく入力してください。");
-          return;
-        }
-        fetch(`http://localhost:8080/api/charges/users/${this.selectedUserId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chargeHours: this.chargeAmount })
-        })
-          .then(res => {
-            if (!res.ok) throw new Error("チャージ失敗");
-            return res.text();
-          })
-          .then(() => {
-            alert("チャージが完了しました！");
-            this.chargeAmount = 0;
-            this.updateCurrentHours(); // 最新値に更新
-            this.$router.push("/top/0");
-          })
-          .catch(err => {
-            alert("エラー: " + err.message);
-          });
-      }
-    }
-  };
+  );
+  this.studentHoursList = results;
+};
 
+// 🔸 初期化
+const initialize = async function () {
+  await this.loadStudents();
+  await this.loadAllStudentHours();
+};
+
+const app = {
+  name: "AdminCharge",
+  components: { UserSelectModal },
+  data,
+  computed: { canCharge },
+  mounted: initialize,
+  methods: {
+    loadStudents,
+    loadCurrentHours,
+    loadAllStudentHours,
+    handleUserSelect,
+    charge,
+    initialize
+  }
+};
+
+export default app;
 </script>
+
+
+
 <style scoped>
-  .container {
-    max-width: 600px;
-    margin: 30px auto;
-    padding: 20px 70px;
-    background-color: white;
-    border: 2px solid #ccc;
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    font-family: "Arial", sans-serif;
-    text-align: center;
-  }
+.user-select-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
 
-  h2 {
-    font-size: 18px;
-    margin-bottom: 10px;
-    color: #333;
-  }
+.selected-user {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  text-align: left;
+}
 
-  label {
-    display: block;
-    margin-top: 15px;
-    font-weight: bold;
-    text-align: left;
-  }
+.selected-user:hover {
+  background-color: #ececec;
+}
 
-  select,
-  input[type="number"] {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-  }
+.container {
+  max-width: 700px;
+  margin: 30px auto;
+  padding: 20px 70px;
+  background-color: white;
+  border: 2px solid #ccc;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-family: "Arial", sans-serif;
+  text-align: center;
+}
 
-  /* input[type="number"]::-webkit-inner-spin-button,
-  input[type="number"]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  } */
+h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #333;
+}
 
-  button {
-    padding: 10px 20px;
-    font-size: 14px;
-    background-color: #aee3bf;
-    color: #1b1b1b;
-    border: 0px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
+label {
+  display: block;
+  margin-top: 15px;
+  font-weight: bold;
+  text-align: left;
+}
 
-  button:hover {
-    background-color: #c5eceb;
-  }
+select,
+input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
 
-  .search-bar {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-    position: relative;
-  }
+button {
+  padding: 10px 20px;
+  font-size: 14px;
+  background-color: #aee3bf;
+  color: #1b1b1b;
+  border: 0px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
 
-  .search-bar input {
-    width: 100%;
-    padding: 8px 30px 8px 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-  }
+button:hover {
+  background-color: #c5eceb;
+}
 
-  .search-icon {
-    position: absolute;
-    right: 10px;
-    color: #888;
-  }
+.search-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  position: relative;
+}
 
-  .current-hours {
-    margin-top: 10px;
-    font-size: 14px;
-    color: #444;
-    text-align: left;
-  }
+.search-bar input {
+  width: 100%;
+  padding: 8px 30px 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
 
-  .charge-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 15px;
-    justify-content: space-between;
-  }
+.search-icon {
+  position: absolute;
+  right: 10px;
+  color: #888;
+}
 
-  .current-hours {
-    margin: 0;
-    font-size: 14px;
-    color: #444;
-    white-space: nowrap;
-  }
+.current-hours {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #444;
+  text-align: left;
+}
 
-  .charge-input {
-    flex: 1;
-    min-width: 80px;
-  }
+.charge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  justify-content: space-between;
+}
 
-  button {
-    white-space: nowrap;
-  }
+.charge-input {
+  flex: 1;
+  min-width: 80px;
+}
+
+button {
+  white-space: nowrap;
+}
+
+.student-name {
+  width: 100px;
+  display: inline-block;
+  color: rgb(0, 145, 255);
+  font-weight: 700;
+  border-left: 3px solid rgb(0, 145, 255);
+  border-radius: 3px;
+  padding-left: 10px;
+}
+
+.student-hour-number {
+  font-weight: 700;
+  color: rgb(0, 145, 255);
+  font-size: 1.2rem;
+}
+
+.student-box {
+  text-align: left;
+  margin-bottom: 5px;
+  border-bottom: 1px solid rgba(0, 145, 255, 0.2);
+  padding-bottom: 2px;
+}
+
+.student-hour {
+  width: 180px;
+  display: inline-block;
+}
 </style>

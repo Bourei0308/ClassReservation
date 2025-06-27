@@ -32,6 +32,7 @@ public class LessonController {
 				.collect(Collectors.toMap(User::getId, User::getName));
 
 		return schedules.stream().map(s -> {
+			String id = s.getId();
 			String teacherName = userIdToName.getOrDefault(
 				    Optional.ofNullable(s.getTeacherId()).orElse(""), "不明"
 				);
@@ -43,7 +44,7 @@ public class LessonController {
 			String teacherId=s.getTeacherId();
 			String studentId=s.getStudentId();
 			return new LessonViewDto(
-					teacherName, studentName, date, time, s.getStatus(),teacherId,studentId, "なし");
+					teacherName, studentName, date, time, s.getStatus(),teacherId,studentId,id, "なし");
 		}).toList();
 	}
 }
