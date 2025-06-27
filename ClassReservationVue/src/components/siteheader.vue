@@ -1,12 +1,14 @@
 <template>
+<link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap" rel="stylesheet">
+
   <header class="site_header">
     <!-- Logo / Title -->
     <div v-if="isLoggedIn" class="site_title_login" @click="goTo(`/top/${role}`)">
-      ClassReservation
+      じゅくぽん
     </div>
 
     <div v-if="!isLoggedIn" class="site_title">
-      ClassReservation
+      じゅくぽん
     </div>
 
     <!-- Right icons -->
@@ -90,12 +92,13 @@ onBeforeUnmount(() => {
 
 
 <style scoped>
+  
 .site_header {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  background-color: #2d2d2d;
+  background-color: #2d2d69eb;
   color: white;
   display: flex;
   justify-content: space-between;
@@ -144,8 +147,8 @@ onBeforeUnmount(() => {
 }
 
 .mypage_button {
-  background-color: black;
-  color: white;
+  background-color: white;
+  color: black;
   border-radius: 999px;
   padding: 6px 16px;
   font-size: 14px;
@@ -170,4 +173,11 @@ onBeforeUnmount(() => {
   background-color: red;
   border-radius: 50%;
 }
+
+.site_title_login,
+.site_title {
+  font-family: 'Kosugi Maru', sans-serif;
+}
+
+
 </style>
