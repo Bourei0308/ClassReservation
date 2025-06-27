@@ -1196,6 +1196,44 @@ const handleCancelAndNotify = async (event) => {
     }
 };
 
+const changeStatusOnClick = async (eventId, newStatus) => {
+    try {
+        const event = selectedDayEvents.value.eventList.find(e => e.id === eventId);
+        await changeStatus(eventId, newStatus);
+
+
+        // 📩 承認時（newStatus === 1）のメール＆お知らせ送信
+        if (newStatus === 1 && event) {
+            await sendStudentConfirmMail(event.id); // メール送信（すでにある）
+
+
+            const studentId = event.student_id || event.studentId;
+            const formattedDate = moment(event.start).format('YYYY年MM月DD日');
+            const { title, message } = NotificationTemplates.classReservationApprovedByTeacher(formattedDate);
+
+
+            await axios.post('/api/notifications', {
+                userId: studentId,
+                title,
+                message
+            });
+        }
+
+
+        // キャンセル通知（newStatus === 3）はすでにここにあると仮定
+        if (newStatus === 3 && event) {
+            await handleCancelAndNotify(event);
+        }
+
+
+        await onChange(); // カレンダー更新
+    } catch (error) {
+        console.error('ステータス変更エラー:', error);
+        alert('ステータスの変更に失敗しました');
+    }
+};
+
+
 //授業削除ボタンを表示するかを判定する関数
 const shouldShowClassDeleteButton = (event) => {
     if (account.value === 'student' && event.status === 3) {
@@ -1203,22 +1241,7 @@ const shouldShowClassDeleteButton = (event) => {
     }
     return false;
 };
-const changeStatusOnClick = async (eventId, newStatus) => {
-    try {
-        // イベントの詳細を取得（これが null/undefined だと通知失敗します）
-        const event = selectedDayEvents.value.eventList.find(e => e.id === eventId);
-        await changeStatus(eventId, newStatus); // ステータス変更
-        //  ステータスが「キャンセル」の場合のみ通知送信
-        console.log("changeStatusOnClick", newStatus, selectedDayEvents.value.eventList)
-        if (newStatus === 3 && event) {
-            await handleCancelAndNotify(event); // メール + お知らせ
-        }
-        onChange(); // カレンダー再読み込み
-    } catch (error) {
-        console.error('ステータス変更エラー:', error);
-        alert('ステータスの変更に失敗しました');
-    }
-};
+
 const submitStudentReservation = async () => {
     if (!popupStartTime.value || !popupEndTime.value) {
         alert('開始時間と終了時間を入力してください');
