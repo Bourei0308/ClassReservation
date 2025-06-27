@@ -1,305 +1,189 @@
 <template>
   <div class="login-container">
-    <div class="login-box">
-      <h1>ログイン</h1>
-      <div class="input-group" :class="{ 'has-error': accountError }">
-        <label for="account">アカウント</label>
-        <input type="text" id="account" v-model="account" placeholder="例）ほげほげ">
-        <p v-if="accountError" class="error-message">{{ accountError }}</p>
-      </div>
-      <div class="input-group" :class="{ 'has-error': passwordError }">
-        <label for="password">パスワード</label>
-        <input type="password" id="password" v-model="password" placeholder="例）Password123">
-        <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
-      </div>
-      <button v-if="!TEST_MODE" @click="login(account, password)" class="login-button primary-login-button">ログイン</button>
-      <button v-if="TEST_MODE" @click="devLoginMockUser" class="login-button test">ログイン</button>
-      <button @click="router.push('/account/reset-request')" class="forgot-password-button">
-  パスワードをお忘れの方はこちら
-</button>
+    <!-- 左側：背景犬画像 -->
+    <div class="left-panel"></div>
 
+    <!-- 右側：フォームエリア -->
+    <div class="right-panel">
+      <div class="login-box" :class="{ shake: loginFailed }">
+        <h1>ログイン</h1>
 
+        <div class="input-group" :class="{ 'has-error': accountError }">
+          <label for="account">アカウント</label>
+          <input type="text" id="account" v-model="account" placeholder="例）ほげほげ">
+          <p v-if="accountError" class="error-message">{{ accountError }}</p>
+        </div>
+
+        <div class="input-group" :class="{ 'has-error': passwordError }">
+          <label for="password">パスワード</label>
+          <input type="password" id="password" v-model="password" placeholder="例）Password123">
+          <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
+        </div>
+
+        <button
+          :class="['login-button', { loading: isLoading }]"
+          @click="handleLogin"
+        >
+          ログイン
+        </button>
+
+        <button @click="router.push('/account/reset-request')" class="forgot-password-button">
+          パスワードをお忘れの方はこちら
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useAuth } from '@/scripts/useAuth'
-// login.vue の <script setup> の最初の方に追加してください
-import { useRouter } from 'vue-router'
+import { useAuth } from '@/scripts/useAuth';
+import { useRouter } from 'vue-router';
 
-const { user, login, devLoginMockUser, TEST_MODE } = useAuth()
-// restoreLogin, useAuth はこのスニペットでは使用されていないため、明確化のために削除しています。
-// 実際のログインロジックで必要であれば、インポートしてください。
+const { user, login, devLoginMockUser, TEST_MODE } = useAuth();
+const router = useRouter();
 
 const account = ref('');
 const password = ref('');
 const accountError = ref('');
 const passwordError = ref('');
+const loginFailed = ref(false);
+const isLoading = ref(false);
 
-const resetError = ref('')
-
-
-const router = useRouter()
-
-const goToResetPage = async () => {
-  resetError.value = ''
-
-  if (!account.value.trim()) {
-    resetError.value = 'アカウントを入力してください'
-    return
-  }
-
-  try {
-    const res = await fetch(`/api/users/account/${account.value}`)
-    if (!res.ok) throw new Error('ユーザーが見つかりません')
-
-    const userData = await res.json()
-
-    const sendRes = await fetch('/api/auth/send-code', {
-      method: 'POST',
-      credentials: 'include', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: userData.email })
-    })
-
-    if (!sendRes.ok) throw new Error('認証コードの送信に失敗しました')
-
-    router.push('/account/passwordinfo')
-  } catch (err) {
-    resetError.value = err.message || 'エラーが発生しました'
-  }
-}
-
-
-
-
-const doLogin = () => {
-  // 以前のエラーをリセット
+const handleLogin = async () => {
   accountError.value = '';
   passwordError.value = '';
-
   let isValid = true;
 
   if (!account.value.trim()) {
     accountError.value = 'アカウント名を入力してください。';
     isValid = false;
   }
-
   if (!password.value.trim()) {
     passwordError.value = 'パスワードを入力してください。';
     isValid = false;
   }
 
-  if (isValid) {
-    console.log('ログイン試行:', account.value, password.value);
-    // ここに実際のログインロジックを実装します
-    // 例: API呼び出しなど
-  } else {
-    console.log('ログイン失敗: 入力エラー');
+  if (!isValid) return;
+
+  isLoading.value = true;
+  try {
+    await login(account.value, password.value);
+  } catch (e) {
+    loginFailed.value = true;
+    setTimeout(() => (loginFailed.value = false), 500);
   }
+  isLoading.value = false;
 };
-onMounted(async () => {
-  if (!user.value) return  // ← user が未ログインなら処理しない
-  // or
-  // useAuth.js や onMounted 内で
-try {
-  const res = await fetch('/api/auth/me', { credentials: 'include' })
-  if (res.status === 401) return  // 未ログイン時はスキップ
-  const data = await res.json()
-  user.value = data
-} catch (e) {
-  console.warn('auth/me failed', e)
-}
-
-});
-  // 初期表示でデフォルトのログインタイプを'1'（生徒）に設定
-  // これは元のコードのコメントのままで、ここにロジックは実装されていません。
-
 </script>
 
 <style scoped>
-/* ページ全体のセンタリングと背景 */
 .login-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  height: 100vh;
+  background-image: url('@/assets/img/2.png');
+  background-repeat: no-repeat;
+  background-position: -180px center;
+  background-size: auto 85%;
+  background-color: #f7cd4a;
   font-family: 'Arial', sans-serif;
 }
 
-/* ログインボックスのスタイル */
+.left-panel {
+  flex: 1;
+}
+
+.right-panel {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .login-box {
-  background-color: #ffffff;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 60px 50px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   text-align: center;
-  width: 100%;
-  max-width: 400px;
+  width: 550px;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.login-box.shake {
+  animation: shake 0.4s ease;
 }
 
 .login-box h1 {
-  font-size: 2.2em;
+  font-size: 2.8rem;
+  font-weight: 800;
   color: #333;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
+  border-bottom: 3px solid #2b2b69eb;
+  padding-bottom: 12px;
 }
 
-/* 入力グループのスタイル */
 .input-group {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   text-align: left;
 }
 
 .input-group label {
   display: block;
-  font-size: 0.9em;
+  font-size: 1.1em;
   color: #555;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-weight: bold;
 }
 
 .input-group input {
-  width: calc(100% - 20px);
-  padding: 12px 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 1em;
-  box-sizing: border-box;
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1em;
+  border: 1px solid #ccc;
+  border-radius: 6px;
 }
 
 .input-group input:focus {
-  border-color: #007bff;
+  border-color: #2d2d69eb;
   outline: none;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+  box-shadow: 0 0 6px rgba(0, 123, 255, 0.3);
 }
 
-/* エラーメッセージのスタイル */
-.error-message {
-  color: #dc3545;
-  /* エラー用の赤色 */
-  font-size: 0.85em;
-  margin-top: 5px;
-  text-align: left;
-}
-
-/* エラー時の入力フィールドのボーダー */
-.input-group.has-error input {
-  border-color: #dc3545;
-  /* エラーフィールド用の赤いボーダー */
-}
-
-
-/* ログインボタンの基本スタイル */
 .login-button {
   width: 100%;
-  padding: 12px 20px;
+  padding: 16px;
+  font-size: 1.8em;
+  background-color: #2d2d69eb;
   color: white;
   border: none;
-  border-radius: 5px;
-  font-size: 1.1em;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  margin-top: 20px;
-  /* スペースを広げるためマージンを増やす */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  /* 控えめな影 */
-}
-
-.test {
-  background-color: #00ff4c;
-  /* 目立つ青色 */
-}
-
-/* メインログインボタンのスタイル (新しいデフォルト) */
-.primary-login-button {
-  background-color: #007bff;
-  /* 目立つ青色 */
-}
-
-.primary-login-button:hover {
-  background-color: #0056b3;
-  /* ホバーでより濃い青色 */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  /* ホバーで影を強調 */
-}
-
-.primary-login-button:active {
-  background-color: #004085;
-  /* クリック時にさらに濃く */
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-  /* クリック時に内側の影 */
-}
-
-
-/* 既存の特定のログインボタンのスタイル (他の場所で使用する場合に保持) */
-/* 生徒ログインボタンの色 (デフォルト) */
-.login-button.student-login-button {
-  background-color: #007bff;
-  /* 青色 */
-}
-
-.login-button.student-login-button:hover {
-  background-color: #0056b3;
-  /* 濃い青色 */
-}
-
-/* 先生ログインボタンの色 */
-.login-button.teacher-login-button {
-  background-color: #28a745;
-  /* 緑色 */
-}
-
-.login-button.teacher-login-button:hover {
-  background-color: #1e7e34;
-  /* 濃い緑色 */
-}
-
-/* 管理者ログインボタンの色 */
-.login-button.admin-login-button {
-  background-color: #dc3545;
-  /* 赤色 */
-}
-
-.login-button.admin-login-button:hover {
-  background-color: #bd2130;
-  /* 濃い赤色 */
-}
-
-
-/* 新規ユーザー登録リンクのコンテナ */
-.login-type-links {
   margin-top: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
 }
 
-/* 新規ユーザー登録ボタン（リンクのように見せる）のスタイル */
-.new-account-link {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 0.9em;
-  color: #007bff;
-  text-decoration: none;
-  cursor: pointer;
-  transition: text-decoration 0.3s ease;
-  display: block;
-  margin: 0 auto;
-}
-
-.new-account-link:hover {
-  text-decoration: underline;
+.login-button.loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+  border: 2px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spinner 0.7s linear infinite;
 }
 
 .forgot-password-button {
-  margin-top: 15px;
-  font-size: 0.9em;
+  margin-top: 18px;
+  font-size: 1.5em;
   background: none;
   border: none;
-  color: #007bff;
+  color: #ef6673;
   cursor: pointer;
   text-decoration: underline;
 }
@@ -308,4 +192,26 @@ try {
   color: #0056b3;
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25%, 75% { transform: translateX(-10px); }
+  50% { transform: translateX(10px); }
+}
+
+@keyframes spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>
