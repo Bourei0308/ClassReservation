@@ -11,10 +11,13 @@
 
     <!-- Right icons -->
     <div v-if="isLoggedIn" class="header_icon_group">
-      <!-- Notification icon -->
-      <div class="icon_link" @click="goTo('/notice')">
-        <BellIcon class="header_icon" />
-      </div>
+     <!-- Notification icon -->
+<div class="icon_link" @click="goTo('/notice')">
+  <div class="icon_box">
+    <BellIcon class="header_icon" />
+    <div v-if="hasUnreadNotification" class="unread_dot"></div>
+  </div>
+</div>
 
       <!-- Chat icon -->
       <div class="icon_link" @click="goTo('/chat')">
@@ -24,6 +27,7 @@
         </div>
 
       </div>
+
 
       <!-- マイページ button -->
       <div class="mypage_button" @click="goTo('/account')">
@@ -52,9 +56,19 @@ const hasUnreadMessage = inject('hasUnreadMessage')
 import { useWebSocket } from '@/scripts/useWebSocket'
 const { subscribe } = useWebSocket()
 
+
+import { hasUnreadNotification, checkUnreadNotifications } from '@/scripts/useNotificationStatus'
+
+
 onMounted(async () => {
   await restoreLogin()
+  if (user.value) {
+    await checkUnreadNotifications(user.value.id)
+  }
 })
+
+
+
 
 watch(() => user.value, (newUser) => {
   if (newUser) {

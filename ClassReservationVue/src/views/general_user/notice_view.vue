@@ -28,6 +28,9 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuth } from '@/scripts/useAuth'
 
+import { hasUnreadNotification, checkUnreadNotifications } from '@/scripts/useNotificationStatus'
+
+
 const { user } = useAuth()
 const notifications = ref([])
 const expandedIndex = ref(null)
@@ -51,15 +54,17 @@ const toggleDetail = async (index, notification) => {
 
     expandedIndex.value = index
 
-    if (!notification.isRead) {
+    if (!notification.read) {
         try {
             await axios.put(`/api/notifications/${notification.id}/read`)
-            notification.read = true // 修改 read 状态
+            notification.read = true // ✅ ローカル状態を更新
+            await checkUnreadNotifications(user.value.id) // ✅ グローバル状態を更新（赤丸が消える）
         } catch (err) {
             console.error('既読更新失敗', err)
         }
     }
 }
+
 
 const formatDate = (isoString) => {
   const utcString = isoString.endsWith('Z') ? isoString : isoString + 'Z'

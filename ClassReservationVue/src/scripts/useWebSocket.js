@@ -78,4 +78,15 @@ export function useWebSocket() {
         send,
         isConnected,
     }
+
+    // 既存
+subscribe(`/api/topic/unread/${newUser.id}`, () => {
+  hasUnreadMessage.value = true
+})
+
+// 🔽 追加（通知が来たら赤丸 true にする）
+subscribe(`/api/topic/notice/${newUser.id}`, () => {
+  hasUnreadNotification.value = true
+})
+
 }
