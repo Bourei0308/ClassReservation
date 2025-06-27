@@ -17,9 +17,8 @@
 
         <div class="calendar-controls">
             <!-- まとめて予約にするためのチェックボックス -->
-            <label>
-                <input type="checkbox" v-model="isBulkBooking" v-if="account == 'teacher'"
-                    @change="onBulkBookingChange" />
+            <label v-if="account == 'teacher'">
+                <input type="checkbox" v-model="isBulkBooking" @change="onBulkBookingChange" />
                 まとめて予約する
             </label>
         </div>
@@ -32,11 +31,12 @@
                 <div v-for="(dayObj, dayIndex) in week" :key="dayIndex" :class="['calendar-day', {
                     'is-prev-next-month': dayObj.isPrev || dayObj.isNext,
                     'is-today': dayObj.isToday,
+                    'is-bulk-booking': isDateInDayList(dayObj.date),
                     'is-selected': (() => {
-                        const isSelected = selectedDay && moment(selectedDay).isSame(dayObj.date, 'day');
+                        const isSelected = selectedDay && moment(selectedDay.date).isSame(dayObj.date, 'day');
+                        console.log('isSelected:', isSelected, 'selectedDay:', selectedDay);
                         return isSelected;
                     })(),
-                    'is-bulk-booking': isDateInDayList(dayObj.date),
 
                 }]" @click="handleDayClick(dayObj)">
                     {{ dayObj.day }}<div v-if="dayObj.eventList && dayObj.eventList.length > 0">
@@ -66,7 +66,7 @@
                 </div>
             </div>
         </div>
-        <div v-if="selectedDayEvents" class="selected-day-info">
+        <div v-if="selectedDayEvents && !isBulkBooking" class="selected-day-info">
             <h3>{{ selectedDayEvents.date.getFullYear() }}年{{ selectedDayEvents.date.getMonth() + 1 }}月{{
                 selectedDayEvents.date.getDate() }}日</h3>
             <div v-if="selectedDayEvents.eventList && selectedDayEvents.eventList.length > 0">
@@ -272,6 +272,30 @@
                 </div>
             </div>
         </div>
+        <div v-else-if="isBulkBooking" class="selected-day-info">
+            <h3>まとめて予約</h3>
+            <!-- 〇月〇日で表示 -->
+            <p>選択された日付: {{dayList.map(date => moment(date).format('MM月DD日')).join(', ')}}</p>
+            <!-- 始まりの時間と終わりの時間を設定するための -->
+            <div class="bulk-booking-time">
+                <label>開始時間:
+                    <input type="time" v-model="popupStartTime" @change="onStartTimeChange" />
+                </label>
+                <label class="gray_hint" v-if="!popupStartTime">開始時間を入力してから、予約時間を選択してください</label>
+                <label>予約時間 (30分単位):
+                    <select v-model.number="popupDuration">
+                        <option v-for="d in durationOptions" :key="d" :value="d">
+                            {{ formatDuration(d) }}
+                        </option>
+                    </select>
+                </label>
+            </div>
+            <div class="bulk-booking-actions">
+                <button @click="submitBulkBooking">まとめて予約する</button>
+                <button @click="cancelBulkBooking">キャンセル</button>
+            </div>
+
+        </div>
     </div>
 </template>
 
@@ -288,6 +312,7 @@ import { NotificationTemplates } from '@/scripts/notificationTemplates'
 import { fetchAndProcessBlueTimes, changeStatus } from '@/scripts/chatUtils'
 import TimeBand from '@/components/comp_timeband.vue'
 import { useAuth } from '@/scripts/useAuth'
+import { sendStudentConfirmMail } from '@/scripts/emailSender'
 const { user } = useAuth()
 
 // 親から受け取るpropsを定義
@@ -456,7 +481,6 @@ const shouldShowCompleteButton = (event) => {
     }
     return false;
 };
-
 
 const getComa = async () => {
     const [charged, used] = await Promise.all([
@@ -747,7 +771,43 @@ const onBulkBookingChange = () => {
 
 // 日付を受け取りその日がdayListに含まれているかを確認し、真偽値で返す関数
 const isDateInDayList = (date) => {
+    if (account.value !== 'teacher' || !isBulkBooking.value) return false;
     return dayList.value.some(d => moment(d).isSame(date));
+};
+
+// まとめて予約のキャンセル
+const cancelBulkBooking = () => {
+    dayList.value = [];
+};
+
+// まとめて予約をする関数
+const submitBulkBooking = () => {
+    if (!isBulkBooking.value || dayList.value.length === 0) return;
+    // dayListの日付とpopupStartTime, popupDurationを使って予約を作成
+    const bookings = dayList.value.map(date => {
+        const startTime = moment(date).set({
+            hour: moment(popupStartTime.value, 'HH:mm').hour(),
+            minute: moment(popupStartTime.value, 'HH:mm').minute()
+        });
+        const endTime = startTime.clone().add(popupDuration.value, 'minutes');
+        return {
+            startTime: startTime.format('YYYY-MM-DDTHH:mm:ss'),
+            endTime: endTime.format('YYYY-MM-DDTHH:mm:ss'),
+            teacherId: selectedTeacher.value ? selectedTeacher.value.id : teacherID.value,
+        };
+    });
+    // 全件分の予約をAPIに送信し、すべて完了してからカレンダーを更新
+    Promise.all(bookings.map(booking => {
+        return axios.post(`/api/available-times`, {
+            teacherId: booking.teacherId,
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+        });
+    })).then(() => {
+        // 予約が完了したら、dayListをリセット
+        dayList.value = [];
+        onChange(); // カレンダーを更新
+    });
 };
 
 // 日付クリック時のハンドラ
@@ -774,7 +834,6 @@ const handleDayClick = async (dayObj) => {
             // すでにリストにある場合は削除
             dayList.value.splice(index, 1);
         }
-        console.log('一括設定の日付リスト:', dayList.value);
     }
 
     lastClickedDayObj.value = dayObj;
@@ -1136,12 +1195,6 @@ const handleCancelAndNotify = async (event) => {
         alert('通知・メールの送信に失敗しました');
     }
 };
-const allEvents = ref([]);
-const fetchAllEvents = async () => {
-    const res = await axios.get(`/api/class-schedules/teacher/${user.value.id}`);
-    // ← 必要に応じて条件絞る
-    allEvents.value = res.data;
-};
 
 //授業削除ボタンを表示するかを判定する関数
 const shouldShowClassDeleteButton = (event) => {
@@ -1156,7 +1209,7 @@ const changeStatusOnClick = async (eventId, newStatus) => {
         const event = selectedDayEvents.value.eventList.find(e => e.id === eventId);
         await changeStatus(eventId, newStatus); // ステータス変更
         //  ステータスが「キャンセル」の場合のみ通知送信
-        console.log("changeStatusOnClick",newStatus,selectedDayEvents.value.eventList)
+        console.log("changeStatusOnClick", newStatus, selectedDayEvents.value.eventList)
         if (newStatus === 3 && event) {
             await handleCancelAndNotify(event); // メール + お知らせ
         }
@@ -1259,8 +1312,154 @@ const isEarlier = (date) => {
 </script>
 
 <style scoped>
+/* General container for selected day info */
+.selected-day-info {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.selected-day-info h3 {
+    color: #333;
+    font-size: 1.8em;
+    margin-bottom: 15px;
+    text-align: center;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.selected-day-info p {
+    font-size: 1.1em;
+    color: #555;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Styling for the bulk booking time selection area */
+.bulk-booking-time {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 6px;
+}
+
+.bulk-booking-time label {
+    font-size: 1em;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bulk-booking-time input[type="time"],
+.bulk-booking-time select {
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1em;
+    color: #333;
+    flex-grow: 1;
+    /* Allows input/select to take available space */
+    min-width: 150px;
+    /* Ensure a minimum width */
+}
+
+.bulk-booking-time input[type="time"]:focus,
+.bulk-booking-time select:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+/* Gray hint specific styling */
+.gray_hint {
+    color: #888;
+    font-size: 0.9em;
+    font-style: italic;
+    margin-left: 10px;
+    /* Align with the label structure */
+}
+
+/* Actions section for buttons */
+.bulk-booking-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.bulk-booking-actions button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    /* Add transform to transition */
+    flex-grow: 1;
+    max-width: 200px;
+    /* Limit button width */
+}
+
+.bulk-booking-actions button:first-of-type {
+    /* "まとめて予約する" button */
+    background-color: #28a745;
+    /* Green for primary action */
+    color: white;
+}
+
+.bulk-booking-actions button:first-of-type:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+    /* Lift effect */
+}
+
+.bulk-booking-actions button:last-of-type {
+    /* "キャンセル" button */
+    background-color: #dc3545;
+    /* Red for secondary/cancel action */
+    color: white;
+}
+
+.bulk-booking-actions button:last-of-type:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+    /* Lift effect */
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .bulk-booking-time {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .bulk-booking-time label {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .bulk-booking-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .bulk-booking-actions button {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+
+/* --- Calendar related styles --- */
 .calendar-controls {
-    /* 右寄せで配置 */
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -1302,24 +1501,24 @@ const isEarlier = (date) => {
     border-radius: 5px;
     cursor: pointer;
     font-size: 1em;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    /* Add transform */
 }
 
 .calendar-header button:hover {
     background-color: #0056b3;
+    transform: translateY(-2px);
+    /* Lift effect */
 }
 
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    /* 7列のグリッド */
     gap: 5px;
-    /* グリッド間の隙間 */
 }
 
 .weekday-names {
     display: contents;
-    /* 子要素が親のグリッドレイアウトに参加するようにする */
 }
 
 .weekday-name {
@@ -1331,22 +1530,16 @@ const isEarlier = (date) => {
     color: #555;
 }
 
-/* 曜日によって色を変える */
 .weekday-name:first-child {
-    /* 日曜日 */
     color: #d9534f;
-    /* 赤 */
 }
 
 .weekday-name:last-child {
-    /* 土曜日 */
     color: #0275d8;
-    /* 青 */
 }
 
 .calendar-week {
     display: contents;
-    /* 各週の要素が親のグリッドレイアウトに参加するようにする */
 }
 
 .calendar-day {
@@ -1358,39 +1551,29 @@ const isEarlier = (date) => {
     background-color: #fefefe;
     font-size: 1.1em;
     position: relative;
-    /* イベントなどを配置するために */
     min-height: 80px;
-    /* 一日あたりの最低高さ */
     cursor: pointer;
     transition: background-color 0.2s ease;
-    /* ホバーエフェクト */
 }
 
 .calendar-day:hover:not(.is-prev-next-month) {
     background-color: #e0f2f7;
-    /* ホバー時の背景色 */
 }
 
 .calendar-day.is-prev-next-month {
     color: #ccc;
-    /* 前月や次月の日付は薄く表示 */
     background-color: #f4f4f4;
     cursor: default;
-    /* クリック不可を示すカーソル */
     pointer-events: none;
-    /* クリックイベントを無効化 */
 }
 
 .calendar-day.is-prev-next-month:hover {
     background-color: #f4f4f4;
-    /* ホバーしても色が変わらないように */
 }
 
 .calendar-day.is-today {
     background-color: #eaf6ff;
-    /* 今日の日付の背景色 */
     border-color: #007bff;
-    /* 今日の日付のボーダー色 */
     font-weight: bold;
 }
 
@@ -1489,7 +1672,7 @@ const isEarlier = (date) => {
     font-weight: 700;
 }
 
-/* このCSSを<style scoped>セクションに追加してください */
+/* selected-day-info styles (re-declared for scope, though already present) */
 .selected-day-info {
     color: #333;
     margin-top: 30px;
@@ -1518,16 +1701,13 @@ const isEarlier = (date) => {
     margin: 0;
 }
 
-/* is-today より下に配置することで、is-selected の方が優先される可能性が高まります */
 .calendar-day.is-selected {
     background-color: #ffd8d8;
-    /* 選択された日の背景色 */
     border-color: #ff4e4e;
-    /* 選択された日のボーダー色 */
     box-shadow: 0 0 8px rgba(250, 111, 111, 0.4);
 }
 
-.calendar-day.is-bulk-booking {
+.calendar-day.is-selected.is-bulk-booking {
     background-color: rgba(255, 152, 0, 0.2);
     border: 1px dashed #ff9800;
     box-shadow: 0 0 5px rgba(255, 152, 0, 0.3);
@@ -1560,6 +1740,7 @@ const isEarlier = (date) => {
     outline: none;
 }
 
+/* --- Popup styles --- */
 .popup-overlay {
     position: fixed;
     top: 0;
@@ -1611,11 +1792,14 @@ const isEarlier = (date) => {
     color: #fff;
     cursor: pointer;
     font-size: 1em;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.2s ease;
+    /* Add transform */
 }
 
 .popup-content button:hover {
     background: #0056b3;
+    transform: translateY(-2px);
+    /* Lift effect */
 }
 
 .popup-content button:disabled,
@@ -1627,6 +1811,8 @@ const isEarlier = (date) => {
     box-shadow: none !important;
     text-decoration: line-through;
     border: 1.5px dashed #aaa;
+    transform: none !important;
+    /* Ensure disabled buttons don't lift */
 }
 
 .popup-content div {
@@ -1643,7 +1829,8 @@ const isEarlier = (date) => {
     font-weight: bold;
     box-shadow: 0 2px 6px rgba(255, 152, 0, 0.15);
     cursor: pointer;
-    transition: background 0.2s, box-shadow 0.2s;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s ease;
+    /* Add transform */
     margin: 10px 0;
 }
 
@@ -1651,6 +1838,8 @@ const isEarlier = (date) => {
     background: linear-gradient(90deg, #ffb74d 0%, #ffe082 100%);
     color: #ff9800;
     box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+    transform: translateY(-2px);
+    /* Lift effect */
 }
 
 .message {
@@ -1672,18 +1861,35 @@ const isEarlier = (date) => {
     border-radius: 4px;
     cursor: pointer;
     color: white;
+    transition: transform 0.2s ease;
+    /* Add transform */
 }
 
 .btn.approve {
     background-color: #22c55e;
 }
 
+.btn.approve:hover {
+    transform: translateY(-2px);
+    /* Lift effect */
+}
+
 .btn.remove {
     background-color: #8d8d8d;
 }
 
+.btn.remove:hover {
+    transform: translateY(-2px);
+    /* Lift effect */
+}
+
 .btn.cancel {
     background-color: #ef4444;
+}
+
+.btn.cancel:hover {
+    transform: translateY(-2px);
+    /* Lift effect */
 }
 
 .event-box {
@@ -1699,6 +1905,8 @@ const isEarlier = (date) => {
     cursor: not-allowed !important;
     opacity: 0.7;
     box-shadow: none !important;
+    transform: none !important;
+    /* Ensure disabled buttons don't lift */
 }
 
 .gray_hint {
@@ -1728,34 +1936,9 @@ const isEarlier = (date) => {
     display: inline-block;
     width: 80px;
     text-align: center;
-
 }
 
 .event-box-info {
     margin-left: 65px;
 }
-
-
-/* .popup-remaining-hours-label {
-    font-weight: bold;
-    font-size: 1.1em;
-    color: #333;
-    margin-bottom: 8px;
-    display: block;
-} */
-
-/* .popup-remaining-hours {
-    color: #ff9800;
-    font-size: 1.5em;
-    font-weight: bold;
-    margin-left: 10px;
-    letter-spacing: 1px;
-    text-shadow: 0 1px 2px #fff3e0;
-} */
-
-/* .error-message {
-    color: #f44336;
-    font-size: 0.95em;
-    margin-bottom: 8px;
-} */
 </style>
