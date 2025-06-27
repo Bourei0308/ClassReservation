@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,7 +29,8 @@ public class ClassScheduleController {
 
 	@Autowired
 	private NotificationService notificationService;
-
+	@Autowired
+	private SimpMessagingTemplate messagingTemplate;
 	@GetMapping
 	@Operation(summary = "全ての授業取得")
 	public List<ClassSchedule> getAll() {
@@ -50,6 +52,8 @@ public class ClassScheduleController {
 	@PostMapping
 	@Operation(summary = "授業追加")
 	public ClassSchedule create(@RequestBody ClassSchedule schedule) {
+	    messagingTemplate.convertAndSend("/api/topic/calendar/","data");
+
 		ClassSchedule saved = repository.save(schedule);
 
 		// 🔔 予約された先生に通知を送信
@@ -61,12 +65,14 @@ public class ClassScheduleController {
 	@DeleteMapping("/{id}")
 	@Operation(summary = "idで授業を削除")
 	public void delete(@PathVariable String id) {
+	    messagingTemplate.convertAndSend("/api/topic/calendar/","data");
 		repository.deleteById(id);
 	}
 
 	@PutMapping("/{id}")
 	@Operation(summary = "idで授業を更新")
 	public ClassSchedule update(@PathVariable String id, @RequestBody ClassSchedule updatedSchedule) {
+	    messagingTemplate.convertAndSend("/api/topic/calendar/","data");
 		return repository.findById(id)
 				.map(schedule -> {
 					schedule.setStartTime(updatedSchedule.getStartTime());
@@ -96,6 +102,7 @@ public class ClassScheduleController {
 	@PutMapping("/{id}/status/{status}")
 	@Operation(summary = "指定授業のステータスを更新")
 	public ClassSchedule updateStatus(@PathVariable String id, @PathVariable int status) {
+	    messagingTemplate.convertAndSend("/api/topic/calendar/","data");
 		return repository.findById(id)
 				.map(schedule -> {
 					schedule.setStatus(status);

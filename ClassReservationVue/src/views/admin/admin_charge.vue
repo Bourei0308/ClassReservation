@@ -30,6 +30,7 @@
         <span class="student-name">{{ student.name }}</span><span class="student-hour">残り <span
             class="student-hour-number">{{ student.hours }}</span> 時間</span><span>チャージ <span
             class="student-hour-number">{{ student.charge }}</span> 時間</span>
+        <button @click="editPopup(student)" class="edit-button">編集</button>
       </div>
     </div>
 
@@ -131,6 +132,11 @@ const loadAllStudentHours = async function () {
     })
   );
   this.studentHoursList = results;
+};
+
+// 🔸 ポップアップを表示して編集するボタン
+const editPopup = (student) => {
+
 };
 
 // 🔸 初期化

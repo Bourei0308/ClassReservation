@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,7 +25,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class AvailableTimeController {
 	@Autowired
 	private AvailableTimeRepository repository;
-
+	@Autowired
+	private SimpMessagingTemplate messagingTemplate;
 	@GetMapping
 	@Operation(summary = "全ての空き時間取得")
 	public List<AvailableTime> getAll() {
@@ -46,18 +48,21 @@ public class AvailableTimeController {
 	@PostMapping
 	@Operation(summary = "空き時間追加")
 	public AvailableTime create(@RequestBody AvailableTime time) {
+	    messagingTemplate.convertAndSend("/api/topic/calendar/","data");
 		return repository.save(time);
 	}
 
 	@DeleteMapping("/{id}")
 	@Operation(summary = "idで空き時間削除")
 	public void delete(@PathVariable String id) {
+	    messagingTemplate.convertAndSend("/api/topic/calendar/","data");
 		repository.deleteById(id);
 	}
 	
 	@PutMapping("/{id}")
 	@Operation(summary = "idで空き時間を更新")
 	public AvailableTime update(@PathVariable String id, @RequestBody AvailableTime newTime) {
+	    messagingTemplate.convertAndSend("/api/topic/calendar/","data");
 	    return repository.findById(id).map(existingTime -> {
 	        existingTime.setStartTime(newTime.getStartTime());
 	        existingTime.setEndTime(newTime.getEndTime());

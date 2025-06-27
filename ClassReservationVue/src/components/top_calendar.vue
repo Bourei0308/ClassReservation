@@ -34,7 +34,6 @@
                     'is-bulk-booking': isDateInDayList(dayObj.date),
                     'is-selected': (() => {
                         const isSelected = selectedDay && moment(selectedDay.date).isSame(dayObj.date, 'day');
-                        console.log('isSelected:', isSelected, 'selectedDay:', selectedDay);
                         return isSelected;
                     })(),
 
@@ -314,6 +313,8 @@ import TimeBand from '@/components/comp_timeband.vue'
 import { useAuth } from '@/scripts/useAuth'
 import { sendStudentConfirmMail } from '@/scripts/emailSender'
 const { user } = useAuth()
+import { useWebSocket } from '@/scripts/useWebSocket'
+const { connect, disconnect, subscribe, send, isConnected } = useWebSocket()
 
 // 親から受け取るpropsを定義
 const props = defineProps({
@@ -627,7 +628,7 @@ const getEvents = async () => {
         }) : [];
         // 生徒の予定
         let studentEvents = (resS && resS.data) ? resS.data.filter(event => {
-            const eventMoment = moment(event.start_time);
+            const eventMoment = moment(event.startTime);
             return eventMoment.year() === year && eventMoment.month() === month;
         }) : [];
         // 統合
@@ -812,6 +813,8 @@ const submitBulkBooking = () => {
 
 // 日付クリック時のハンドラ
 const handleDayClick = async (dayObj) => {
+
+    console.log('クリックされた日:', dayObj.eventList, dayObj.date);
 
     // 一括設定が有効な場合
     if (isBulkBooking.value) {
@@ -1303,6 +1306,11 @@ onMounted(async () => {
     await generateCalendar();
     await handleDayClick(getTodayCell());
     await getComa();
+
+    subscribe(`/api/topic/calendar/`, async () => {
+        console.log("カレンダーの更新を受信しました");
+        await onChange();
+    });
 });
 
 // 入力時刻の整合性を保つ
@@ -1730,7 +1738,7 @@ const isEarlier = (date) => {
     box-shadow: 0 0 8px rgba(250, 111, 111, 0.4);
 }
 
-.calendar-day.is-selected.is-bulk-booking {
+.calendar-day.is-bulk-booking {
     background-color: rgba(255, 152, 0, 0.2);
     border: 1px dashed #ff9800;
     box-shadow: 0 0 5px rgba(255, 152, 0, 0.3);

@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="N-vD0sc2HTjZ2CBc9Alv" name="画面遷移">
-        <mxGraphModel dx="1375" dy="1656" grid="1" gridSize="10" guides="1" tooltips="1" connect="0" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1316" dy="1732" grid="1" gridSize="10" guides="1" tooltips="1" connect="0" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -116,7 +116,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="M1vPKRjQ90DpCu03awM5" name="画面設計">
-        <mxGraphModel dx="2310" dy="423" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="2531" dy="626" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -1153,6 +1153,28 @@
                 </mxCell>
                 <mxCell id="Cw4ODGV2S_15JtuJTi-k-48" value="○○年○○月○○日○○時○○分" style="whiteSpace=wrap;html=1;" parent="Cw4ODGV2S_15JtuJTi-k-45" vertex="1">
                     <mxGeometry x="212.41999999999996" y="15" width="155.04" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="IpQaJJ8rKhDf03wwHDNC-2" value="" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="2770" y="1323" width="370" height="390" as="geometry"/>
+                </mxCell>
+                <mxCell id="IpQaJJ8rKhDf03wwHDNC-3" value="" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="2460" y="1405" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="IpQaJJ8rKhDf03wwHDNC-4" value="なまえ" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#505050;strokeWidth=1;fillColor=#ffffff;fontColor=#777777;whiteSpace=wrap;align=left;verticalAlign=middle;fontStyle=0;fontSize=18;spacing=20;" vertex="1" parent="1">
+                    <mxGeometry x="2780" y="1363" width="150" height="37" as="geometry"/>
+                </mxCell>
+                <mxCell id="IpQaJJ8rKhDf03wwHDNC-5" value="" style="shape=triangle;direction=south;fillColor=#495057;strokeColor=none;perimeter=none;" vertex="1" parent="IpQaJJ8rKhDf03wwHDNC-4">
+                    <mxGeometry x="1" y="0.5" width="10" height="5" relative="1" as="geometry">
+                        <mxPoint x="-17" y="-2.5" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="IpQaJJ8rKhDf03wwHDNC-6" value="Large select" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#505050;strokeWidth=1;fillColor=#ffffff;fontColor=#777777;whiteSpace=wrap;align=left;verticalAlign=middle;fontStyle=0;fontSize=18;spacing=20;" vertex="1" parent="1">
+                    <mxGeometry x="2960" y="1363" width="170" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="IpQaJJ8rKhDf03wwHDNC-7" value="" style="shape=triangle;direction=south;fillColor=#495057;strokeColor=none;perimeter=none;" vertex="1" parent="IpQaJJ8rKhDf03wwHDNC-6">
+                    <mxGeometry x="1" y="0.5" width="10" height="5" relative="1" as="geometry">
+                        <mxPoint x="-17" y="-2.5" as="offset"/>
+                    </mxGeometry>
                 </mxCell>
             </root>
         </mxGraphModel>
