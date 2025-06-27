@@ -1,6 +1,8 @@
 <template>
   <footer class="site_footer">
-    11@22
+    @じゅくぽん運営
+    <br>
+    amemiya・butusaka・mizushima・riku・you
   </footer>
 </template>
 
@@ -10,7 +12,7 @@
 
 <style>
 .site_footer {
-  background-color: black;
+  background-color: #2d2d69eb;
   color: white;
   font-size: 12px;
   text-align: center;
