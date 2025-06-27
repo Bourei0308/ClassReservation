@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.entity.ClassSchedule;
 import com.example.demo.repository.ClassScheduleRepository;
+import com.example.demo.service.NotificationService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class ClassScheduleController {
 	@Autowired
 	private ClassScheduleRepository repository;
+
+	@Autowired
+	private NotificationService notificationService;
 
 	@GetMapping
 	@Operation(summary = "全ての授業取得")
@@ -46,7 +50,12 @@ public class ClassScheduleController {
 	@PostMapping
 	@Operation(summary = "授業追加")
 	public ClassSchedule create(@RequestBody ClassSchedule schedule) {
-		return repository.save(schedule);
+		ClassSchedule saved = repository.save(schedule);
+
+		// 🔔 予約された先生に通知を送信
+		notificationService.sendNotificationToUser(saved.getTeacherId());
+
+		return saved;
 	}
 
 	@DeleteMapping("/{id}")
@@ -58,16 +67,16 @@ public class ClassScheduleController {
 	@PutMapping("/{id}")
 	@Operation(summary = "idで授業を更新")
 	public ClassSchedule update(@PathVariable String id, @RequestBody ClassSchedule updatedSchedule) {
-	    return repository.findById(id)
-	        .map(schedule -> {
-	            schedule.setStartTime(updatedSchedule.getStartTime());
-	            schedule.setEndTime(updatedSchedule.getEndTime());
-	            schedule.setCreatedAt(updatedSchedule.getCreatedAt());
-	            schedule.setStatus(updatedSchedule.getStatus());
-	            // 添加你需要更新的字段
-	            return repository.save(schedule);
-	        })
-	        .orElseThrow(() -> new RuntimeException("指定された授業が見つかりません: " + id));
+		return repository.findById(id)
+				.map(schedule -> {
+					schedule.setStartTime(updatedSchedule.getStartTime());
+					schedule.setEndTime(updatedSchedule.getEndTime());
+					schedule.setCreatedAt(updatedSchedule.getCreatedAt());
+					schedule.setStatus(updatedSchedule.getStatus());
+					// 添加你需要更新的字段
+					return repository.save(schedule);
+				})
+				.orElseThrow(() -> new RuntimeException("指定された授業が見つかりません: " + id));
 	}
 
 	@GetMapping("/student/{studentId}/total-hours")
@@ -83,7 +92,7 @@ public class ClassScheduleController {
 				})
 				.sum();
 	}
-	
+
 	@PutMapping("/{id}/status/{status}")
 	@Operation(summary = "指定授業のステータスを更新")
 	public ClassSchedule updateStatus(@PathVariable String id, @PathVariable int status) {

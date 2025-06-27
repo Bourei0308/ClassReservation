@@ -12,16 +12,15 @@ export const NotificationTemplates = {
     title: '【キャンセル】授業中止のお知らせ',
     message: `誠に申し訳ありませんが、${date} の授業は先生の都合によりキャンセルとなりました。別日をご予約ください。`
   }),
-
-  // 生徒への宿題リマインド
-  homeworkReminder: (subject) => ({
-    title: '【宿題リマインド】提出をお忘れなく！',
-    message: `${subject}の宿題の提出期限が近づいています。忘れずに準備しましょう！`
+  // 生徒による授業予約
+  classReservedByStudent: (date) => ({
+    title: '【予約】授業のご案内',
+    message: `生徒様より ${date} の授業が予約されました。ご確認ください。`
   }),
 
-  // メンテナンス通知
-  systemMaintenance: (date, time) => ({
-    title: '【重要】システムメンテナンスのお知らせ',
-    message: `以下の時間帯にメンテナンスを実施します。\n\n日時：${date} ${time}\n\nサービスが一時的にご利用いただけなくなる場合があります。ご不便をおかけしますが、ご了承お願いいたします。`
+  // 先生が予約承認
+  classReservationApprovedByTeacher: (date) => ({
+    title: '【承認】授業予約のご案内',
+    message: `先生が ${date} の授業予約を承認しました。ご確認ください。`
   })
 }
