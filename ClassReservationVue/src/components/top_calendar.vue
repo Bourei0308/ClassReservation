@@ -1345,6 +1345,39 @@ const isEarlier = (date) => {
 </script>
 
 <style scoped>
+/* スコープ付きCSS: このスタイルは現在のコンポーネントにのみ適用されます */
+.background-slider-container {
+    width: 100%;
+    height: 100vh;
+    /* ビューポートの高さ全体を使う例 */
+    background-image: url('@assets/img/3.png');
+    /* ここにあなたの画像のパスを設定 */
+    /*
+     注意: Vue CLI/Vite などでビルドする場合、
+     public/images/your-background-image.jpg に配置していれば
+     パスは /images/your-background-image.jpg のようにルートからの相対パスになります。
+     import imgUrl from './assets/your-background-image.jpg';
+     として、background-image: url(${imgUrl}); とすることも可能です（ビルドツールによる）。
+  */
+    background-size: auto 100%;
+    background-repeat: repeat-x;
+    background-position: 0 0;
+
+    /* アニメーションの定義 */
+    animation: slideBackground 60s linear infinite;
+    /* 60秒かけて、等速で無限に繰り返す */
+}
+
+@keyframes slideBackground {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: -100% 0;
+    }
+}
+
 /* General container for selected day info */
 .selected-day-info {
     background-color: #f9f9f9;
