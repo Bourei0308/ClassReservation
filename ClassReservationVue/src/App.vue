@@ -12,7 +12,7 @@ import { onMounted, onUnmounted } from 'vue'
 const { connect, disconnect } = useWebSocket()
 
 import { useAuth } from '@/scripts/useAuth'
-const { user,restoreLogin } = useAuth()
+const { user, restoreLogin } = useAuth()
 
 onMounted(async () => {
   try {
@@ -20,6 +20,22 @@ onMounted(async () => {
     if (res.status === 401) return  // 未ログインならスキップ
     const data = await res.json()
     user.value = data
+
+    // ✔️ 登录成功之后连接WebSocket
+    connect(() => {
+      
+      // ✔️ 订阅未读消息
+      subscribe(`/api/topic/unread/${user.value.id}`, () => {
+        hasUnreadMessage.value = true
+      })
+
+      // ✔️ 订阅通知
+      subscribe(`/api/topic/notice/${user.value.id}`, () => {
+        hasUnreadNotification.value = true
+      })
+      console.log("WebSocket Connected")
+    })
+
   } catch (e) {
     console.log("auth/me skipped or failed", e)
   }
@@ -36,19 +52,19 @@ onUnmounted(() => {
 <template>
   <siteheader />
   <div class="wrapper">
-    <div >
+    <div>
       <RouterView />
     </div>
   </div>
 
-  
+
   <sitefooter />
 </template>
 
 <style scoped>
-
 .wrapper {
-  flex: 1; /* 主体内容撑满剩余高度 */
+  flex: 1;
+  /* 主体内容撑满剩余高度 */
   margin-top: 60px;
 }
 
