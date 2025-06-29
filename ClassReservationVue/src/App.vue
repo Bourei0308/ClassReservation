@@ -67,6 +67,7 @@ onUnmounted(() => {
   flex: 1;
   /* 主体内容撑满剩余高度 */
   margin-top: 60px;
+  width: 100%;
 }
 
 

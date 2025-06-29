@@ -1,155 +1,304 @@
 <template>
+  <transition name="slide-fade" appear >
   <div class="modal-overlay" v-if="show">
-    <div class="modal-content">
-      <h3>{{ title || 'チャージ履歴一覧' }}</h3>
+    
+      <div class="modal-content">
+        <h3>{{ title || 'チャージ履歴一覧' }}</h3>
 
-      <div class="history-list">
-        <div
-          class="history-item"
-          v-for="item in histories"
-          :key="item.id"
-        >
-          <div>
-            <strong>生徒ID:</strong> {{ item.studentId }}
-          </div>
-          <div>
-            <strong>チャージ:</strong> {{ item.chargeHours }} 時間
-          </div>
-          <div>
-            <strong>日時:</strong> {{ formatDate(item.createdAt) }}
-          </div>
-          <button class="delete-button" @click="deleteHistory(item.id)">
-            削除
-          </button>
+        <!-- ▼ 生徒選択ボタン，占满一整行 -->
+        <button class="full-width-button" @click="showUserSelect = true">
+          生徒選択
+        </button>
+
+        <!-- ▼ 选中状态居中显示 -->
+        <div class="selected-student-wrapper" v-if="selectedStudent">
+          <span>選択中：{{ selectedStudent.name }}</span>
+          <button class="clear-button" @click="clearStudent">選択解除</button>
         </div>
+
+        <!-- ▼ 履歴表 -->
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>生徒</th>
+              <th>チャージ</th>
+              <th>日時</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in histories" :key="item.id">
+              <td>{{ usersMap.get(item.studentId) || '不明' }}</td>
+              <td>{{ item.chargeHours }} 時間</td>
+              <td>{{ formatDate(item.createdAt) }}</td>
+              <td>
+                <button class="delete-button" @click="confirmDelete(item)">削除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <button class="close-button" @click="$emit('close')">閉じる</button>
       </div>
 
-      <button @click="$emit('close')">閉じる</button>
-    </div>
-  </div>
+    
+  </div></transition>
+  <!-- ▼ 生徒選択モーダル -->
+  <UserSelectModal v-if="showUserSelect" :show="showUserSelect" :role="1" title="生徒を選択" @select="onUserSelect"
+    @close="showUserSelect = false" />
+  <AlertModal v-bind="alertProps" @close="closeAlert" />
+  <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import axios from 'axios'
+import { ref, watchEffect } from 'vue';
+import axios from 'axios';
+import UserSelectModal from '@/components/popup_select_user.vue';
 
 const props = defineProps({
   show: Boolean,
-  student: Object,  // nullの場合は全体
+  student: Object,
   title: String
-})
-const emit = defineEmits(['close'])
+});
+const emit = defineEmits(['close', 'deleted']);
 
-const histories = ref([])
+// 🔸 alert
+import AlertModal from '@/components/popup_message_alert.vue';
+import ConfirmDialog from '@/components/popup_message_confirm.vue';
+import { useModalManager } from '@/scripts/useModalManager';
+const {
+  showAlert, closeAlert, alertProps,
+  confirmShow, confirmMessage, openConfirm, onConfirm, onCancel
+} = useModalManager();
+
+const histories = ref([]);
+const usersMap = ref(new Map()); // ← ID→名前のMap
+const showUserSelect = ref(false);
+const selectedStudent = ref(props.student || null);
 
 // 日付フォーマット
 const formatDate = (dateStr) => {
-  const d = new Date(dateStr)
-  return d.toLocaleString('ja-JP')
-}
+  const d = new Date(dateStr);
+  return d.toLocaleString('ja-JP');
+};
+
+// 🔸 ユーザー情報取得（id→name マップ用）
+const loadUsers = async () => {
+  try {
+    const res = await axios.get('/api/users');
+    const users = res.data;
+    usersMap.value = new Map(users.map(user => [user.id, user.name]));
+  } catch (err) {
+    alert('ユーザー情報の取得に失敗: ' + err.message);
+  }
+};
 
 // 履歴取得
 const loadHistories = async () => {
   try {
-    if (props.student) {
-        console.log(res)
-      const res = await axios.get(`/api/charges/users/${props.student.id}`)
-      histories.value = res.data.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      )
-    } else {
-        console.log(res)
-      const res = await axios.get('/api/charges')
-      histories.value = res.data.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      )
-    }
+    const res = selectedStudent.value
+      ? await axios.get(`/api/charges/users/${selectedStudent.value.id}`)
+      : await axios.get('/api/charges');
+
+    histories.value = res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   } catch (err) {
-    alert('チャージ履歴の取得に失敗: ' + err.message)
+    alert('チャージ履歴の取得に失敗: ' + err.message);
   }
-}
+};
 
 // 削除
+
+const confirmDelete = (item) => {
+  const msg = `${usersMap.value.get(item.studentId)}さんの${item.chargeHours}時間分のチャージ履歴を削除します。\n情報をチェックしてください。`;
+  openConfirm(msg, () => deleteHistory(item.id));
+};
+
 const deleteHistory = async (id) => {
-  if (!confirm('本当に削除しますか？')) return
-
   try {
-    await axios.delete(`/api/charges/${id}`)
-    histories.value = histories.value.filter((item) => item.id !== id)
-    alert('削除しました')
+    await axios.delete(`/api/charges/${id}`);
+    histories.value = histories.value.filter((item) => item.id !== id);
+    showAlert("削除が完了しました！", true);
+    emit('deleted');
   } catch (err) {
-    alert('削除に失敗: ' + err.message)
+    showAlert("'削除に失敗: ' + err.message", false);
   }
-}
+};
 
-// show または student が変わったら再取得
-watch(
-  () => props.show,
-  (newVal) => {
-    if (newVal) {
-      loadHistories()
-    }
-  }
-)
+// 生徒選択
+const onUserSelect = (user) => {
+  selectedStudent.value = user;
+  loadHistories();
+};
 
-watch(
-  () => props.student,
-  () => {
-    if (props.show) {
-      loadHistories()
-    }
+// 選択解除
+const clearStudent = () => {
+  selectedStudent.value = null;
+  emit('deleted');
+  loadHistories();
+};
+
+// モーダル表示中に履歴とユーザー取得
+watchEffect(() => {
+  if (props.show) {
+    selectedStudent.value = props.student || selectedStudent.value;
+    loadUsers();
+    loadHistories();
   }
-)
+});
 </script>
 
+
+
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0,0,0,0.6);
+.modal-content {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 700px;
+  box-shadow: 0 8px 20px rgba(45, 45, 105, 0.3);
+  font-family: Arial, sans-serif;
+  color: #2d2d69;
+  box-sizing: border-box;
+}
+
+h3 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #2d2d69;
+}
+
+/* 生徒選択按钮，宽度100% */
+.full-width-button {
+  display: block;
+  width: 100%;
+  background-color: #2d2d69;
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.75rem 0;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.full-width-button:hover {
+  background-color: #1e1e4f;
+}
+
+/* 选中学生信息与解除按钮居中 */
+.selected-student-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #2d2d69;
 }
 
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin: 10px 0;
-}
-
-.history-item {
-  background: #f9f9f9;
-  padding: 10px 15px;
+.clear-button {
+  background-color: #e0e0e0;
+  border: none;
   border-radius: 8px;
-  border: 1px solid #ccc;
-  position: relative;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+  color: #2d2d69;
+  transition: background-color 0.3s ease;
 }
 
+.clear-button:hover {
+  background-color: #c5c5c5;
+}
+
+/* 表格样式 */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  color: #2d2d69;
+}
+
+.history-table th,
+.history-table td {
+  border: 1px solid #ccc;
+  padding: 0.6rem 0.8rem;
+  text-align: center;
+}
+
+.history-table thead th {
+  background-color: #f7f9ff;
+  font-weight: 700;
+  color: #2d2d69;
+}
+
+/* 删除按钮 */
 .delete-button {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  background: #e74c3c;
+  background-color: #d9534f;
   color: white;
   border: none;
-  padding: 5px 8px;
+  padding: 0.4rem 0.8rem;
   border-radius: 6px;
   cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
 }
 
 .delete-button:hover {
-  background: #c0392b;
+  background-color: #b52b27;
+}
+
+/* 关闭按钮居中 */
+.close-button {
+  display: block;
+  margin: 0 auto;
+  background-color: #2d2d69;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.close-button:hover {
+  background-color: #1e1e4f;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content.slide-fade-enter-active,
+.modal-content.slide-fade-leave-active {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.modal-content.slide-fade-enter-from,
+.modal-content.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-30px);
+}
+
+.modal-content.slide-fade-enter-to,
+.modal-content.slide-fade-leave-from {
+  opacity: 1;
+  transform: translateY(0);
 }
 </style>

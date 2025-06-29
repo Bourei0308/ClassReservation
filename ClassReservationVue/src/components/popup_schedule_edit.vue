@@ -17,11 +17,23 @@
             </div>
         </div>
     </div>
+    <AlertModal v-bind="alertProps" @close="closeAlert" />
+    <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
+
 </template>
 
 <script setup>
 import { ref, watch } from 'vue'
 import axios from 'axios'
+
+// 🔸 alert
+import AlertModal from '@/components/popup_message_alert.vue';
+import ConfirmDialog from '@/components/popup_message_confirm.vue';
+import { useModalManager } from '@/scripts/useModalManager';
+const {
+    showAlert, closeAlert, alertProps,
+    confirmShow, confirmMessage, openConfirm, onConfirm, onCancel
+} = useModalManager();
 
 const props = defineProps({
     show: Boolean,
@@ -52,26 +64,29 @@ watch(
     { immediate: true }
 )
 
-const save = async () => {
-    try {
-        const date = props.lesson.date // 获取日期，比如 "2025-06-27"
+const save = () => {
+    const date = props.lesson.date;
+    const startDateTime = `${date}T${localStartTime.value}`;
+    const endDateTime = `${date}T${localEndTime.value}`;
 
-        const startDateTime = `${date}T${localStartTime.value}`
-        const endDateTime = `${date}T${localEndTime.value}`
+    const msg = `この履歴の時間帯を ${localStartTime.value}～${localEndTime.value} に修正します。チェックしてください。`;
 
-        await axios.put(`/api/class-schedules/${props.lesson.id}`, {
-            ...props.lesson,
-            startTime: startDateTime,
-            endTime: endDateTime,
-        })
+    openConfirm(msg, async () => {
+        try {
+            await axios.put(`/api/class-schedules/${props.lesson.id}`, {
+                ...props.lesson,
+                startTime: startDateTime,
+                endTime: endDateTime,
+            });
 
-        alert('更新成功')
-        emit('updated')
-        emit('close')
-    } catch (error) {
-        alert('更新失敗: ' + error.message)
-    }
-}
+            showAlert('履歴を更新しました！', true); // 成功提示
+            emit('updated');
+            emit('close');
+        } catch (error) {
+            showAlert(`更新失敗: ${error.message}`, false); // 失败提示
+        }
+    });
+};
 </script>
 
 
@@ -90,31 +105,94 @@ const save = async () => {
 
 .modal-content {
     background: white;
-    padding: 20px;
-    border-radius: 8px;
+    padding: 1.5rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    font-family: Arial, sans-serif;
+    color: #2d2d69;
+}
+
+.modal-content h3 {
+    text-align: center;
+    margin-bottom: 1.2rem;
+    color: #2d2d69;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.modal-content div {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #2d2d69;
+}
+
+input[type="time"] {
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    color: #2d2d69;
 }
 
 .modal-buttons {
-    margin-top: 20px;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.save-button,
+.cancel-button {
+    padding: 0.5rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
 .save-button {
-    background-color: #3b82f6;
+    background-color: #2d2d69;
     color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
+}
+
+.save-button:hover {
+    background-color: #1e1e4f;
 }
 
 .cancel-button {
-    background-color: #ef4444;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
+    background-color: #e0e0e0;
+    color: #2d2d69;
+}
+
+.cancel-button:hover {
+    background-color: #c5c5c5;
+}
+
+@media screen and (max-width: 500px) {
+    .modal-content {
+        width: 95%;
+        padding: 1rem;
+    }
+
+    .modal-buttons {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .save-button,
+    .cancel-button {
+        width: 100%;
+    }
 }
 </style>

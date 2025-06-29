@@ -78,4 +78,25 @@ function selectUser(user) {
 .user-item:hover {
   background: #ccc;
 }
+
+button {
+    margin-top: 1.5rem;
+    background-color: #2d2d69;
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #1e1e4f;
+}
+
+
 </style>

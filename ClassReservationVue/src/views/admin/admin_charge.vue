@@ -14,13 +14,13 @@
 
     <!-- 💳 チャージ操作 -->
     <div class="charge-row">
-      <p v-if="currentHours !== null" class="current-hours">
-        現在のコマ数：{{ currentHours }}
-      </p>
 
+      <div v-if="currentHours !== null" class="current-hours">
+        現在のコマ数：{{ currentHours }}
+      </div>
       <input class="charge-input" type="number" v-model.number="chargeAmount" min="0" step="0.5" required />
 
-      <button @click="charge">追加</button>
+      <button @click="confirmCharge">追加</button>
     </div>
 
     <!-- 📄 一覧表示 -->
@@ -28,55 +28,66 @@
     <div class="student-list">
       <div v-for="student in studentHoursList" :key="student.id" class="student-box">
         <span class="student-name">{{ student.name }}</span><span class="student-hour">残り <span
-            class="student-hour-number">{{ student.hours }}</span> 時間</span><span>チャージ <span
+            class="student-hour-number">{{ student.hours }}</span> 時間</span><span class="student-hour">チャージ <span
             class="student-hour-number">{{ student.charge }}</span> 時間</span>
         <button @click="editPopup(student)" class="edit-button">編集</button>
       </div>
     </div>
+    <button @click="showHistoryModal = true">チャージ履歴を見る</button>
 
     <!-- 🪟 モーダル -->
+    <UserSelectModal :show="showUserSelect" :role="1" title="生徒を選択" @select="handleUserSelect"
+      @close="showUserSelect = false" />
     <ChargeHistoryModal v-if="showHistoryModal" :show="showHistoryModal" :student="selectedUser" title="チャージ履歴"
-      @close="showHistoryModal = false" />
-    <button @click="showHistoryModal = true">チャージ履歴を見る</button>
+      @close="showHistoryModal = false" @deleted="refresh" />
+    <AlertModal v-bind="alertProps" @close="closeAlert" />
+    <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
   </div>
 </template>
 
-
-<script>
-import { ref } from 'vue'
+<script setup>
+import { ref, computed, onMounted } from 'vue';
 import axios from "axios";
+import moment from 'moment';
 import UserSelectModal from "@/components/popup_select_user.vue";
 import ChargeHistoryModal from "@/components/popup_edit_charge.vue";
 
-// ✅ data
-const data = () => ({
-  students: [],
-  selectedUser: null,      // ← user对象
-  chargeAmount: 0,
-  currentHours: null,
-  studentHoursList: [],
-  showHistoryModal: false    // ← 弹窗控制
+// 🔸 alert
+import AlertModal from '@/components/popup_message_alert.vue';
+import ConfirmDialog from '@/components/popup_message_confirm.vue';
+import { useModalManager } from '@/scripts/useModalManager';
+const {
+  showAlert, closeAlert, alertProps,
+  confirmShow, confirmMessage, openConfirm, onConfirm, onCancel
+} = useModalManager();
+
+// 🔸 refs
+const students = ref([]);
+const selectedUser = ref(null);
+const chargeAmount = ref(0);
+const currentHours = ref(null);
+const totalCharged = ref(null);
+const studentHoursList = ref([]);
+const showHistoryModal = ref(false);
+const showUserSelect = ref(false);
+
+// 🔸 computed
+const canCharge = computed(() => {
+  return selectedUser.value && chargeAmount.value > 0;
 });
 
-// ✅ computed
-const canCharge = function () {
-  return this.selectedUser && this.chargeAmount > 0;
-};
-
-// ✅ methods
-
-// 🔸 学生リスト
-const loadStudents = async function () {
+// 🔸 学生一覧取得
+const loadStudents = async () => {
   try {
     const res = await axios.get("/api/users");
-    this.students = res.data.filter((user) => user.role === 1);
+    students.value = res.data.filter((user) => user.role === 1);
   } catch (err) {
-    alert("ユーザー一覧取得失敗: " + err.message);
+    showAlert("ユーザー一覧取得失敗: " + err.message, false);
   }
 };
 
 // 🔸 特定生徒の現在のコマ数
-const loadCurrentHours = async function (userId) {
+const loadCurrentHours = async (userId) => {
   try {
     const chargeUrl = `/api/charges/users/${userId}/total`;
     const usageUrl = `/api/class-schedules/student/${userId}/total-hours`;
@@ -89,82 +100,89 @@ const loadCurrentHours = async function (userId) {
     const remaining = Math.max(0, charged.data - used.data);
     return [remaining.toFixed(1), charged.data];
   } catch (err) {
-    console.error("現在のコマ数取得失敗", err);
-    return "取得失敗";
+    showAlert("ユーザーコマ数取得失敗: " + err.message, false);
   }
 };
 
 // 🔸 ユーザー選択時
-const handleUserSelect = async function (user) {
-  this.selectedUser = user;
-  [this.currentHours, this.totalCharged] = await this.loadCurrentHours(user.id);
+const handleUserSelect = async (user) => {
+  selectedUser.value = user;
+  const [remain, charge] = await loadCurrentHours(user.id);
+  currentHours.value = remain;
+  totalCharged.value = charge;
 };
-import moment from 'moment'
-// 🔸 チャージ処理
-const charge = async function () {
-  if (!this.canCharge) {
-    alert("生徒とチャージ時間を正しく入力してください。");
+
+const confirmCharge = () => {
+  if (!canCharge.value) {
+    showAlert("生徒とチャージ時間を正しく入力してください。", false);
     return;
   }
+  const msg = `${selectedUser.value.name}さんに ${chargeAmount.value} 時間をチャージします。\nチャージ情報をチェックしてください。`;
+  openConfirm(msg, doCharge);
+};
 
+// 🔸 チャージ処理
+const doCharge = async () => {
   try {
     await axios.post(
-      `/api/charges/users/${this.selectedUser.id}`,
-      { chargeHours: this.chargeAmount, createdAt: moment().format('YYYY-MM-DDTHH:mm:ss') }
+      `/api/charges/users/${selectedUser.value.id}`,
+      {
+        chargeHours: chargeAmount.value,
+        createdAt: moment().format('YYYY-MM-DDTHH:mm:ss')
+      }
     );
+    showAlert("チャージが完了しました！", true);
+    chargeAmount.value = 0;
 
-    alert("チャージが完了しました！");
-    this.chargeAmount = 0;
-    [this.currentHours, this.totalCharged] = await this.loadCurrentHours(this.selectedUser.id);
-    await this.loadAllStudentHours();
+    const [remain, charge] = await loadCurrentHours(selectedUser.value.id);
+    currentHours.value = remain;
+    totalCharged.value = charge;
+
+    await loadAllStudentHours();
   } catch (err) {
-    alert("チャージ失敗: " + err.message);
+    showAlert("チャージ失敗: " + err.message, false);
   }
 };
 
-// 🔸 全生徒の現在のコマ数
-const loadAllStudentHours = async function () {
+// 🔸 全生徒の現在のコマ数取得
+const loadAllStudentHours = async () => {
   const results = await Promise.all(
-    this.students.map(async (user) => {
-      const [hours, charge] = await this.loadCurrentHours(user.id);
+    students.value.map(async (user) => {
+      const [hours, charge] = await loadCurrentHours(user.id);
       return {
         id: user.id,
         name: user.name,
-        hours, charge
+        hours,
+        charge
       };
     })
   );
-  this.studentHoursList = results;
+  studentHoursList.value = results;
 };
 
-// 🔸 ポップアップを表示して編集するボタン
 const editPopup = (student) => {
+  selectedUser.value = {
+    id: student.id,
+    name: student.name,
+  };
+  showHistoryModal.value = true;
+};
 
+const refresh = async () => {
+  selectedUser.value=null;
+  await loadAllStudentHours();
 };
 
 // 🔸 初期化
-const initialize = async function () {
-  await this.loadStudents();
-  await this.loadAllStudentHours();
+const initialize = async () => {
+  await loadStudents();
+  await loadAllStudentHours();
 };
 
-const app = {
-  name: "AdminCharge",
-  components: { UserSelectModal,ChargeHistoryModal },
-  data,
-  computed: { canCharge },
-  mounted: initialize,
-  methods: {
-    loadStudents,
-    loadCurrentHours,
-    loadAllStudentHours,
-    handleUserSelect,
-    charge,
-    initialize
-  }
-};
+onMounted(initialize);
 
-export default app;
+
+
 </script>
 
 
@@ -229,8 +247,8 @@ input[type="number"] {
 button {
   padding: 10px 20px;
   font-size: 14px;
-  background-color: #aee3bf;
-  color: #1b1b1b;
+  background-color: #2d2d69eb;
+  color: #fff;
   border: 0px;
   border-radius: 6px;
   cursor: pointer;
@@ -238,7 +256,7 @@ button {
 }
 
 button:hover {
-  background-color: #c5eceb;
+  background-color: #0056b3;
 }
 
 .search-bar {

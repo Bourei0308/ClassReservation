@@ -126,7 +126,7 @@
                                 <button class="btn cancel" v-if="shouldShowDeleteButton(event)"
                                     @click="deleteEditPopup(event)">削除</button>
                                 <button class="btn cancel" v-if="shouldShowClassDeleteButton(event)"
-                                    @click="changeStatusOnClick(event.id, 4)">削除</button>
+                                    @click="changeStatusOnClick(event.id, 4)">取消</button>
                             </div>
                             <!-- 先生用: ステータス表示とボタン -->
                             <div v-if="account === 'teacher' && event.status !== undefined"
@@ -298,6 +298,10 @@
 
         </div>
     </div>
+
+    <LoadingModal :show="loadingShow" />
+    <AlertModal v-bind="alertProps" @close="closeAlert" />
+    <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
 </template>
 
 <script setup>
@@ -317,6 +321,17 @@ import { sendStudentConfirmMail } from '@/scripts/emailSender'
 const { user } = useAuth()
 import { useWebSocket } from '@/scripts/useWebSocket'
 const { connect, disconnect, subscribe, send, isConnected } = useWebSocket()
+
+// 🔸 alert
+import AlertModal from '@/components/popup_message_alert.vue';
+import LoadingModal from '@/components/popup_message_loading.vue';
+import ConfirmDialog from '@/components/popup_message_confirm.vue';
+import { useModalManager } from '@/scripts/useModalManager'
+const {
+    showAlert, closeAlert, alertProps,
+    confirmShow, confirmMessage, openConfirm, onConfirm, onCancel, showLoading, closeLoading, loadingShow
+} = useModalManager();
+
 
 // 親から受け取るpropsを定義
 const props = defineProps({
@@ -433,6 +448,8 @@ const isReserved = () => {
 
 //編集ボタンを表示するかを判定する関数
 const shouldShowEditButton = (event) => {
+
+
     if (account.value === 'teacher' && event.status == undefined) {
         // 先生の場合: 生徒が紐づいていないイベントのみ編集可能
         if (isReserved() || isEarlier(lastClickedDayObj.value.date)) {
@@ -493,15 +510,6 @@ const getComa = async () => {
     remainingHours.value = Math.max(0, (charged - used)).toFixed(1);
 }
 
-// // 予約の更新
-// try {
-//     await axios.put(`/api/class-schedules/${event.id}`, payload);
-//     alert('予定を更新しました');
-// } catch (error) {
-//     console.error('編集エラー:', error);
-//     alert('予定の更新に失敗しました');
-// }
-
 const getUsers = async () => {
     try {
         const res = await axios.get(`/api/users`);//全ユーザを取得
@@ -511,14 +519,13 @@ const getUsers = async () => {
             tusers.value = res.data.filter(user => user.role === 2);
             susers.value = res.data.filter(user => user.role === 1);
         } else {
-            alert('ユーザの情報を取得できませんでした。');
+            showAlert('ユーザの情報を取得できませんでした。', false);
             users.value = [];
             tusers.value = [];
             susers.value = [];
         }
     } catch (error) {
-        console.error("データ取得エラー:", error);
-        alert('イベントの情報を取得中にエラーが起きました。');
+        showAlert('イベントの情報を取得中にエラーが起きました。' + error, false);
         users.value = [];
         tusers.value = [];
         susers.value = [];
@@ -653,8 +660,7 @@ const getEvents = async () => {
         calendarEvent.value = allEvents;
         console.log(calendarEvent.value)
     } catch (error) {
-        console.error("データ取得エラー:", error);
-        alert('イベントの情報を取得中にエラーが起きました。');
+        showAlert('データを取得中にエラーが起きました。' + error, false);
         calendarEvent.value = [];
     }
 };
@@ -903,7 +909,17 @@ const openReservationPopup = () => {
     editingEvent.value = null;
 };
 // 編集ポップアップを開く
-const openEditPopup = (event) => {
+const openEditPopup = async (event) => {
+    // 教师未选中时自动选中当前事件中的教师
+    if (!selectedTeacher.value && event.teacher_id) {
+        const teacher = tusers.value.find(t => t.id === event.teacher_id)
+        if (teacher) {
+            showLoading()
+            selectedTeacher.value = teacher
+            await onTeacherChange()
+            closeLoading()
+        }
+    }
     showPopup.value = true;
     popupMode.value = 'edit';
     editingEvent.value = event;
@@ -1001,70 +1017,42 @@ const isOverlappingBlueTimes = computed(() => {
 });
 
 // 先生の予約を登録する
-const submitReservation = async () => {
-    // バリデーション例
+const submitReservation = () => {
+    // バリデーション
     if (!popupStartTime.value || !popupDuration.value) {
-        alert('開始時間と終了時間を入力してください');
+        showAlert('開始時間と終了時間を入力してください', false);
         return;
     }
+
     const date = selectedDayEvents.value.date;
     const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
-    const endDateTime = moment(startDateTime, 'YYYY-MM-DDTHH:mm').add(popupDuration.value, 'minutes').format('YYYY-MM-DDTHH:mm');
+    const endDateTime = moment(startDateTime, 'YYYY-MM-DDTHH:mm')
+        .add(popupDuration.value, 'minutes')
+        .format('YYYY-MM-DDTHH:mm');
+
     const payload = {
         teacherId: props.teacherID,
         startTime: startDateTime,
-        endTime: endDateTime
+        endTime: endDateTime,
     };
-    // ここでAPI送信などの処理を実装
-    try {
-        const resT = await axios.post(`/api/available-times`, payload);//先生の予定予約
-        // const resS = await axios.get(`/api/available-times`);//生徒の予約状況を取得
-        if (resT.data) {
-            alert(`予約: ${startDateTime} ～ ${endDateTime}`);
-        } else {
-            alert('イベントの情報を登録できませんでした。');
+    console.log("submitReservation")
+    // 确认弹窗调用，传入确认后异步执行的函数
+    openConfirm(`${startDateTime} ～ ${endDateTime} の予定を登録しますか？`, async () => {
+        try {
+            const resT = await axios.post(`/api/available-times`, payload);
+            if (resT.data) {
+                showAlert(`予約完了: ${startDateTime} ～ ${endDateTime}`, true);
+                onChange();
+                showPopup.value = false;
+            } else {
+                showAlert('イベントの情報を登録できませんでした。', false);
+            }
+        } catch (error) {
+            showAlert('イベントの情報を登録中にエラーが起きました。', false);
         }
-    } catch (error) {
-        console.error("データ登録エラー:", error);
-        alert('イベントの情報を登録中にエラーが起きました。');
-    }
-    onChange();
-    showPopup.value = false;
+    });
 };
 
-// // 生徒用の予約申請
-// const submitStudentReservation = async () => {
-//     if (!popupStartTime.value || !popupEndTime.value) {
-//         alert('開始時間と終了時間を入力してください');
-//         return;
-//     }
-//     console.log("生徒の予約申請", studentID.value);
-//     const date = selectedDayEvents.value.date;
-//     const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
-//     const endDateTime = moment(startDateTime, 'YYYY-MM-DDTHH:mm').add(popupDuration.value, 'minutes').format('YYYY-MM-DDTHH:mm');
-//     const payload = {
-//         studentId: studentID.value,
-//         teacherId: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
-//         startTime: startDateTime,
-//         endTime: endDateTime,
-//         createdAt: moment().format('YYYY-MM-DDTHH:mm:ss'),
-//         status: 0 // 承認待ち
-//     };
-//     try {
-//         const sc = await axios.post(`/api/class-schedules`, payload);
-//         //登録したことを先生にメールで送信
-//         if (sc) {
-//             mailSend(sc.data.id);
-//         }
-//         alert('予約申請を送信しました');
-//         emit('reservation-refreshed');  // イベントを親コンポーネントに通知
-//     } catch (error) {
-//         console.error('生徒予約エラー:', error);
-//         alert('予約申請に失敗しました');
-//     }
-//     onChange();
-//     showPopup.value = false;
-// };
 
 // 先生の予約の編集
 const submitEditReservation = async () => {
@@ -1170,6 +1158,8 @@ const mailSend = async (scheduleId) => {
     }
 }
 
+
+//先生が学生の授業申請をキャンセルした
 const handleCancelAndNotify = async (event) => {
     try {
         // 生徒情報を event から取得（studentId, name, email が必要）
@@ -1201,58 +1191,102 @@ const handleCancelAndNotify = async (event) => {
     }
 };
 
-const changeStatusOnClick = async (eventId, newStatus) => {
+//学生が自分の授業申請をキャンセルした
+const handleCancelBeforeApprovalNotifyToTeacher = async (event) => {
     try {
-        const event = selectedDayEvents.value.eventList.find(e => e.id === eventId);
-        await changeStatus(eventId, newStatus);
+        // 教師情報を event から取得（teacherId が必要）
+        const teacherId = event.teacher_id || event.teacherId;
+        const teacherEmail = users.value.find(u => u.id === teacherId)?.email;
+        const classDate = moment(event.start).format('YYYY年MM月DD日');
 
-
-        // 📩 承認時（newStatus === 1）のメール＆お知らせ送信
-        if (newStatus === 1 && event) {
-            await sendStudentConfirmMail(event.id); // メール送信（すでにある）
-
-
-            const studentId = event.student_id || event.studentId;
-            const formattedDate = moment(event.start).format('YYYY年MM月DD日');
-            const { title, message } = NotificationTemplates.classReservationApprovedByTeacher(formattedDate);
-
-
-            await axios.post('/api/notifications', {
-                userId: studentId,
-                title,
-                message
-            });
+        if (!teacherEmail) {
+            alert('先生のメールアドレスが見つかりません');
+            return;
         }
 
+        // 通知テンプレート取得
+        const { title, message } = NotificationTemplates.studentCancelledBeforeApproval(classDate);
 
-        // キャンセル通知（newStatus === 3）はすでにここにあると仮定
-        if (newStatus === 3 && event) {
-            await handleCancelAndNotify(event);
-        }
+        // ① 通知保存
+        await axios.post('/api/notifications', {
+            userId: teacherId,
+            title,
+            message
+        });
 
+        // ② メール送信
+        await sendEmail({
+            to: teacherEmail,
+            subject: title,
+            body: message
+        });
 
-        await onChange(); // カレンダー更新
+        console.log('先生へのキャンセル通知・メール送信完了');
     } catch (error) {
-        console.error('ステータス変更エラー:', error);
-        alert('ステータスの変更に失敗しました');
+        console.error('先生への通知送信エラー:', error);
+        alert('通知・メールの送信に失敗しました');
     }
 };
+
+const changeStatusOnClick = (eventId, newStatus) => {
+    const statusTextMap = {
+        0: '復元',
+        1: '承認',
+        2: '完了',
+        3: '取り消し',
+        4: '取り消し',
+    };
+    const actionText = statusTextMap[newStatus] || '変更';
+
+    openConfirm(`ステータスを「${actionText}」に変更してもよろしいですか？`, async () => {
+        // 确认后执行的异步逻辑
+        try {
+            const event = selectedDayEvents.value.eventList.find(e => e.id === eventId);
+            showLoading()
+            await changeStatus(eventId, newStatus);
+            closeLoading()
+            if (newStatus === 1 && event) {
+                await sendStudentConfirmMail(event.id);
+                const studentId = event.student_id || event.studentId;
+                const formattedDate = moment(event.start).format('YYYY年MM月DD日');
+                const { title, message } = NotificationTemplates.classReservationApprovedByTeacher(formattedDate);
+                await axios.post('/api/notifications', {
+                    userId: studentId,
+                    title,
+                    message
+                });
+            }
+            if (newStatus === 3 && event) {
+                await handleCancelAndNotify(event);
+            }
+            if (newStatus === 4 && event) {
+                await handleCancelBeforeApprovalNotifyToTeacher(event);
+            }
+
+            await onChange();
+        } catch (error) {
+            closeLoading()
+            showAlert('ステータスの変更に失敗しました', false);
+        }
+    });
+};
+
+
 
 
 //授業削除ボタンを表示するかを判定する関数
 const shouldShowClassDeleteButton = (event) => {
-    if (account.value === 'student' && event.status === 3) {
+    if (account.value === 'student' && event.status === 3 || event.status === 0) {
         return true; // 生徒はキャンセルした授業に対して削除ボタンを表示
     }
     return false;
 };
 
-const submitStudentReservation = async () => {
+const submitStudentReservation = () => {
     if (!popupStartTime.value || !popupEndTime.value) {
-        alert('開始時間と終了時間を入力してください');
+        showAlert('開始時間と終了時間を入力してください', false);
         return;
     }
-
 
     const date = selectedDayEvents.value.date;
     const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
@@ -1260,46 +1294,52 @@ const submitStudentReservation = async () => {
         .add(popupDuration.value, 'minutes')
         .format('YYYY-MM-DDTHH:mm');
 
-
     const payload = {
         studentId: studentID.value,
         teacherId: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
         startTime: startDateTime,
         endTime: endDateTime,
         createdAt: moment().format('YYYY-MM-DDTHH:mm:ss'),
-        status: 0 // 承認待ち
+        status: 0, // 承認待ち
     };
 
-    try {
-        const res = await axios.post(`/api/class-schedules`, payload);
+    // 确认弹窗
+    openConfirm(`${startDateTime} ～ ${endDateTime} の予約申請を送信しますか？`, async () => {
+        try {
+            showLoading()
+            const res = await axios.post(`/api/class-schedules`, payload);
+            onChange();
+            closeLoading()
+            showAlert('予約申請を送信しました', true);
+            emit('reservation-refreshed');
+            showPopup.value = false;
 
-        if (res) {
-            // ✅ メール送信（既に実装されている）
-            mailSend(res.data.id);
+            //メール発信
+            if (res && res.data) {
+                mailSend(res.data.id);
+                // 发送通知给老师
+                const teacher = users.value.find(u => u.id === payload.teacherId);
+                const formattedDate = moment(startDateTime).format('YYYY年MM月DD日');
+                const { title, message } = NotificationTemplates.classReservedByStudent(formattedDate);
 
-            // ✅ 📢 通知もここで追加！以下を追加 ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-            const teacher = users.value.find(u => u.id === payload.teacherId);
-            const formattedDate = moment(startDateTime).format('YYYY年MM月DD日');
-            const { title, message } = NotificationTemplates.classReservedByStudent(formattedDate);
-
-            if (teacher) {
-                await axios.post('/api/notifications', {
-                    userId: teacher.id,
-                    title,
-                    message
-                });
+                if (teacher) {
+                    await axios.post('/api/notifications', {
+                        userId: teacher.id,
+                        title,
+                        message,
+                    });
+                }
+            } else {
+                closeLoading()
+                showAlert('予約申請の登録に失敗しました。', false);
             }
-            alert('予約申請を送信しました');
+        } catch (error) {
+            closeLoading()
+            showAlert('予約申請に失敗しました', false);
         }
-        emit('reservation-refreshed');
-    } catch (error) {
-        console.error('生徒予約エラー:', error);
-        alert('予約申請に失敗しました');
-    }
-
-    onChange();
-    showPopup.value = false;
+    });
 };
+
 
 // ライフサイクルフック
 onMounted(async () => {
@@ -1536,19 +1576,19 @@ const isEarlier = (date) => {
 .calendar-view {
     font-family: Arial, sans-serif;
     padding: 20px;
-    max-width: 800px;
+    width: 100%;
+    max-width: 900px;
     margin: 20px auto;
     border: 1px solid #eee;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    background-color: #fff;
+    background-color: #f4f8ff;
 }
 
 .calendar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
     background-color: #f8f8f8;
     padding: 10px 15px;
     border-radius: 5px;
@@ -1990,7 +2030,7 @@ const isEarlier = (date) => {
 }
 
 .teacher-title {
-    background-color:#2d2d69;
+    background-color: #2d2d69;
     width: 100%;
     display: inline-block;
     padding: 5px 0px;
@@ -2024,5 +2064,100 @@ const isEarlier = (date) => {
 
 .event-box-info {
     margin-left: 65px;
+}
+
+@media (max-width: 768px) {
+    .calendar-view {
+        padding: 5px;
+    }
+
+    .calendar-grid {
+        gap: 1px;
+    }
+
+    /* calendar-header：按钮 + 标题缩小 */
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        padding: 8px;
+    }
+
+    .calendar-header h2 {
+        font-size: 16px;
+        margin: 0 8px;
+    }
+
+    .calendar-header button {
+        font-size: 14px;
+        padding: 4px 8px;
+    }
+
+    .calendar-week {
+        justify-content: space-between;
+        margin-bottom: 4px;
+        width: 100%;
+    }
+
+    .calendar-day {
+        flex: 1 1 0;
+        min-width: 0;
+        margin: 0 0;
+        padding: 0;
+        min-height: 60px;
+        font-size: 12px;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .weekday-name {
+        font-size: 12px;
+    }
+
+    .calendar-day {
+        font-size: 11px;
+    }
+
+    /* 授業情報简化 + 合并相同状态 */
+    .event-list {
+        margin: 4px 0 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .event-list li {
+        font-size: 11px;
+        padding: 2px 4px;
+        line-height: 1.3;
+        border-radius: 4px;
+        background-color: #f0f0f0;
+        margin-bottom: 2px;
+    }
+
+
+    /* popup窗口内部按钮和文字缩小 */
+    .popup-content {
+        font-size: 14px;
+    }
+
+    .popup-content label,
+    .popup-content input,
+    .popup-content select,
+    .popup-content button {
+        font-size: 14px;
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .popup-content button {
+        padding: 6px;
+    }
+
+    /* 确认框也紧凑一点 */
+    .confirm-dialog {
+        font-size: 14px;
+    }
 }
 </style>

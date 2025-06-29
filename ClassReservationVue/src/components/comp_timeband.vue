@@ -110,7 +110,7 @@ const calculateStyle = (startStr, endStr) => {
     border: 1px solid rgb(230, 230, 230);
     border-radius: 10px;
     padding: 10px;
-    width: 80%;
+    width: 100%;
     box-sizing: border-box;
     background-color: rgb(244, 248, 255);
     box-shadow: 0px 0px 4px rgb(156, 156, 156);

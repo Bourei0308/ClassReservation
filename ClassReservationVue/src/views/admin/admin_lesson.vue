@@ -4,56 +4,77 @@
 
     <!-- 🔍 検索フォーム -->
     <div class="search-bar">
-      <button @click="showTeacherModal = true">
+      <button class="select-button" @click="showTeacherModal = true">
         {{ selectedTeacher ? selectedTeacher.name : '先生を選択' }}
       </button>
 
-      <button @click="showStudentModal = true">
+      <button class="select-button" @click="showStudentModal = true">
         {{ selectedStudent ? selectedStudent.name : '生徒を選択' }}
       </button>
 
-      <select v-model="filter.status">
+      <select v-model="filter.status" class="select-input">
         <option value="">ステータス</option>
         <option v-for="(label, value) in statusOptions" :key="value" :value="value">
           {{ label }}
         </option>
       </select>
 
-      <input type="date" v-model="filter.startDate" placeholder="開始日" />
-      <input type="date" v-model="filter.endDate" placeholder="終了日" />
-      <select v-model="filter.period">
+      <input type="date" v-model="filter.startDate" class="date-input" placeholder="開始日" />
+      <input type="date" v-model="filter.endDate" class="date-input" placeholder="終了日" />
+
+      <select v-model="filter.period" class="select-input">
         <option value="">すべての期間</option>
         <option value="week">今週</option>
         <option value="month">今月</option>
         <option value="3months">3ヶ月以内</option>
         <option value="year">1年以内</option>
       </select>
-      <button @click="resetFilters">リセット</button>
+
+      <button class="reset-button" @click="resetFilters">リセット</button>
     </div>
 
     <!-- 🔢 集計表示 -->
+    <!-- ✅ 先生 -->
     <div v-if="selectedTeacher" class="summary">
-      {{ selectedTeacher.name }}先生　
-      {{ periodStart }}~{{ periodEnd }}　
-      授業時間数：{{ teacherHours }}コマ
+      <div><span class="highlight-name">{{ selectedTeacher.name }}</span>先生</div>
+      <div>
+        <span class="highlight-period">{{ periodStart }}</span>~
+        <span class="highlight-period">{{ periodEnd }}</span>
+      </div>
+      <div class="summary-row">
+        授業時間数：<span class="highlight-number teacher-hours">{{ teacherHours }}</span>コマ
+      </div>
     </div>
 
+    <!-- ✅ 生徒 -->
     <div v-if="selectedStudent" class="summary">
-      {{ selectedStudent.name }}さん　
-      {{ periodStart }}~{{ periodEnd }}　
-      授業時間数：{{ studentHours }}コマ　
-      承認待ち数：{{ pendingHours }}コマ　
-      残りコマ数：{{ remainingHours }}コマ
+      <div><span class="highlight-name">{{ selectedStudent.name }}</span>さん</div>
+      <div>
+        <span class="highlight-period">{{ periodStart }}</span>~
+        <span class="highlight-period">{{ periodEnd }}</span>
+      </div>
+      <div class="summary-row">
+        授業時間数：<span class="highlight-number student-hours">{{ studentHours }}</span>コマ
+      </div>
+      <div class="summary-row">
+        承認待ち数：<span class="highlight-number pending">{{ pendingHours }}</span>コマ
+      </div>
+      <div class="summary-row">
+        残りコマ数：<span class="highlight-number remaining">{{ remainingHours }}</span>コマ
+      </div>
     </div>
 
-    <button @click="openMonthlySummary(2)">先生の月別授業一覧</button>
-    <button @click="openMonthlySummary(1)">生徒の月別授業一覧</button>
-    <button @click="openMonthlySummary(2, 'calendar')">先生の日別授業一覧</button>
-    <button @click="openMonthlySummary(1, 'calendar')">生徒の日別授業一覧</button>
+
+    <div class="button-group">
+      <button class="submit-button" @click="openMonthlySummary(2)">先生の月別授業一覧</button>
+      <button class="submit-button" @click="openMonthlySummary(1)">生徒の月別授業一覧</button>
+      <button class="submit-button" @click="openMonthlySummary(2, 'calendar')">先生の日別授業一覧</button>
+      <button class="submit-button" @click="openMonthlySummary(1, 'calendar')">生徒の日別授業一覧</button>
+    </div>
 
     <!-- 📋 授業テーブル -->
     <!-- 🔢 授業ボックス表示 -->
-    <div class="lesson-box-container">  
+    <div class="lesson-box-container">
       <div v-for="lesson in filteredLessons" :key="lesson.id" class="lesson-box" :style="{
         backgroundColor:
           lesson.status === 0 ? 'hsl(60, 100%, 91%)' :
@@ -107,7 +128,7 @@
 
           <div class="lesson-actions">
             <button class="edit-button" @click="openEditModal(lesson)">編集</button>
-            <button class="delete-button" @click="deleteLesson(lesson.id)">削除</button>
+            <button class="delete-button" @click="deleteLesson(lesson)">削除</button>
           </div>
         </div>
       </div>
@@ -122,8 +143,11 @@
       @close="showMonthlySummary = false" @select="onSelectMonthlySummary" />
     <MonthlyLessonCalendar :show="showMonthlyCalendar" :role="selectedRole" :lessons="lessons"
       @close="showMonthlyCalendar = false" @select="onSelectDailySummary" />
-    <EditLessonModal :show="showEditModal" :start-time="startTime" :end-time="endTime" :lesson="editingLesson" 
+    <EditLessonModal :show="showEditModal" :start-time="startTime" :end-time="endTime" :lesson="editingLesson"
       @close="showEditModal = false" @updated="init" />
+    <AlertModal v-bind="alertProps" @close="closeAlert" />
+    <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
+
   </div>
 </template>
 
@@ -135,6 +159,15 @@ import MonthlySummaryModal from '@/components/popup_monthly_class.vue';
 import MonthlyLessonCalendar from '@/components/popup_daily_class.vue';
 import EditLessonModal from "@/components/popup_schedule_edit.vue";
 import { getUsers, getSchedulesByTeacher, getSchedulesByStudent } from '@/scripts/chatUtils';
+
+// 🔸 alert
+import AlertModal from '@/components/popup_message_alert.vue';
+import ConfirmDialog from '@/components/popup_message_confirm.vue';
+import { useModalManager } from '@/scripts/useModalManager';
+const {
+  showAlert, closeAlert, alertProps,
+  confirmShow, confirmMessage, openConfirm, onConfirm, onCancel
+} = useModalManager();
 
 const lessons = ref([]);
 
@@ -464,18 +497,24 @@ function onSelectDailySummary({ id, name, date }) {
 }
 
 // ✔️ 削除
-const deleteLesson = async (id) => {
-  if (confirm("本当に削除しますか？")) {
+const deleteLesson = (lesson) => {
+  const confirmText = 
+    `${lesson.teacherName}（先生） → ${lesson.studentName}（生徒）\n` +
+    `日付: ${lesson.date}\n` +
+    `時間: ${lesson.time}（${getDurationHours(lesson.time)} 時間）\n\n` +
+    `この履歴を本当に削除しますか？`;
+
+  openConfirm(confirmText, async () => {
     try {
-      console.log(id)
-      await axios.delete(`/api/class-schedules/${id}`);
-      alert("削除しました");
+      await axios.delete(`/api/class-schedules/${lesson.id}`);
+      showAlert('履歴を削除しました！', true);
       await init();
     } catch (e) {
-      alert("削除失敗: " + e.message);
+      showAlert('削除失敗: ' + e.message, false);
     }
-  }
+  });
 };
+
 
 // ✔️ モーダル関連
 const startTime = ref('');
@@ -484,22 +523,22 @@ const showEditModal = ref(false);
 const editingLesson = ref(null);
 // ✔️ 編集モーダルを開く
 const openEditModal = (lesson) => {
-    editingLesson.value = { ...lesson }
+  editingLesson.value = { ...lesson }
 
-    if (lesson.startTime && lesson.endTime) {
-        // 提取时间部分，比如从 "2025-06-27T09:00" 提取 "09:00"
-        startTime.value = lesson.startTime.slice(11, 16)
-        endTime.value = lesson.endTime.slice(11, 16)
-    } else if (lesson.time) {
-        const [start, end] = lesson.time.split('〜')
-        startTime.value = start
-        endTime.value = end
-    } else {
-        startTime.value = ''
-        endTime.value = ''
-    }
+  if (lesson.startTime && lesson.endTime) {
+    // 提取时间部分，比如从 "2025-06-27T09:00" 提取 "09:00"
+    startTime.value = lesson.startTime.slice(11, 16)
+    endTime.value = lesson.endTime.slice(11, 16)
+  } else if (lesson.time) {
+    const [start, end] = lesson.time.split('〜')
+    startTime.value = start
+    endTime.value = end
+  } else {
+    startTime.value = ''
+    endTime.value = ''
+  }
 
-    showEditModal.value = true
+  showEditModal.value = true
 }
 
 
@@ -509,6 +548,7 @@ const openEditModal = (lesson) => {
 
 
 <style scoped>
+/* 统一基础字体 */
 .lesson-container {
   max-width: 1100px;
   margin: 30px auto;
@@ -519,27 +559,172 @@ const openEditModal = (lesson) => {
   font-family: Arial, sans-serif;
 }
 
+/* 统一标题 */
 h2 {
   text-align: center;
   margin-bottom: 20px;
 }
 
+/* 搜索栏整体 */
 .search-bar {
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
   flex-wrap: wrap;
+  gap: 12px;
   justify-content: center;
+  padding: 16px 12px;
+  background-color: #f7f9ff;
+  border-radius: 14px;
+  box-shadow: 0 3px 8px rgb(45 45 105 / 0.2);
+  margin-bottom: 20px;
+  user-select: none;
+}
+
+/* 选择按钮：老师/学生 */
+.select-button {
+  padding: 10px 20px;
+  background-color: #2d2d69eb;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  min-width: 140px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.select-button:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+/* 下拉选择框和日期输入框 统一样式 */
+.select-input,
+.date-input {
+  min-width: 140px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1.8px solid #2d2d69;
+  font-weight: 600;
+  color: #2d2d69;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.select-input:focus,
+.date-input:focus {
+  outline: none;
+  border-color: #0056b3;
 }
 
 
-.search-bar input,
-.search-bar select {
-  padding: 8px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
+
+/* 汇总信息 */
+.summary {
+  text-align: center;
+  font-size: 1rem;
+  margin-bottom: 20px;
+  color: #2d2d69;
+  user-select: none;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
+/* 名称高亮 */
+.highlight-name {
+  font-weight: 700;
+  padding: 4px 10px;
+  background-color: #d7def9;
+  border-radius: 12px;
+  color: #2d2d69;
+  margin-right: 6px;
+  display: inline-block;
+}
+
+/* 时间段高亮 */
+.highlight-period {
+  font-weight: 600;
+  color: #4455aa;
+  margin: 0 6px;
+  display: inline-block;
+  min-width: 110px;
+}
+
+/* 数字加粗带背景 */
+.highlight-number {
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  display: inline-block;
+  min-width: 50px;
+  text-align: center;
+  color: white;
+  background-color: #2d2d69eb;
+  margin-left: 6px;
+}
+
+/* 数字特殊状态颜色 */
+.highlight-number.pending {
+  background-color: #e74c3c;
+  /* 红色 */
+}
+
+.highlight-number.remaining {
+  background-color: #27ae60;
+  /* 绿色 */
+}
+
+.highlight-number.student-hours {
+  background-color: #2980b9;
+  /* 学生蓝 */
+}
+
+.highlight-number.teacher-hours {
+  background-color: #6c5ce7;
+  /* 先生紫 */
+}
+
+/* ✅ 按钮容器（.button-group）优化 */
+.button-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  /* 🔸 从 200px 改成 160px */
+  gap: 16px;
+  justify-content: center;
+  margin-top: 10px;
+  padding: 0 10px;
+  /* 🔸 手机端左右加 padding，防止贴边 */
+  box-sizing: border-box;
+  margin-bottom: 20px;
+}
+
+/* ✅ 按钮本身调整，移除 min-width 并适配父容器 */
+.submit-button {
+  width: 100%;
+  /* 🔸 宽度随 grid 自适应 */
+  padding: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: white;
+  background-color: #2d2d69eb;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.submit-button:hover {
+  background-color: #0056b3;
+  transform: scale(1.03);
+}
+
+
+/* 课程列表相关基础样式，保持原有 */
 .lesson-table {
   width: 100%;
   border-collapse: collapse;
@@ -556,27 +741,28 @@ h2 {
   background-color: #f2f8ff;
 }
 
-/* ステータス別 行の背景色 */
+/* 状态背景色 */
 .status-pending {
   background-color: #ffe6e6;
-  /* 赤系（承認待ち） */
+  /* 赤系 */
 }
 
 .status-confirmed {
   background-color: #e0f7ff;
-  /* 水色（承認済み） */
+  /* 水色 */
 }
 
 .status-completed {
   background-color: #e0ffe6;
-  /* 緑系（完了） */
+  /* 緑系 */
 }
 
 .status-canceled {
   background-color: #f0f0f0;
-  /* グレー（キャンセル） */
+  /* グレー */
 }
 
+/* 课程盒子布局 */
 .lesson-box-container {
   display: flex;
   flex-wrap: wrap;
@@ -620,7 +806,6 @@ h2 {
 .label-box {
   display: flex;
   flex-direction: column;
-
 }
 
 .label-tag {
@@ -629,7 +814,6 @@ h2 {
   padding: 3px 6px;
   border-radius: 4px;
   margin-right: 10px;
-
 }
 
 .time-label {
@@ -653,6 +837,12 @@ h2 {
   border: none;
   border-radius: 6px;
   padding: 4px 8px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.edit-button:hover {
+  background-color: #366c37;
+  transform: scale(1.05);
 }
 
 .delete-button {
@@ -661,6 +851,29 @@ h2 {
   border: none;
   border-radius: 6px;
   padding: 4px 8px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.delete-button:hover {
+  background-color: #a7342c;
+  transform: scale(1.05);
+}
+
+/* 重置按钮 */
+.reset-button {
+  padding: 10px 24px;
+  background-color: #ff6666;
+  color: white;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.reset-button:hover {
+  background-color: #cc3333;
+  transform: scale(1.05);
 }
 
 .lesson-comment {
@@ -677,5 +890,72 @@ h2 {
   text-align: center;
   display: inline-block;
   width: 100%;
+}
+
+@media (max-width: 768px) {
+
+  /* 容器内边距调整 */
+  .lesson-container {
+    padding: 16px 12px;
+  }
+
+  /* 搜索栏改为纵向堆叠 */
+  .search-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  /* 按钮、下拉框、日期输入框宽度调整为100% */
+  .select-button,
+  .select-input,
+  .date-input,
+  .reset-button {
+    width: 100%;
+    min-width: unset;
+    font-size: 0.95rem;
+    padding: 10px;
+  }
+
+  /* 汇总信息字体缩小，间距优化 */
+  .summary {
+    font-size: 0.95rem;
+    line-height: 1.8;
+    gap: 6px;
+  }
+
+  .summary .highlight-name,
+  .summary .highlight-period,
+  .summary .highlight-number {
+    display: inline-block;
+    margin: 4px 2px;
+  }
+
+  .summary-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .highlight-name,
+  .highlight-period,
+  .highlight-number {
+    font-size: 0.9rem;
+    padding: 3px 8px;
+    margin: 3px 4px;
+  }
+
+  /* 主按钮组改为纵向排列 */
+  .button-group {
+    grid-template-columns: repeat(2, 1fr);
+    margin-bottom: 20px;
+  }
+
+  .submit-button {
+    font-size: 0.8rem;
+    padding: 12px;
+  }
 }
 </style>

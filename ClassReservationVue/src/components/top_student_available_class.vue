@@ -1,12 +1,10 @@
 <template>
-     <!-- 合計コマ数：{{ totalCharged }} ｜ 使用済：{{ usedHours }} ｜ 残り：{{ remainingHours }} -->
-  <div class="header">コマポン進捗表</div>
+  <div class="progress-box">
+    <div class="header">コマポン進捗表</div>
 
-  <div class="class-status-box">
-    <div class="center">
-        がんばりコマメーター：{{ formatHoursToHM(usedHours) }}
+    <div class="meter-text center">
+      がんばりコマメーター：{{ formatHoursToHM(usedHours) }}
     </div>
-
 
     <div class="usage-bar">
       <div class="remaining-label">残り</div>
@@ -18,7 +16,6 @@
         </div>
       </div>
     </div>
-    
   </div>
 </template>
 
@@ -70,84 +67,83 @@ watch(() => props.studentID, () => fetchHours());
 </script>
 
 <style scoped>
-.class-status-box {
-  width: 80%;
-  margin: 20px auto;
-  border: 2px solid #333;
-  border-radius: 10px;
-  padding: 10px 15px;
-  font-family: 'Arial', sans-serif;
-  background-color: #fff;
+.progress-box {
+  background-color: #f4f8ff; /* 淡淡的蓝白底，和 bandbox 一致 */
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(45, 45, 105, 0.12);
+  padding: 20px 24px;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  color: #2d2d69;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
 }
 
-
 .header {
-  font-weight: bold;
-  font-size: 22px;
+  font-weight: 800;
+  font-size: 1.8rem;
+  margin-bottom: 18px;
+  border-bottom: 3px solid #2d2d69eb;
+  padding-bottom: 10px;
+  color: #2d2d69;
+
+  user-select: none;
+}
+
+.meter-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 18px;
   text-align: center;
-  margin-top: 40px;
+  color: #1e1e4f;
 }
 
 .usage-bar {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
 }
 
 .remaining-label {
-  font-size: 14px;
-  color: #444;
+  font-weight: 700;
+  font-size: 1.1rem;
+  min-width: 50px;
+  color: #2d2d69;
+  user-select: none;
 }
 
 .usage-details {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  margin-bottom: -10px; 
-}
-
-
-.bar-remaining {
-  background-color: #2d2d69;
-  height: 100%;
-  transition: width 0.3s ease;
-  display: flex; 
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.bar-text {
-  white-space: nowrap;
+  flex: 1;
 }
 
 .bar-background {
+  width: 100%;
+  height: 28px;
   background-color: #e9ecef;
-  border-radius: 6px;
-  height: 40px; 
-  position: relative;
+  border-radius: 14px;
   overflow: hidden;
-  margin-bottom: 24px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
 }
-
 
 .bar-remaining {
-  background-color: #2d2d69;
   height: 100%;
-  transition: width 0.3s ease;
+  background-color: #2d2d69eb;
+  border-radius: 14px 0 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 12px;
+  color: white;
+  font-weight: 700;
+  user-select: none;
+  transition: width 0.6s ease;
 }
 
-.center{
-    text-align: center;
-    font-size: 20px;
-}
-
-.text-info {
-  font-size: 12px;
-  margin-top: 6px;
-  color: #555;
-  text-align: center;
+.bar-text {
+  font-size: 1rem;
+  white-space: nowrap;
+  pointer-events: none;
 }
 </style>

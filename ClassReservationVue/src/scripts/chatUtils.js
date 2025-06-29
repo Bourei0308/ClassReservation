@@ -56,8 +56,6 @@ export async function fetchAndProcessBlueTimes(teacherId, dateStr) {
 
 export const changeStatus = async (id, newStatus) => {
   if (newStatus==4) {
-    const confirmDelete = window.confirm('この予約を削除しますか？')
-    if (!confirmDelete) return
     await axios.delete(`/api/class-schedules/${id}`)
     return
   }

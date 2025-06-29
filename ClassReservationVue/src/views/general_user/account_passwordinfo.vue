@@ -109,22 +109,64 @@ const changePassword = async () => {
 <style scoped>
 .wrapper {
   max-width: 400px;
-  margin: 40px auto;
+  margin: 4rem auto;
+  padding: 2rem 1.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(45, 45, 105, 0.15);
   text-align: center;
+  font-family: Arial, sans-serif;
+  color: #2d2d69;
+  box-sizing: border-box;
 }
+
 input {
-  margin: 10px 0;
-  padding: 8px;
-  width: 80%;
+  margin: 1rem 0 1.5rem;
+  padding: 0.6rem 0.75rem;
+  width: 100%;
+  max-width: 360px;
+  border: 1.5px solid #ccc;
+  border-radius: 10px;
+  font-size: 1rem;
+  color: #2d2d69;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  box-sizing: border-box;
 }
+
+input:focus {
+  border-color: #2d2d69;
+  box-shadow: 0 0 0 3px rgba(45, 45, 105, 0.2);
+}
+
 button {
-  padding: 10px 20px;
-  margin-top: 10px;
+  background-color: #2d2d69;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0.7rem 2.5rem;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 0.8rem;
+  transition: background-color 0.3s ease;
+  min-width: 140px;
 }
+
+button:hover {
+  background-color: #1e1e4f;
+}
+
 .error {
-  color: red;
+  margin-top: 1rem;
+  color: #d9534f; /* 更统一的红色 */
+  font-weight: 600;
 }
+
 .success {
-  color: green;
+  margin-top: 1rem;
+  color: #28a745; /* 更统一的绿色 */
+  font-weight: 600;
 }
+
 </style>

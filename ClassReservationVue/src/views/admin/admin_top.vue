@@ -11,10 +11,7 @@
 </template>
 
 
-<script>
-export default {
-  name: 'AdminTopPage'
-}
+<script setup>
 </script>
 
 <style scoped>

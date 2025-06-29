@@ -1,40 +1,57 @@
-
 <template>
-  <div class="user-info-wrapper">
-    <div class="user-info-box">
-      <div class="info-row">
-        <div class="label">■アカウント</div>
-        <div class="value">{{ user.account }}</div>
-      </div>
-      <div class="divider"></div>
+  <div class="user-info-container">
+    <!-- 左側：背景犬画像 -->
+    <div class="left-panel"></div>
 
-      <div class="info-row">
-        <div class="label">■ユーザ名</div>
-        <div class="value">{{ user.name }}</div>
-        <button class="edit-button" @click="goToEdit">変更</button>
-      </div>
-      <div class="divider"></div>
+    <!-- 右側：用户信息内容 -->
+    <div class="right-panel">
+      <div class="user-info-box">
+        <div class="info-row">
+          <div class="label">■アカウント</div>
+          <div class="value">{{ user.account }}</div>
+        </div>
+        <div class="divider"></div>
 
-      <div class="info-row">
-        <div class="label">■メール</div>
-        <div class="value">{{ user.email }}</div>
-        <button class="edit-button" @click="goToEdit">変更</button>
-      </div>
-      <div class="divider"></div>
+        <div class="info-row">
+          <div class="label">■ユーザ名</div>
+          <div class="value">{{ user.name }}</div>
+          <button class="edit-button" @click="goToEdit">変更</button>
+        </div>
+        <div class="divider"></div>
 
-      <div class="password-row">
-        <button class="password-button" @click="goToPasswordChange">パスワード変更</button>
-        <button class="password-button" @click="logout">ログアウト</button>
+        <div class="info-row">
+          <div class="label">■メール</div>
+          <div class="value">{{ user.email }}</div>
+          <button class="edit-button" @click="goToEdit">変更</button>
+        </div>
+        <div class="divider"></div>
+
+        <div class="password-row">
+          <button class="password-button" @click="goToPasswordChange">パスワード変更</button>
+          <button class="password-button" @click="logout">ログアウト</button>
+        </div>
       </div>
     </div>
   </div>
+  <LoadingModal :show="loadingShow" />
+  <AlertModal v-bind="alertProps" @close="closeAlert" />
+
 </template>
 
 <script setup>
 import { useAuth } from '@/scripts/useAuth'
 import { useRouter } from 'vue-router'
 
-const { user,logout } = useAuth()
+// 🔸 alert
+import AlertModal from '@/components/popup_message_alert.vue';
+import LoadingModal from '@/components/popup_message_loading.vue';
+import { useModalManager } from '@/scripts/useModalManager'
+const {
+  showAlert, closeAlert, alertProps,
+  confirmShow, confirmMessage, openConfirm, onConfirm, onCancel, showLoading, closeLoading,loadingShow
+} = useModalManager();
+
+const { user, logout } = useAuth()
 const router = useRouter()
 
 const goToEdit = () => {
@@ -43,6 +60,7 @@ const goToEdit = () => {
 
 const goToPasswordChange = async () => {
   try {
+    showLoading()
     // 認証コード送信API（6桁生成＋メール送信）
     await fetch('/api/auth/send-code', {
       method: 'POST',
@@ -53,80 +71,133 @@ const goToPasswordChange = async () => {
     // 認証コード入力画面へ
     router.push('/account/passwordinfo')
   } catch (err) {
-    alert('認証メールの送信に失敗しました')
+    closeLoading()
+    showAlert("認証メールの送信に失敗しました", false);
   }
 }
 
 </script>
 
+
 <style scoped>
+.user-info-container {
+  display: flex;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  background-color: #f7cd4a;
+  /* 登录界面黄色背景 */
+}
+
+/* 左側：背景犬画像 */
+.left-panel {
+  flex: 1;
+  background-image: url('@/assets/img/2.png');
+  /* 请确认路径正确 */
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: contain;
+  background-color: #f7cd4a;
+}
+
+/* 右側：用户信息容器 */
+.right-panel {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .user-info-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 80vh;
-  background-color: #f0f0f0;
+  padding: 2rem;
+  background: #f5f7fa;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
 }
 
 .user-info-box {
-  background-color: #fff;
-  border: 1px solid #ccc;
-  padding: 24px;
-  width: 400px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  background-color: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(45, 45, 105, 0.2);
+  width: 100%;
+  max-width: 600px;
+  color: #2d2d69;
+  box-sizing: border-box;
 }
 
 .info-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
 }
 
 .label {
-  font-weight: bold;
-  color: #333;
-  flex: 1;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #2d2d69;
+  min-width: 120px;
 }
 
 .value {
-  flex: 2;
-  color: #555;
+  flex: 1;
+  font-size: 1rem;
+  color: #333;
+  word-break: break-word;
 }
 
 .edit-button {
-  margin-left: 10px;
-  padding: 4px 12px;
-  background-color: #ddd;
+  background-color: #2d2d69;
+  color: white;
   border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 .edit-button:hover {
-  background-color: #ccc;
+  background-color: #1e1e4f;
 }
 
 .divider {
   height: 1px;
-  background-color: #999;
-  margin: 4px 0;
+  background-color: #e0e0e0;
+  margin-bottom: 1.2rem;
 }
 
+/* 密码区按钮排版 */
 .password-row {
-  margin-top: 16px;
-  text-align: right;
   display: flex;
-  gap: 20px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
 }
 
 .password-button {
-  padding: 6px 14px;
-  background-color: #bbb;
+  flex: 1;
+  background-color: #2d2d69;
+  color: white;
   border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 700;
+  font-size: 1rem;
   cursor: pointer;
+  transition: background-color 0.3s ease;
+  min-width: 140px;
 }
 
 .password-button:hover {
-  background-color: #999;
+  background-color: #1e1e4f;
 }
 </style>

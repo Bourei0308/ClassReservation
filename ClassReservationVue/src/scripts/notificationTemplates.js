@@ -22,5 +22,10 @@ export const NotificationTemplates = {
   classReservationApprovedByTeacher: (date) => ({
     title: '【承認】授業予約のご案内',
     message: `先生が ${date} の授業予約を承認しました。ご確認ください。`
+  }),
+  // 生徒が承認前に予約をキャンセル
+studentCancelledBeforeApproval: (date) => ({
+    title: '【キャンセル】授業予約取消のお知らせ',
+    message: `生徒様が ${date} の授業予約を承認前にキャンセルしました。`
   })
 }

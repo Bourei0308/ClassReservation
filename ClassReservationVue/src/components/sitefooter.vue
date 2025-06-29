@@ -20,5 +20,6 @@ import { useRouter, RouterLink } from 'vue-router'
   font-size: 12px;
   text-align: center;
   padding: 24px 0;
+  z-index: 1000;
 }
 </style>
