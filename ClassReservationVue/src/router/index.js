@@ -42,11 +42,6 @@ const router = createRouter({
       component: () => import('../views/admin/admin_register_create.vue'),
     },
     {
-      path: '/admin/register/confirm',
-      name: '作成確認',
-      component: () => import('../views/admin/admin_register_confirm.vue'),
-    },
-    {
       path: '/admin/accountlist',
       name: '管理者用ユーザ一覧',
       meta: { requiresAuth: true, role_number: 0 },

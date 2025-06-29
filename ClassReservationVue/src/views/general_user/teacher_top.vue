@@ -1,21 +1,161 @@
 <template>
-    <div>
-        <Top_Calender account="teacher" :teacherID=userid ref="calendar" />
-        <button class="open-button" @click="openPopup">
-            今月の予約一覧
-        </button>
+  <div class="teacher_section">
+    <!-- 左侧：狗图 -->
+    <div class="left-dog-fixed"></div>
 
-        <SchedulePopup ref="popup"   @list-refreshed="handleListRefreshed" />
-        <div class="timeband_section">
-            <h2 class="center_title">今日の予定</h2>
-            <TimeBand :blue_time="blueTimes" :hourStep="2" />
+    <!-- 右侧内容 -->
+    <div class="right-panel">
+      <!-- 今日の予定 -->
+      <section class="schedule-header">
+        <h2 class="schedule-title">今日の予定</h2>
+        <div class="timeband-wrapper">
+          <TimeBand :blue_time="blueTimes" :hourStep="hourStep" />
         </div>
+      </section>
+
+      <!-- 今月の予約一覧 -->
+      <button class="fixed-circle-button" @click="openPopup">
+        今月の予約一覧
+      </button>
+
+      <!-- カレンダーとポップアップ -->
+      <Top_Calender account="teacher" :teacherID="userid" ref="calendar" />
+      <SchedulePopup ref="popup" @list-refreshed="handleListRefreshed" />
     </div>
+  </div>
 </template>
+
+<style scoped>
+.left-dog-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 600px;
+  height: 100vh;
+  background-image: url('@/assets/img/2.png');
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: contain;
+  background-color: #f7cd4a;
+  z-index: 0;
+}
+
+.teacher_section {
+  margin-left: 400px;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background-color: #f7cd4a;
+}
+
+.right-panel {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 30px;
+  background: #f7cd4a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.fixed-circle-button {
+  position: fixed;
+  right: 20px;
+  top: 70%;
+  transform: translateY(-50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #2d2d69;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(45, 45, 105, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  text-align: center;
+  white-space: normal;
+  z-index: 1000;
+}
+
+.fixed-circle-button:hover {
+  background-color: #1e1e4f;
+}
+
+.schedule-header {
+  background-color: #f4f8ff;
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 3px 12px rgba(45, 45, 105, 0.12);
+  width: 100%;
+  max-width: 900px;
+  margin: 20px auto;
+  box-sizing: border-box;
+}
+
+.schedule-title {
+  font-weight: 800;
+  font-size: 1.8rem;
+  color: #2d2d69;
+  margin: 0 0 16px 0;
+  user-select: none;
+  border-bottom: 3px solid #2d2d69eb;
+  padding-bottom: 8px;
+}
+
+.timeband-wrapper {
+  padding: 0 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 手机端样式 */
+@media (max-width: 768px) {
+  .left-dog-fixed {
+    display: none;
+  }
+
+  .teacher_section {
+    margin-left: 0;
+  }
+
+  .right-panel {
+    width: 100%;
+    padding: 20px 16px;
+    align-items: stretch;
+  }
+
+  .schedule-header {
+    width: 100%;
+    margin: 0 auto 20px;
+  }
+
+  .fixed-circle-button {
+    right: 12px;
+    bottom: 150px;
+    top: auto;
+    transform: none;
+    width: 64px;
+    height: 64px;
+    font-size: 12px;
+    padding: 8px;
+  }
+}
+
+</style>
 
 <script setup>
 import { useRouter } from 'vue-router'; // Vue RouterのuseRouterフックをインポート
-import { ref, onMounted } from 'vue'; // VueのrefをインポートClassReservationVue\src\components\top_calendar.vue
+import { ref, onMounted,computed } from 'vue'; // VueのrefをインポートClassReservationVue\src\components\top_calendar.vue
 import Top_Calender from '@/components/top_calendar.vue'; // 子コンポーネントをインポート
 const router = useRouter(); // useRouterフックを使用してルーターインスタンスを取得
 import SchedulePopup from '@/components/popup_reservation.vue'
@@ -33,7 +173,13 @@ onMounted(() => {
   fetchTodayTeacherSchedules()
 })
 
-
+const screenWidth = ref(window.innerWidth)
+const updateWidth = () => {
+  screenWidth.value = window.innerWidth
+}
+const hourStep = computed(() => {
+  return screenWidth.value <= 768 ? 6 : 2
+})
 
 async function fetchTodayTeacherSchedules() {
   const { user } = useAuth()
@@ -82,29 +228,3 @@ const handleListRefreshed = async () => {
 
 </script>
 
-<style scoped>
-.timeband_section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 50px 0;
-}
-
-.open-button {
-    background-color: #3b82f6;
-    /* 蓝色 */
-    color: white;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
-}
-
-.open-button:hover {
-    background-color: #2563eb;
-    /* hover 深蓝 */
-}
-</style>

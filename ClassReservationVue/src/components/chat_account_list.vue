@@ -46,7 +46,6 @@ const isSelected = (u) => {
 
 <style>
 .chat-account-list {
-    width: 40%;
     border-right: 1px solid #ccc;
     padding: 16px;
     overflow-y: auto;

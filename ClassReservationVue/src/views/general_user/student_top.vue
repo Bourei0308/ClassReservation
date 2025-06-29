@@ -1,6 +1,6 @@
 <template>
   <div class="student_section">
-<div class="left-dog-fixed"></div>
+    <div class="left-dog-fixed"></div>
     <!-- 右侧：日程内容 -->
     <div class="right-panel">
       <section class="schedule-header">
@@ -16,13 +16,8 @@
 
       <SchedulePopup @list-refreshed="handleListRefreshed" ref="popup" />
       <TopStudentAvailableClass v-if="userid" :studentID="userid" ref="classStatus" />
-      <Top_Calender
-        v-if="userid"
-        account="student"
-        :studentID="userid"
-        @reservation-refreshed="handleReservationDeleted"
-        ref="calendar"
-      />
+      <Top_Calender v-if="userid" account="student" :studentID="userid"
+        @reservation-refreshed="handleReservationDeleted" ref="calendar" />
     </div>
   </div>
 </template>
@@ -32,22 +27,27 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 600px;       /* 狗图宽度 */
-  height: 100vh;      /* 高度撑满屏幕 */
+  width: 600px;
+  /* 狗图宽度 */
+  height: 100vh;
+  /* 高度撑满屏幕 */
   background-image: url('@/assets/img/2.png');
   background-repeat: no-repeat;
   background-position: center center;
   background-size: contain;
-  background-color: #f7cd4a; /* 和整体背景保持一致 */
-  z-index: 0; /* 保证在内容下方或你想要的层级 */
+  background-color: #f7cd4a;
+  /* 和整体背景保持一致 */
+  z-index: 0;
+  /* 保证在内容下方或你想要的层级 */
 }
 
 .student_section {
-  margin-left: 400px; /* 留出狗图宽度，避免遮挡 */
+  margin-left: 400px;
+  /* 留出狗图宽度，避免遮挡 */
   min-height: 100vh;
   font-family: Arial, sans-serif;
   background-color: #f7cd4a;
-  
+
 }
 
 .right-panel {
@@ -60,7 +60,8 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  position: relative;  /* ✅ 关键点：激活 z-index */
+  position: relative;
+  /* ✅ 关键点：激活 z-index */
   z-index: 1;
 }
 
@@ -103,7 +104,7 @@
   border-radius: 12px;
   padding: 20px 24px;
   box-shadow: 0 3px 12px rgba(45, 45, 105, 0.12);
-  width: 90%;
+  width: 100%;
   max-width: 900px;
   margin: 20px auto;
   box-sizing: border-box;
@@ -130,17 +131,20 @@
 /* 手机端宽度调整 */
 @media (max-width: 768px) {
   .left-dog-fixed {
-    display: none; /* 手机端隐藏狗图 */
+    display: none;
+    /* 手机端隐藏狗图 */
   }
 
   .student_section {
-    margin-left: 0; /* 去掉 margin，让内容贴屏幕左边 */
+    margin-left: 0;
+    /* 去掉 margin，让内容贴屏幕左边 */
   }
 
   .right-panel {
     width: 100%;
     padding: 20px 16px;
-    align-items: stretch; /* 让子内容更贴边 */
+    align-items: stretch;
+    /* 让子内容更贴边 */
   }
 
   .schedule-header {
@@ -150,7 +154,7 @@
 
   .fixed-circle-button {
     right: 12px;
-    bottom: 12px;
+    bottom: 150px;
     top: auto;
     transform: none;
     width: 64px;

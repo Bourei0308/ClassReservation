@@ -85,6 +85,17 @@ public class MailController {
 					.body("通知メール送信失敗: " + e.getMessage());
 		}
 	}
+	
+	@PostMapping("/notify/student/cancelled/beforeapproval")
+    public ResponseEntity<String> notifyStudentCancelledBeforeApproval(@RequestBody Map<String, String> body) {
+        String classScheduleId = body.get("classScheduleId");
+        try {
+            emailService.sendStudentCancelledBeforeApproval(classScheduleId);
+            return ResponseEntity.ok("通知とメールを送信しました");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("通知送信に失敗しました！！");
+        }
+    }
 
 	@PostMapping("/notify/passwordchange")
 	@Operation(summary = "パスワード変更完了通知")

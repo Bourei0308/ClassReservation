@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.entity.Notification;
 import com.example.demo.repository.NotificationRepository;
-import com.example.demo.repository.UserRepository;
-import com.example.demo.service.EmailService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,12 +24,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class NotificationController {
 	@Autowired
 	private NotificationRepository repository;
-
-	@Autowired
-	private EmailService emailService;
-
-	@Autowired
-	private UserRepository userRepository;
 
 	@GetMapping("/user/{userId}")
 	@Operation(summary = "全てのお知らせ取得")
@@ -45,19 +37,6 @@ public class NotificationController {
 		notification.setCreatedAt(LocalDateTime.now());
 		notification.setRead(false);
 		Notification savedNotification = repository.save(notification);
-
-		// メール送信処理
-		try {
-			String to = getEmailByUserId(notification.getUserId()); // ユーザーIDからメール取得（後述の関数）
-			String subject = "[じゅくポン] " + notification.getTitle();
-			String body = notification.getMessage();
-
-			emailService.sendEmail(to, subject, body);
-		} catch (Exception e) {
-			System.err.println("メール送信失敗: " + e.getMessage());
-			// ログだけ出して処理継続（必要なら通知テーブルに送信失敗フラグ追加も検討）
-		}
-
 		return savedNotification;
 	}
 
@@ -70,12 +49,5 @@ public class NotificationController {
 			return repository.save(notification);
 		}
 		return null;
-	}
-
-	// ← クラスの中にこの private メソッドを追加
-	private String getEmailByUserId(String userId) {
-		return userRepository.findById(userId)
-				.map(user -> user.getEmail())
-				.orElseThrow(() -> new IllegalArgumentException("ユーザーが見つかりません: " + userId));
 	}
 }

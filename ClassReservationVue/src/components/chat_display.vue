@@ -125,11 +125,10 @@ onMounted(() => {
 
 <style scoped>
 .chat-display {
-    width: 60%;
     position: relative;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 90vh;
     box-sizing: border-box;
 }
 

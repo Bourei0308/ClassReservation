@@ -64,6 +64,20 @@ export const sendStudentCancellMail = async (scheduleId) => {
 }
 
 /* =========================
+📧 先生：学生が予約キャンセル
+========================= */
+
+export const sendStudentCancelledBeforeApprovalMail = async (scheduleId) => {
+  try {
+    await axios.post('/api/mail/notify/student/cancelled/beforeapproval', {
+      classScheduleId: scheduleId
+    });
+  } catch (error) {
+    console.error('sendStudentCancelledBeforeApprovalMail:', error);
+  }
+};
+
+/* =========================
 📧 パスワード変更メール
 ========================= */
 export const sendPasswordChangedMail = async (userId) => {
