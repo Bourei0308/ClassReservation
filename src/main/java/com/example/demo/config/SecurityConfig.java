@@ -29,7 +29,11 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
-		config.setAllowedOrigins(Arrays.asList("http://localhost:5173")); // Vueアプリ
+		config.setAllowedOrigins(Arrays.asList(
+			    "http://localhost:5173",
+			    "http://192.168.137.1:5173"  // PCA 的实际IP
+			)); // Vueアプリ
+		
 		config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		config.setAllowedHeaders(Arrays.asList("*"));
 		config.setAllowCredentials(true); // Cookie等が必要な場合
