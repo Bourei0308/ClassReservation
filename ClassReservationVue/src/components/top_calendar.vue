@@ -1179,6 +1179,13 @@ const changeStatusOnClick = (event, newStatus) => {
                 await sendStudentConfirmMail(event.id);
                 showAlert('承認しました。', true);
             }
+            if (newStatus === 2 && event) {
+                // 先生が生徒の授業を完了した
+                await changeStatus(eventId, newStatus);
+                await onChange();
+                closeLoading();
+                showAlert('完了しました。', true);
+            }
             if (newStatus === 3 && event) {
                 // 先生が生徒の授業をキャンセルした
                 await sendStudentCancellMail(event.id);
