@@ -1,4 +1,5 @@
 <template>
+  <body>
   <div class="modal-overlay">
     <div class="modal-content">
       <h2 class="form-title">アカウント作成（管理者）</h2>
@@ -25,7 +26,6 @@
           </label>
         </div>
 
-
         <button type="submit" class="submit-button">登録</button>
         <button type="button" class="submit-button" @click="goToAccountList">アカウント一覧</button>
       </form>
@@ -33,6 +33,7 @@
   </div>
   <AlertModal v-bind="alertProps" @close="closeAlert" />
   <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
+</body>
 </template>
 
 <script setup>
@@ -54,8 +55,6 @@ const roleOptions = [
   { value: 1, label: '生徒' },
 ];
 
-
-// 🔸 登録フォーム
 const form = ref({
   name: "",
   email: "",
@@ -64,7 +63,6 @@ const form = ref({
   account: ""
 });
 
-// 🔸 確認画面へ遷移
 const goToRegister = () => {
   const msg = `以下の情報でアカウントを作成します。\n\n` +
               `氏名: ${form.value.name}\n` +
@@ -105,66 +103,85 @@ const goToAccountList = () => {
 };
 </script>
 
-
 <style scoped>
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-image: url('../../assets/img/4.png');
+  background-repeat: repeat;
+  background-size: 1000px auto;
+  font-family: 'Segoe UI', sans-serif;
+}
+
 .modal-overlay {
-
-  inset: 0;
-
+  min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
-  z-index: 999;
-  margin-top: 100px;
+  align-items: flex-start;
+  padding-top: 60px;
+  background-color: rgba(255, 255, 255, 0.6);
 }
 
 .modal-content {
   background: white;
   padding: 30px 40px;
-  border-radius: 12px;
+  border-radius: 16px;
   width: 600px;
   max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  animation: fadeInUp 0.8s ease-out;
 }
 
 .form-title {
   margin-bottom: 20px;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   color: #2d2d69;
   text-align: center;
+  font-weight: 700;
+  border-bottom: 2px solid #2d2d69;
+  padding-bottom: 10px;
 }
 
 .form-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .form-body label {
-  font-weight: bold;
-  color: #333;
+  font-weight: 600;
+  color: #2d2d69;
 }
 
 .form-body input[type="text"],
 .form-body input[type="email"],
 .form-body input[type="password"] {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #bbb;
+  border-radius: 10px;
   font-size: 1rem;
+  background-color: #fefefe;
+  transition: border 0.2s ease;
+}
+
+.form-body input:focus {
+  border-color: #2d2d69;
+  outline: none;
 }
 
 .radio-button-group {
   display: flex;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .radio-button {
-  background-color: #eee;
-  color: #333;
-  padding: 10px 16px;
+  background-color: #f0f0f0;
+  color: #2d2d69;
+  padding: 10px 18px;
   border-radius: 8px;
   cursor: pointer;
   user-select: none;
@@ -174,11 +191,11 @@ const goToAccountList = () => {
 }
 
 .radio-button:hover {
-  background-color: #ddd;
+  background-color: #e0e0e0;
 }
 
 .radio-button.active {
-  background-color: #2d2d69eb;
+  background-color: #2d2d69;
   color: white;
   border: 1px solid #2d2d69;
 }
@@ -187,22 +204,34 @@ const goToAccountList = () => {
   display: none;
 }
 
-
 .submit-button {
   margin-top: 20px;
   padding: 14px;
   font-size: 1.1rem;
   font-weight: bold;
   color: white;
-  background-color: #2d2d69eb;
+  background-color: #2d2d69;
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .submit-button:hover {
-  background-color: #0056b3;
-  transform: scale(1.02);
+  background-color: #1e1e50;
+  transform: scale(1.03);
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
+
+

@@ -1,4 +1,5 @@
 <template>
+  <body>
   <div class="lesson-container">
     <h2>先生授業明細（完了状態）</h2>
 
@@ -149,6 +150,7 @@
     <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
 
   </div>
+  </body>
 </template>
 
 <script setup>
@@ -548,15 +550,26 @@ const openEditModal = (lesson) => {
 
 
 <style scoped>
-/* 统一基础字体 */
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-image: url('../../assets/img/4.png');
+  background-repeat: repeat;
+  background-size: 1000px auto;
+  font-family: 'Segoe UI', sans-serif;
+}
+
 .lesson-container {
   max-width: 1100px;
   margin: 30px auto;
   padding: 20px;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  font-family: Arial, sans-serif;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  font-family: 'Segoe UI', sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(6px);
 }
 
 /* 统一标题 */

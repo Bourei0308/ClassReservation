@@ -1,4 +1,5 @@
 <template>
+  <body>
   <div class="account-list-container">
     <h2>アカウント一覧</h2>
 
@@ -18,6 +19,7 @@
   </div>
   <AlertModal v-bind="alertProps" @close="closeAlert" />
   <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
+</body>
 </template>
 <script setup>
 import { ref, onMounted } from 'vue';
@@ -94,6 +96,16 @@ onMounted(() => {
 </script>
 
 <style scoped>
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-image: url('../../assets/img/4.png');
+  background-repeat: repeat;
+  background-size: 1000px auto;
+  font-family: 'Segoe UI', sans-serif;
+}
+
 .container {
   max-width: 900px;
   margin: 30px auto;
