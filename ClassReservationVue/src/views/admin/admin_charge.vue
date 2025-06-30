@@ -1,4 +1,5 @@
 <template>
+  <body>
   <div class="container">
 
     <h2>学生授業時間チャージ</h2>
@@ -43,6 +44,7 @@
     <AlertModal v-bind="alertProps" @close="closeAlert" />
     <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
   </div>
+  </body>
 </template>
 
 <script setup>
@@ -188,6 +190,16 @@ onMounted(initialize);
 
 
 <style scoped>
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-image: url('../../assets/img/4.png');
+  background-repeat: repeat;
+  background-size: 1000px auto;
+  font-family: 'Segoe UI', sans-serif;
+}
+
 .user-select-box {
   display: flex;
   align-items: center;
