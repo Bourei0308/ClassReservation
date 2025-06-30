@@ -94,7 +94,7 @@ export const sendPasswordChangedMail = async (userId) => {
 📧 お問い合わせフォーム送信
 ========================= */
 export async function sendContactFormMail({ name, email, message }) {
-  const to = 'admin@gmail.com'; // 管理者やサポートのメールアドレスに変更してください
+  const to = '2430371802@qq.com'; // 管理者やサポートのメールアドレスに変更してください
   const subject = '【じゅくポン】お問い合わせフォームからのメッセージ';
   const body = `お名前: ${name}\n\nメールアドレス: ${email}\n\nお問い合わせ内容:\n${message}`;
   await sendEmail({ to, subject, body });
