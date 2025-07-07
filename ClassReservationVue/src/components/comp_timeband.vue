@@ -4,7 +4,7 @@
         <div class="hour-labels">
             <div v-for="h in hourLabels" :key="h" class="hour-label"
                 :style="{ left: ((h - rangeStartHour) / rangeDurationHours) * 100 + '%' }">
-                {{ h }}時
+                {{ h }}{{ $t('comp.time') }}
             </div>
         </div>
 

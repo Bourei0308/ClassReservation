@@ -197,7 +197,7 @@ body {
   background-image: url('../../assets/img/4.png');
   background-repeat: repeat;
   background-size: 1000px auto;
-  font-family: 'Segoe UI', sans-serif;
+  
 }
 
 .user-select-box {
@@ -229,7 +229,6 @@ body {
   border: 2px solid #ccc;
   border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  font-family: "Arial", sans-serif;
   text-align: center;
 }
 

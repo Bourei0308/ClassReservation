@@ -52,14 +52,21 @@ const fetchChats = async () => {
 
 const fetchUsers = async () => {
   const res = await axios.get('/api/users')
+  const allUsers = res.data
+
   if (user.value.role === 1) {
-    users.value = res.data.filter(u => (u.role === 0 || u.role === 2) && u.id !== user.value.id)
+    // 学生：查询该学生对应的教师 ID 列表
+    const rel = await axios.get(`/api/relations/student/${user.value.id}`)
+    const teacherIds = rel.data
+    users.value = allUsers.filter(u => teacherIds.includes(u.id))
   } else if (user.value.role === 2) {
-    users.value = res.data.filter(u => (u.role === 0 || u.role === 1) && u.id !== user.value.id)
+    // 教师：查询该教师对应的学生 ID 列表
+    const rel = await axios.get(`/api/relations/teacher/${user.value.id}`)
+    const studentIds = rel.data
+    users.value = allUsers.filter(u => studentIds.includes(u.id))
   } else {
     users.value = []
   }
-
 }
 
 const selectUser = (u) => {

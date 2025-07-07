@@ -1,15 +1,15 @@
 <template>
   <div v-if="show" class="modal-overlay">
     <div class="modal-content">
-      <h3>{{ roleName }}今年の授業一覧</h3>
+      <h3>{{ t('popup_yearly_class.title', { roleName }) }}</h3>
 
       <!-- ✅ 桌面显示用表格 -->
       <div class="table-wrapper desktop-only">
         <table>
           <thead>
             <tr>
-              <th>{{ roleName }}名</th>
-              <th v-for="m in 12" :key="m">{{ m }}月</th>
+              <th>{{ t('popup_yearly_class.roleName') }}</th>
+              <th v-for="m in 12" :key="m">{{ m }}{{ t('popup_yearly_class.month') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -17,7 +17,7 @@
               <td>{{ item.name }}</td>
               <td v-for="m in 12" :key="m">
                 <button v-if="item.monthlyHours[m]" @click="selectMonth(item, m)">
-                  {{ item.monthlyHours[m] }}時間
+                  {{ item.monthlyHours[m] }}{{ t('popup_yearly_class.hours') }}
                 </button>
                 <span v-else>-</span>
               </td>
@@ -28,38 +28,122 @@
 
       <!-- ✅ 手机端：每位老师/学生一个卡片 -->
       <div class="mobile-only card-list">
-    <div
-      class="card"
-      v-for="item in summaryData"
-      :key="item.id"
-    >
-      <div class="card-header" @click="toggleFold(item.id)">
-        <span class="card-name">{{ item.name }}</span>
-        <span class="fold-toggle">
-          {{ foldedIds.includes(item.id) ? '▶︎' : '▼' }}
-        </span>
-      </div>
+        <div class="card" v-for="item in summaryData" :key="item.id">
+          <div class="card-header" @click="toggleFold(item.id)">
+            <span class="card-name">{{ item.name }}</span>
+            <span class="fold-toggle">
+              {{ foldedIds.includes(item.id) ? '▶︎' : '▼' }}
+            </span>
+          </div>
 
-      <!-- 折り畳み対象内容 -->
-      <div v-if="!foldedIds.includes(item.id)" class="month-grid">
-        <div class="month" v-for="m in 12" :key="m">
-          <div class="label">{{ m }}月</div>
-          <div class="value">
-            <button v-if="item.monthlyHours[m]" @click="selectMonth(item, m)">
-              {{ item.monthlyHours[m] }}時間
-            </button>
-            <span v-else>-</span>
+          <!-- 折り畳み対象内容 -->
+          <div v-if="!foldedIds.includes(item.id)" class="month-grid">
+            <div class="month" v-for="m in 12" :key="m">
+              <div class="label">{{ m }}{{ t('popup_yearly_class.month') }}</div>
+              <div class="value">
+                <button v-if="item.monthlyHours[m]" @click="selectMonth(item, m)">
+                  {{ item.monthlyHours[m] }}{{ t('popup_yearly_class.hours') }}
+                </button>
+                <span v-else>-</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-      <button @click="$emit('close')">閉じる</button>
+      <button @click="$emit('close')">{{ t('popup_yearly_class.close') }}</button>
     </div>
   </div>
 </template>
 
+<script setup>
+import { watch, computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
+const props = defineProps({
+  show: Boolean,
+  role: Number, // 2=先生, 1=生徒
+  lessons: Array,
+});
+
+const emit = defineEmits(['close', 'select']);
+
+const roleName = computed(() => (props.role === 2 ? t('popup_yearly_class.teacher') : t('popup_yearly_class.student')));
+
+const year = new Date().getFullYear();
+
+const foldedIds = ref([]);
+const toggleFold = (id) => {
+  if (foldedIds.value.includes(id)) {
+    foldedIds.value = foldedIds.value.filter(f => f !== id);
+  } else {
+    foldedIds.value.push(id);
+  }
+};
+
+function getDurationHours(timeStr) {
+  const [start, end] = timeStr.split('〜');
+  const [startH, startM] = start.split(':').map(Number);
+  const [endH, endM] = end.split(':').map(Number);
+  let diff = (endH - startH) + (endM - startM) / 60;
+  if (diff < 0) diff += 24;
+  return diff;
+}
+
+const summaryData = computed(() => {
+  if (!props.lessons || props.lessons.length === 0) return [];
+
+  const groupKey = props.role === 2 ? 'teacherName' : 'studentName';
+  const idKey = props.role === 2 ? 'teacherId' : 'studentId';
+  const otherIdKey = props.role === 2 ? 'studentId' : 'teacherId';
+
+  const map = new Map();
+
+  for (const lesson of props.lessons) {
+    if (lesson.status !== 2) continue;
+
+    const lessonYear = lesson.date.split('-')[0];
+    if (Number(lessonYear) !== year) continue;
+
+    const name = lesson[groupKey];
+    const id = lesson[idKey];
+    const otherId = lesson[otherIdKey];
+
+    if (!name || !id) continue;
+
+    if (!map.has(id)) {
+      map.set(id, {
+        id,
+        name,
+        monthlyHours: {},
+        teacherId: props.role === 2 ? id : otherId,
+        studentId: props.role === 2 ? otherId : id,
+      });
+    }
+    const item = map.get(id);
+
+    const month = Number(lesson.date.split('-')[1]);
+    const duration = getDurationHours(lesson.time);
+
+    item.monthlyHours[month] = (item.monthlyHours[month] || 0) + duration;
+  }
+
+  for (const item of map.values()) {
+    for (const m in item.monthlyHours) {
+      item.monthlyHours[m] = item.monthlyHours[m].toFixed(1);
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+});
+
+function selectMonth(item, month) {
+  emit('select', { id: item.id, name: item.name, month });
+  emit('close');
+}
+</script>
 
 
 <style scoped>
@@ -82,7 +166,7 @@
   max-width: 960px;
   border-radius: 16px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-  font-family: Arial, sans-serif;
+  
   box-sizing: border-box;
 }
 
@@ -264,94 +348,4 @@ td button:hover {
 </style>
 
 
-<script setup>
-import { watch, computed,ref } from 'vue';
 
-// 传入参数
-const props = defineProps({
-  show: Boolean,
-  role: Number, // 2=先生, 1=生徒
-  lessons: Array, // 传入主页面的 lessons.value
-});
-
-const emit = defineEmits(['close', 'select']);
-
-const roleName = props.role === 2 ? '先生' : '生徒';
-
-const year = new Date().getFullYear();
-
-const foldedIds = ref([])
-const toggleFold = (id) => {
-  if (foldedIds.value.includes(id)) {
-    foldedIds.value = foldedIds.value.filter(f => f !== id)
-  } else {
-    foldedIds.value.push(id)
-  }
-}
-
-// 计算每位老师/学生每月的状态为2课时小时数汇总
-const summaryData = computed(() => {
-  if (!props.lessons || props.lessons.length === 0) return [];
-
-  const groupKey = props.role === 2 ? 'teacherName' : 'studentName';
-  const idKey = props.role === 2 ? 'teacherId' : 'studentId';
-
-  // 另外的ID key，比如角色是老师，则另一个是学生的ID，反之亦然
-  const otherIdKey = props.role === 2 ? 'studentId' : 'teacherId';
-
-  const map = new Map();
-
-  function getDurationHours(timeStr) {
-    const [start, end] = timeStr.split('〜');
-    const [startH, startM] = start.split(':').map(Number);
-    const [endH, endM] = end.split(':').map(Number);
-    let diff = (endH - startH) + (endM - startM) / 60;
-    if (diff < 0) diff += 24;
-    return diff;
-  }
-
-  for (const lesson of props.lessons) {
-    if (lesson.status !== 2) continue;
-
-    const lessonYear = lesson.date.split('-')[0];
-    if (Number(lessonYear) !== year) continue;
-
-    const name = lesson[groupKey];
-    const id = lesson[idKey];
-    const otherId = lesson[otherIdKey];
-
-    if (!name || !id) continue;
-
-    if (!map.has(id)) {
-      map.set(id, {
-        id,
-        name,
-        monthlyHours: {},
-        teacherId: props.role === 2 ? id : otherId,
-        studentId: props.role === 2 ? otherId : id,
-      });
-    }
-    const item = map.get(id);
-
-    const month = Number(lesson.date.split('-')[1]);
-    const duration = getDurationHours(lesson.time);
-
-    item.monthlyHours[month] = (item.monthlyHours[month] || 0) + duration;
-  }
-
-  for (const item of map.values()) {
-    for (const m in item.monthlyHours) {
-      item.monthlyHours[m] = item.monthlyHours[m].toFixed(1);
-    }
-  }
-
-  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-});
-
-
-function selectMonth(item, month) {
-  console.log(item.id, item.name, month)
-  emit('select', { id: item.id, name: item.name, month });
-  emit('close');
-}
-</script>

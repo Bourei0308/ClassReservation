@@ -111,7 +111,7 @@ body {
   background-image: url('../../assets/img/4.png');
   background-repeat: repeat;
   background-size: 1000px auto;
-  font-family: 'Segoe UI', sans-serif;
+  
 }
 
 .modal-overlay {

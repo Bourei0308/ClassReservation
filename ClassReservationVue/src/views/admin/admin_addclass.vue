@@ -255,7 +255,7 @@ onMounted(() => {
   border: 1px solid #ccc;
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  font-family: 'Segoe UI', sans-serif;
+  
 }
 
 /* 标题居中 */

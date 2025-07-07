@@ -12,20 +12,21 @@
           </svg>
         </div>
         <p class="message">{{ message }}</p>
-        <button class="menu-button" @click="$emit('close')">閉じる</button>
+        <button class="menu-button" @click="$emit('close')">{{ t('popup_message_alert.close') }}</button>
       </div>
     </div>
   </transition>
 </template>
 
-
 <script setup>
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+
 const props = defineProps({
   show: Boolean,
   isSuccess: Boolean,
   message: String
-});
-const emit = defineEmits(['close']);
+})
 </script>
 
 <style scoped>

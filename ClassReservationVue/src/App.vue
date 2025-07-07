@@ -12,7 +12,7 @@ import { onMounted, onUnmounted } from 'vue'
 const { connect, disconnect } = useWebSocket()
 
 import { useAuth } from '@/scripts/useAuth'
-const { user, restoreLogin } = useAuth()
+const { user, restoreLogin,language } = useAuth()
 
 onMounted(async () => {
   restoreLogin()
@@ -56,12 +56,11 @@ const {
   confirmShow, confirmMessage, openConfirm, onConfirm, onCancel
 } = useModalManager();
 
-
 </script>
 
 <template>
   <siteheader />
-  <div class="wrapper">
+  <div class="wrapper" :class="`lang-${language}`">
     <div>
       <RouterView />
     </div>
@@ -74,6 +73,14 @@ const {
 </template>
 
 <style scoped>
+
+.lang-ja {
+  font-family: "Kosugi Maru", "Yu Gothic", sans-serif;
+}
+.lang-zh {
+  font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}
+
 .wrapper {
   flex: 1;
   /* 主体内容撑满剩余高度 */

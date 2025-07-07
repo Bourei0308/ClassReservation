@@ -111,7 +111,7 @@ const cancel = () => {
 .user-info-container {
   display: flex;
   height: 100vh;
-  font-family: Arial, sans-serif;
+  
   background-color: #f7cd4a; /* 登录页背景色 */
 }
 
@@ -140,7 +140,7 @@ const cancel = () => {
   background: #f5f7fa;
   min-height: 100vh;
   box-sizing: border-box;
-  font-family: Arial, sans-serif;
+  
 }
 
 .user-info-box {

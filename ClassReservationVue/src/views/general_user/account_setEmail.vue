@@ -134,7 +134,7 @@ const verifyCode = async () => {
   border: 1px solid #ccc;
   border-radius: 12px;
   background-color: #fafafa;
-  font-family: 'Segoe UI', sans-serif;
+  
   text-align: center;
 }
 

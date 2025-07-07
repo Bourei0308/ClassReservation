@@ -42,7 +42,7 @@ public class NotificationController {
 
 	@PutMapping("/{id}/read")
 	@Operation(summary = "idのお知らせを既読にする")
-	public Notification markAsRead(@PathVariable String id) {
+	public Notification markAsRead(@PathVariable("id") String id) {
 		Notification notification = repository.findById(id).orElse(null);
 		if (notification != null) {
 			notification.setRead(true);

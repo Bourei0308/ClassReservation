@@ -39,13 +39,13 @@ public class ChargeHistoryController {
 
 	@GetMapping("/users/{userId}")
 	@Operation(summary = "特定のユーザーのチャージ履歴取得")
-	public List<ChargeHistory> getChargesByUser(@PathVariable String userId) {
+	public List<ChargeHistory> getChargesByUser(@PathVariable("userId") String userId) {
 		return chargeHistoryRepository.findByStudentId(userId);
 	}
 
 		@PostMapping("/users/{userId}")
 		@Operation(summary = "チャージ履歴の追加")
-		public ChargeHistory addCharge(@PathVariable String userId, @RequestBody ChargeHistory charge) {
+		public ChargeHistory addCharge(@PathVariable("userId") String userId, @RequestBody ChargeHistory charge) {
 			charge.setStudentId(userId);
 			messagingTemplate.convertAndSend("/api/topic/calendar/","data");
 			return chargeHistoryRepository.save(charge);
@@ -53,7 +53,7 @@ public class ChargeHistoryController {
 
 	@PutMapping("/{id}")
 	@Operation(summary = "IDでチャージ時間を更新")
-	public ChargeHistory updateChargeById(@PathVariable String id, @RequestParam float deltaHours) {
+	public ChargeHistory updateChargeById(@PathVariable("id") String id, @RequestParam float deltaHours) {
 		ChargeHistory history = chargeHistoryRepository.findById(id)
 				.orElseThrow(() -> new RuntimeException("指定されたIDのチャージ履歴が見つかりません"));
 
@@ -68,7 +68,7 @@ public class ChargeHistoryController {
 
 	@GetMapping("/users/{userId}/total")
 	@Operation(summary = "特定ユーザーのチャージ合計時間を取得")
-	public double getTotalChargeByUser(@PathVariable String userId) {
+	public double getTotalChargeByUser(@PathVariable("userId") String userId) {
 		List<ChargeHistory> historyList = chargeHistoryRepository.findByStudentId(userId);
 		return historyList.stream()
 				.mapToDouble(ChargeHistory::getChargeHours)
@@ -77,7 +77,7 @@ public class ChargeHistoryController {
 	
 	@DeleteMapping("/{id}")
 	@Operation(summary = "チャージ履歴をIDで削除")
-	public void deleteChargeById(@PathVariable String id) {
+	public void deleteChargeById(@PathVariable("id") String id) {
 		
 	    chargeHistoryRepository.deleteById(id);
 	    messagingTemplate.convertAndSend("/api/topic/calendar/","data");

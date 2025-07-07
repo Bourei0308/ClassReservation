@@ -41,7 +41,7 @@ public class AvailableTimeController {
 	
 	@GetMapping("/teacher/{teacherId}/{year}/{month}")
 	@Operation(summary = "idで先生の指定した月の空き時間取得")
-	public List<AvailableTime> getByTeacherOne(@PathVariable String teacherId,@PathVariable String year,@PathVariable String month) {
+	public List<AvailableTime> getByTeacherOne(@PathVariable("teacherId") String teacherId,@PathVariable("year") String year,@PathVariable("month") String month) {
 		return repository.findByTeacherIdAndYearAndMonth(teacherId, year, month);
 	}
 
@@ -54,14 +54,14 @@ public class AvailableTimeController {
 
 	@DeleteMapping("/{id}")
 	@Operation(summary = "idで空き時間削除")
-	public void delete(@PathVariable String id) {
+	public void delete(@PathVariable("id") String id) {
 	    messagingTemplate.convertAndSend("/api/topic/calendar/","data");
 		repository.deleteById(id);
 	}
 	
 	@PutMapping("/{id}")
 	@Operation(summary = "idで空き時間を更新")
-	public AvailableTime update(@PathVariable String id, @RequestBody AvailableTime newTime) {
+	public AvailableTime update(@PathVariable("id") String id, @RequestBody AvailableTime newTime) {
 	    messagingTemplate.convertAndSend("/api/topic/calendar/","data");
 	    return repository.findById(id).map(existingTime -> {
 	        existingTime.setStartTime(newTime.getStartTime());

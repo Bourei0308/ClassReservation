@@ -73,7 +73,7 @@ public class ClassScheduleController {
 
 	@PutMapping("/{id}")
 	@Operation(summary = "idで授業を更新")
-	public ClassSchedule update(@PathVariable String id, @RequestBody ClassSchedule updatedSchedule) {
+	public ClassSchedule update(@PathVariable("id") String id, @RequestBody ClassSchedule updatedSchedule) {
 		messagingTemplate.convertAndSend("/api/topic/calendar/", "data");
 		return repository.findById(id)
 				.map(schedule -> {
@@ -102,7 +102,7 @@ public class ClassScheduleController {
 
 	@PutMapping("/{id}/status/{status}")
 	@Operation(summary = "指定授業のステータスを更新")
-	public ClassSchedule updateStatus(@PathVariable String id, @PathVariable int status) {
+	public ClassSchedule updateStatus(@PathVariable("id") String id, @PathVariable int status) {
 		messagingTemplate.convertAndSend("/api/topic/calendar/", "data");
 		return repository.findById(id)
 				.map(schedule -> {

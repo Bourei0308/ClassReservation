@@ -8,6 +8,7 @@
       <router-link to="/admin/lesson" class="menu-button">授業管理</router-link>
       <router-link to="/admin/lesson-add" class="menu-button">授業入力</router-link>
       <router-link to="/admin/user-add" class="menu-button">ユーザ入力</router-link>
+      <router-link to="/admin/relation" class="menu-button">先生と生徒管理</router-link>
     </div>
   </div>
 </template>
@@ -28,7 +29,6 @@
   background-size: auto 85%; /* 少し小さくして調整 */
   background-color: #f7cd4a; /* 背景の黄色 */
   padding-right: 140px; /* 右にゆとり */
-  font-family: 'Arial', sans-serif;
 }
 
 .right-menu {

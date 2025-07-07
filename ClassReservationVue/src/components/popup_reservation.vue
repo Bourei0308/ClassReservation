@@ -353,7 +353,6 @@ defineExpose({
     padding: 24px;
     border-radius: 14px;
     box-shadow: 0 5px 18px rgba(0, 0, 0, 0.2);
-    font-family: 'Arial', sans-serif;
 }
 
 .title {

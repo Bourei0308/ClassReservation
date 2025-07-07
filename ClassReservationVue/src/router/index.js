@@ -72,6 +72,12 @@ const router = createRouter({
       component: () => import('../views/admin/admin_adduser.vue'),
     },
     {
+      path: '/admin/relation',
+      name: '生徒管理',
+      meta: { requiresAuth: true, role_number: 0 },
+      component: () => import('../views/admin/admin_addRelation.vue'),
+    },
+    {
       path: '/chat',
       name: 'チャット画面',
       meta: { requiresAuth: true },

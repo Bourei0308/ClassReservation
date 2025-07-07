@@ -84,7 +84,7 @@ watch(() => props.studentID, () => fetchHours());
   max-width: 900px;
   margin: 0 auto;
   color: #2d2d69;
-  font-family: Arial, sans-serif;
+  
   box-sizing: border-box;
 }
 

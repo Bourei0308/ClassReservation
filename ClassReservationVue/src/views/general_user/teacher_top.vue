@@ -50,7 +50,7 @@
 .teacher_section {
   margin-left: 400px;
   min-height: 100vh;
-  font-family: Arial, sans-serif;
+  
   background-color: #f7cd4a;
 }
 

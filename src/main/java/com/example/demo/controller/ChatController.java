@@ -29,7 +29,7 @@ public class ChatController {
 
 	@GetMapping("/user/{userId}")
 	@Operation(summary = "全てのチャット履歴取得")
-	public List<Chat> getUserChats(@PathVariable String userId) {
+	public List<Chat> getUserChats(@PathVariable("userId") String userId) {
 		return repository.findByFromUserIdOrToUserId(userId, userId);
 	}
 
@@ -52,13 +52,13 @@ public class ChatController {
 	
 	@GetMapping("/unread/{userId}")
 	@Operation(summary = "未読メッセージ取得")
-	public List<Chat> getUnreadMessages(@PathVariable String userId) {
+	public List<Chat> getUnreadMessages(@PathVariable("userId") String userId) {
 	    return repository.findByToUserIdAndIsRead(userId, false);
 	}
 	
 	@PostMapping("/mark-read/{id}")
 	@Operation(summary = "指定IDのチャットを既読にする")
-	public void markAsReadById(@PathVariable String id) {
+	public void markAsReadById(@PathVariable("id") String id) {
 	    Chat chat = repository.findById(id).orElse(null);
 	    if (chat != null && !chat.isRead()) {
 	        chat.setRead(true);

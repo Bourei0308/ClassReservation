@@ -99,7 +99,6 @@ onMounted(async () => {
   background-position: -180px center;
   background-size: auto 85%;
   background-color: #f7cd4a;
-  font-family: 'Arial', sans-serif;
 }
 
 .left-panel {

@@ -590,7 +590,7 @@ body {
   background-image: url('../../assets/img/4.png');
   background-repeat: repeat;
   background-size: 1000px auto;
-  font-family: 'Segoe UI', sans-serif;
+  
 }
 
 .lesson-container {
@@ -600,7 +600,7 @@ body {
   background-color: rgba(255, 255, 255, 0.9);
   border: 1px solid #ccc;
   border-radius: 20px;
-  font-family: 'Segoe UI', sans-serif;
+  
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(6px);
 }

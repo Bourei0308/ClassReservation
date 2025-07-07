@@ -1,51 +1,56 @@
 <template>
-  <transition name="slide-fade" appear >
-  <div class="modal-overlay" v-if="show">
-    
+  <transition name="slide-fade" appear>
+    <div class="modal-overlay" v-if="show">
+
       <div class="modal-content">
-        <h3>{{ title || 'チャージ履歴一覧' }}</h3>
+        <h3>{{ title || $t('popup_charge_history.title') }}</h3>
 
         <!-- ▼ 生徒選択ボタン，占满一整行 -->
         <button class="full-width-button" @click="showUserSelect = true">
-          生徒選択
+          {{ $t('popup_charge_history.selectStudent') }}
         </button>
 
         <!-- ▼ 选中状态居中显示 -->
         <div class="selected-student-wrapper" v-if="selectedStudent">
-          <span>選択中：{{ selectedStudent.name }}</span>
-          <button class="clear-button" @click="clearStudent">選択解除</button>
+          <span>{{ $t('popup_charge_history.selected') }}：{{ selectedStudent.name }}</span>
+          <button class="clear-button" @click="clearStudent">{{ $t('popup_charge_history.clear') }}</button>
         </div>
 
         <!-- ▼ 履歴表 -->
         <table class="history-table">
           <thead>
             <tr>
-              <th>生徒</th>
-              <th>チャージ</th>
-              <th>日時</th>
-              <th>操作</th>
+              <th>{{ $t('popup_charge_history.student') }}</th>
+              <th>{{ $t('popup_charge_history.charge') }}</th>
+              <th>{{ $t('popup_charge_history.datetime') }}</th>
+              <th>{{ $t('popup_charge_history.actions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="item in histories" :key="item.id">
               <td>{{ usersMap.get(item.studentId) || '不明' }}</td>
-              <td>{{ item.chargeHours }} 時間</td>
+              <td>{{ item.chargeHours }} H</td>
               <td>{{ formatDate(item.createdAt) }}</td>
               <td>
-                <button class="delete-button" @click="confirmDelete(item)">削除</button>
+                <button class="delete-button" @click="confirmDelete(item)">
+                  {{ $t('popup_charge_history.delete') }}
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
 
-        <button class="close-button" @click="$emit('close')">閉じる</button>
+        <button class="close-button" @click="$emit('close')">
+          {{ $t('popup_charge_history.close') }}
+        </button>
       </div>
 
-    
-  </div></transition>
+
+    </div>
+  </transition>
   <!-- ▼ 生徒選択モーダル -->
-  <UserSelectModal v-if="showUserSelect" :show="showUserSelect" :role="1" title="生徒を選択" @select="onUserSelect"
-    @close="showUserSelect = false" />
+  <UserSelectModal v-if="showUserSelect" :show="showUserSelect" :role="1"
+    :title="$t('popup_charge_history.selectStudent')" @select="onUserSelect" @close="showUserSelect = false" />
   <AlertModal v-bind="alertProps" @close="closeAlert" />
   <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
 </template>
@@ -108,21 +113,25 @@ const loadHistories = async () => {
 
 // 削除
 
-const confirmDelete = (item) => {
-  const msg = `${usersMap.value.get(item.studentId)}さんの${item.chargeHours}時間分のチャージ履歴を削除します。\n情報をチェックしてください。`;
-  openConfirm(msg, () => deleteHistory(item.id));
-};
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
-const deleteHistory = async (id) => {
+const confirmDelete = async (item) => {
+  const confirmed = await openConfirm({
+    title: t('popup_charge_history.confirmDeleteTitle'),
+    message: t('popup_charge_history.confirmDeleteMessage'),
+  })
+
+  if (!confirmed) return
+
   try {
-    await axios.delete(`/api/charges/${id}`);
-    histories.value = histories.value.filter((item) => item.id !== id);
-    showAlert("削除が完了しました！", true);
-    emit('deleted');
-  } catch (err) {
-    showAlert("'削除に失敗: ' + err.message", false);
+    await axios.delete(`/api/charge/${item.id}`)
+    showAlert(t('popup_charge_history.deleteSuccess'))
+    fetchChargeHistory()
+  } catch {
+    showAlert(t('popup_charge_history.deleteFail'))
   }
-};
+}
 
 // 生徒選択
 const onUserSelect = (user) => {
@@ -157,7 +166,7 @@ watchEffect(() => {
   width: 90%;
   max-width: 700px;
   box-shadow: 0 8px 20px rgba(45, 45, 105, 0.3);
-  font-family: Arial, sans-serif;
+  
   color: #2d2d69;
   box-sizing: border-box;
 }

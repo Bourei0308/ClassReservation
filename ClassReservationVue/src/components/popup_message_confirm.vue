@@ -3,14 +3,17 @@
     <div v-if="show" class="modal-overlay">
       <div class="modal-content">
         <p style="white-space: pre-line;">{{ message }}</p>
-        <button class="menu-button" @click="$emit('confirm')">確認</button>
-        <button class="menu-button cancel-btn" @click="$emit('cancel')">キャンセル</button>
+        <button class="menu-button" @click="$emit('confirm')">{{ t('popup_confirm.confirm') }}</button>
+        <button class="menu-button cancel-btn" @click="$emit('cancel')">{{ t('popup_confirm.cancel') }}</button>
       </div>
     </div>
   </transition>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+
 const props = defineProps({
   show: Boolean,
   message: String,

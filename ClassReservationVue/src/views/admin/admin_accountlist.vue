@@ -103,13 +103,12 @@ body {
   background-image: url('../../assets/img/4.png');
   background-repeat: repeat;
   background-size: 1000px auto;
-  font-family: 'Segoe UI', sans-serif;
 }
 
 .container {
   max-width: 900px;
   margin: 30px auto;
-  font-family: Arial, sans-serif;
+  
 }
 
 .account-list-container {
@@ -119,7 +118,7 @@ body {
   background-color: #fff;
   border: 1px solid #ddd;
   border-radius: 12px;
-  font-family: Arial, sans-serif;
+  
 }
 
 .account-list-container h2 {

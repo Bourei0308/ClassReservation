@@ -83,7 +83,7 @@ const goToPasswordChange = async () => {
 .user-info-container {
   display: flex;
   height: 100vh;
-  font-family: Arial, sans-serif;
+  
   background-color: #f7cd4a;
   /* 登录界面黄色背景 */
 }
@@ -115,7 +115,7 @@ const goToPasswordChange = async () => {
   background: #f5f7fa;
   min-height: 100vh;
   box-sizing: border-box;
-  font-family: Arial, sans-serif;
+  
 }
 
 .user-info-box {

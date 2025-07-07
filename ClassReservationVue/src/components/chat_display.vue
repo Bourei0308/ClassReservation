@@ -1,30 +1,36 @@
 <template>
-    <div class="chat-display">
-        <div v-if="!targetUser" class="chat-placeholder">
-            チャット相手を選択してください。
-        </div>
-
-        <div v-else class="chat-messages" ref="chatContainer">
-            <div v-for="msg in sortedMessages" :key="msg.id"
-                :class="['message-box', msg.fromUserId === user.id ? 'self' : 'other']">
-                <div class="sender-name">
-                    {{ msg.fromUserId === user.id ? user.name : targetUser.name }}
-                </div>
-                <span v-if="msg.fromUserId === user.id && !msg.isRead" class="unread-label">未読</span>
-                <span v-if="msg.fromUserId === user.id && msg.isRead" class="unread-label">既読</span>
-                <div class="message-bubble">
-
-                    {{ msg.message }}
-                </div>
-
-            </div>
-        </div>
-
-        <div class="chat-input">
-            <input v-model="text" class="chat-textbox" placeholder="メッセージを入力..." @keyup.enter="send" />
-            <button @click="sendMessage" class="send-button">送信</button>
-        </div>
+  <div class="chat-display">
+    <div v-if="!targetUser" class="chat-placeholder">
+      {{ $t('chat.placeholder') }}
     </div>
+
+    <div v-else class="chat-messages" ref="chatContainer">
+      <div
+        v-for="msg in sortedMessages"
+        :key="msg.id"
+        :class="['message-box', msg.fromUserId === user.id ? 'self' : 'other']"
+      >
+        <div class="sender-name">
+          {{ msg.fromUserId === user.id ? user.name : targetUser.name }}
+        </div>
+        <span v-if="msg.fromUserId === user.id && !msg.isRead" class="unread-label">{{ $t('chat.unread') }}</span>
+        <span v-if="msg.fromUserId === user.id && msg.isRead" class="unread-label">{{ $t('chat.read') }}</span>
+        <div class="message-bubble">
+          {{ msg.message }}
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input">
+      <input
+        v-model="text"
+        class="chat-textbox"
+        :placeholder="$t('chat.inputPlaceholder')"
+        @keyup.enter="send"
+      />
+      <button @click="sendMessage" class="send-button">{{ $t('chat.send') }}</button>
+    </div>
+  </div>
 </template>
 
 <script setup>

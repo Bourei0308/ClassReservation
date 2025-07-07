@@ -115,7 +115,7 @@ const changePassword = async () => {
   border-radius: 16px;
   box-shadow: 0 8px 20px rgba(45, 45, 105, 0.15);
   text-align: center;
-  font-family: Arial, sans-serif;
+  
   color: #2d2d69;
   box-sizing: border-box;
 }

@@ -2,17 +2,18 @@
     <div v-if="show" class="modal-overlay">
         <div class="modal-content">
             <div class="header">
-                <button @click="changeMonth(-1)">&lt;先月</button>
-                <h3>{{ roleName }} {{ currentYear }}年{{ currentMonth }}月の授業記録</h3>
-                <button @click="changeMonth(1)">次月&gt;</button>
+                <button @click="changeMonth(-1)">&lt;{{ $t('popup_daily_class.prevMonth') }}</button>
+                <h3>{{ roleName }} {{ currentYear }}{{ $t('popup_daily_class.year') }}{{ currentMonth }}{{
+                    $t('popup_daily_class.month') }}{{ $t('popup_daily_class.title') }}</h3>
+                <button @click="changeMonth(1)">{{ $t('popup_daily_class.nextMonth') }}&gt;</button>
             </div>
 
             <input type="month" v-model="monthPicker" @change="onMonthPickerChange" />
 
             <!-- PC端日历网格 -->
             <div class="calendar-grid desktop-only">
-                <div class="calendar-header" v-for="(d, i) in 7" :key="i">
-                    {{ ['日', '月', '火', '水', '木', '金', '土'][i] }}
+                <div class="calendar-header" v-for="i in 7" :key="i">
+                    {{ $t(`popup_daily_class.weekday${i - 1}`) }}
                 </div>
                 <div v-for="(cell, index) in calendarCells" :key="index"
                     :class="['calendar-cell', cell.isCurrentMonth ? '' : 'inactive']">
@@ -34,7 +35,7 @@
                 <div v-for="week in weeks" :key="week.weekIndex" class="week-panel">
                     <!-- 周折叠标题 -->
                     <div class="week-header" @click="toggleWeek(week.weekIndex)">
-                        <span>第{{ week.weekIndex }}週</span>
+                        <span>{{ $t('popup_daily_class.week') }}{{ week.weekIndex }}</span>
                         <span>{{ foldedWeeks.includes(week.weekIndex) ? '▶︎' : '▼' }}</span>
                     </div>
 
@@ -42,7 +43,7 @@
                         <!-- 纵向列表 每天也是折叠 -->
                         <div v-for="day in week.days" :key="day" class="day-panel">
                             <div class="day-header" @click="toggleDay(day)">
-                                <span>{{ day }}日</span>
+                                <span>{{ day }}{{ $t('popup_daily_class.daySuffix') }}</span>
                                 <span>{{ foldedDays.includes(day) ? '▶︎' : '▼' }}</span>
                             </div>
                             <div v-show="!foldedDays.includes(day)" class="day-content">
@@ -60,30 +61,32 @@
 
             <!-- 月度合计列表 -->
             <div class="monthly-summary">
-                <h4>{{ roleName }}ごとの月間合計時間</h4>
+                <h4>{{ roleName }}{{ $t('popup_daily_class.monthlySummaryTitle') }}</h4>
                 <table>
                     <thead>
                         <tr>
                             <th>{{ roleName }}名</th>
-                            <th>合計時間</th>
+                            <th>{{ $t('popup_daily_class.totalHours') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="item in summaryData" :key="item.id">
                             <td>{{ item.name }}</td>
-                            <td>{{ item.total.toFixed(1) }} 時間</td>
+                            <td>{{ item.total.toFixed(1) }} {{ $t('popup_daily_class.hourUnit') }}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <button @click="$emit('close')">閉じる</button>
+            <button @click="$emit('close')">{{ $t('popup_daily_class.close') }}</button>
         </div>
     </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 const props = defineProps({
     show: Boolean,
@@ -92,7 +95,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['close', 'select']);
 
-const roleName = props.role === 2 ? '先生' : '生徒';
+const roleName = props.role === 2 ? t('popup_daily_class.teacher') : t('popup_daily_class.student')
 
 const today = new Date();
 const current = ref(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -257,13 +260,13 @@ const weeks = computed(() => {
 });
 
 function getDailyTotal(day) {
-  let total = 0;
-  for (const item of summaryData.value) {
-    if (item.dailyHours[day]) {
-      total += Number(item.dailyHours[day]);
+    let total = 0;
+    for (const item of summaryData.value) {
+        if (item.dailyHours[day]) {
+            total += Number(item.dailyHours[day]);
+        }
     }
-  }
-  return total.toFixed(1);
+    return total.toFixed(1);
 }
 
 watch(weeks, (newWeeks) => {
@@ -295,7 +298,6 @@ watch(weeks, (newWeeks) => {
     max-width: 1000px;
     border-radius: 16px;
     box-shadow: 0 8px 20px rgba(45, 45, 105, 0.3);
-    font-family: Arial, sans-serif;
     box-sizing: border-box;
     color: #2d2d69;
 }
@@ -352,7 +354,8 @@ h3 {
 .calendar-grid.desktop-only {
     display: grid;
     grid-template-columns: repeat(7, 100px);
-    grid-template-rows: 28px repeat(auto-fill, minmax(90px, auto)); /* 第一行 header 变矮 */
+    grid-template-rows: 28px repeat(auto-fill, minmax(90px, auto));
+    /* 第一行 header 变矮 */
     gap: 4px;
     justify-content: center;
 }
@@ -536,14 +539,15 @@ h3 {
 }
 
 .daily-total {
-  margin-top: auto; /* 推到容器底部 */
-  font-weight: 700;
-  color: #9696d0;
-  font-size: 0.8rem;
-  text-align: center;
-  padding-top: 4px;
-  border-top: 1px solid #ccc;
-  width: 100%;
+    margin-top: auto;
+    /* 推到容器底部 */
+    font-weight: 700;
+    color: #9696d0;
+    font-size: 0.8rem;
+    text-align: center;
+    padding-top: 4px;
+    border-top: 1px solid #ccc;
+    width: 100%;
 }
 
 .item-row button {

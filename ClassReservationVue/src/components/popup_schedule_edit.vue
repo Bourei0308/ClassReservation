@@ -110,7 +110,7 @@ const save = () => {
     width: 90%;
     max-width: 400px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    font-family: Arial, sans-serif;
+    
     color: #2d2d69;
 }
 

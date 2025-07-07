@@ -51,7 +51,7 @@ public class UserController {
 	}
 
 	@GetMapping("/email/{email}")
-	public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
+	public ResponseEntity<User> getUserByEmail(@PathVariable("email") String email) {
 		String decodedEmail = java.net.URLDecoder.decode(email, java.nio.charset.StandardCharsets.UTF_8);
 		return userRepository.findByEmail(decodedEmail)
 				.map(ResponseEntity::ok)
@@ -87,13 +87,13 @@ public class UserController {
 
 	@GetMapping("/{id}")
 	@Operation(summary = "ユーザーをIDで取得")
-	public User getUserById(@PathVariable String id) {
+	public User getUserById(@PathVariable("id") String id) {
 		return userRepository.findById(id).orElse(null);
 	}
 
 	@PutMapping("/{id}")
 	@Operation(summary = "ユーザ情報更新（パスワード以外）")
-	public ResponseEntity<?> updateUser(@PathVariable String id, @RequestBody User user) {
+	public ResponseEntity<?> updateUser(@PathVariable("id") String id, @RequestBody User user) {
 		user.setId(id);
 
 		boolean nameExists = userRepository.findAll().stream()
@@ -108,14 +108,14 @@ public class UserController {
 
 	@DeleteMapping("/{id}")
 	@Operation(summary = "ユーザ削除")
-	public String deleteUser(@PathVariable String id) {
+	public String deleteUser(@PathVariable("id") String id) {
 		userRepository.deleteById(id);
 		return "ユーザを削除しました";
 	}
 
 	@PutMapping("/{id}/password")
 	@Operation(summary = "パスワード変更（旧パスワード不要）")
-	public ResponseEntity<?> updatePassword(@PathVariable String id, @RequestBody NewPasswordRequest request) {
+	public ResponseEntity<?> updatePassword(@PathVariable("id") String id, @RequestBody NewPasswordRequest request) {
 		Optional<User> optionalUser = userRepository.findById(id);
 		if (!optionalUser.isPresent()) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("user-not-found");

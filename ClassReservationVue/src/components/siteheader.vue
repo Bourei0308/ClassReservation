@@ -1,25 +1,25 @@
 <template>
-<link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap" rel="stylesheet">
 
   <header class="site_header">
     <!-- Logo / Title -->
-    <div v-if="isLoggedIn&&hasEmail" class="site_title_login" @click="goTo(`/top/${role}`)">
-      じゅくぽん
+    <div v-if="isLoggedIn && hasEmail" class="site_title_login" @click="goTo(`/top/${role}`)">
+      本場じゅくぽん
     </div>
 
-    <div v-if="!isLoggedIn||!hasEmail" class="site_title">
-      じゅくぽん
+    <div v-if="!isLoggedIn || !hasEmail" class="site_title">
+      本場じゅくぽん
     </div>
 
     <!-- Right icons -->
-    <div v-if="isLoggedIn&&hasEmail" class="header_icon_group">
-     <!-- Notification icon -->
-<div class="icon_link" @click="goTo('/notice')">
-  <div class="icon_box">
-    <BellIcon class="header_icon" />
-    <div v-if="hasUnreadNotification" class="unread_dot"></div>
-  </div>
-</div>
+    <div v-if="isLoggedIn && hasEmail" class="header_icon_group">
+      <!-- Notification icon -->
+      <div class="icon_link" @click="goTo('/notice')">
+        <div class="icon_box">
+          <BellIcon class="header_icon" />
+          <div v-if="hasUnreadNotification" class="unread_dot"></div>
+        </div>
+      </div>
 
       <!-- Chat icon -->
       <div class="icon_link" @click="goTo('/chat')">
@@ -28,6 +28,17 @@
           <div v-if="hasUnreadMessage" class="unread_dot"></div>
         </div>
 
+      </div>
+
+      <!-- Language Switch -->
+      <div class="icon_link" @click="showLangMenu = !showLangMenu" style="position: relative;">
+        <div class="icon_box">
+          <GlobeIcon class="header_icon" />
+        </div>
+        <div v-if="showLangMenu" class="lang_menu">
+          <div :class="{ selected: language === 'ja' }" @click="setLanguage('ja')">日本語</div>
+          <div :class="{ selected: language === 'zh' }" @click="setLanguage('zh')">中文</div>
+        </div>
       </div>
 
 
@@ -43,7 +54,7 @@
 
 const role = ref(1)
 import { useRouter } from 'vue-router'
-import { BellIcon, MessageCircleIcon } from 'lucide-vue-next'
+import { BellIcon, MessageCircleIcon, GlobeIcon } from 'lucide-vue-next'
 
 const router = useRouter()
 const goTo = (path) => {
@@ -51,7 +62,7 @@ const goTo = (path) => {
 }
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useAuth } from '@/scripts/useAuth'
-const { user, restoreLogin, isLoggedIn,hasEmail } = useAuth()
+const { user, restoreLogin, isLoggedIn, hasEmail, language } = useAuth()
 
 import { inject } from 'vue'
 const hasUnreadMessage = inject('hasUnreadMessage')
@@ -60,6 +71,11 @@ const { subscribe } = useWebSocket()
 
 
 import { hasUnreadNotification, checkUnreadNotifications } from '@/scripts/useNotificationStatus'
+import { useModalManager } from '@/scripts/useModalManager';
+const {
+  showAlert, closeAlert, alertProps,
+  confirmShow, confirmMessage, openConfirm, onConfirm, onCancel
+} = useModalManager();
 
 
 onMounted(async () => {
@@ -69,7 +85,21 @@ onMounted(async () => {
   }
 })
 
-
+const showLangMenu = ref(false)
+import { useI18n } from 'vue-i18n'
+const { locale } = useI18n()
+const setLanguage = (lang) => {
+  if (language.value === lang) {
+    showLangMenu.value = false
+    return
+  }
+  language.value = lang
+  locale.value = lang
+  showLangMenu.value = false
+  // 语言提示
+  const message = lang === 'ja' ? '言語が日本語に変更されました。' : '语言已切换为中文。'
+  showAlert(message, true)
+}
 
 
 watch(() => user.value, (newUser) => {
@@ -92,7 +122,36 @@ onBeforeUnmount(() => {
 
 
 <style scoped>
-  
+.lang_menu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  width: 100px;
+}
+
+.lang_menu div {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-family: 'Kosugi Maru', sans-serif;
+  color: #90caf9;
+  transition: background-color 0.2s;
+}
+
+.lang_menu div:hover {
+  background-color: #f0f0f0;
+}
+
+.lang_menu div.selected {
+  background-color: #90caf9;
+  color: white;
+}
+
+
 .site_header {
   position: fixed;
   top: 0;
@@ -178,6 +237,4 @@ onBeforeUnmount(() => {
 .site_title {
   font-family: 'Kosugi Maru', sans-serif;
 }
-
-
 </style>

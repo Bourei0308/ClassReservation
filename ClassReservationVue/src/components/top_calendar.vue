@@ -74,16 +74,14 @@
                                 <!-- 完了 -->
                                 <li v-if="dayObj.eventList.some(e => e && e.studentName && e.status == 2)">
                                     <div class="student-info-complete">
-                                        <span class="desktop-only">完了した授業</span>
-                                        <span class="mobile-only">完了</span>
+                                        完了
                                     </div>
                                 </li>
 
                                 <!-- 取消 -->
                                 <li v-if="dayObj.eventList.some(e => e && e.studentName && e.status == 3)">
                                     <div class="student-info-cancel">
-                                        <span class="desktop-only">取消した授業</span>
-                                        <span class="mobile-only">取消</span>
+                                        取消
                                     </div>
                                 </li>
                             </template>
@@ -557,26 +555,38 @@ const getComa = async () => {
 }
 
 const getUsers = async () => {
-    try {
-        const res = await axios.get(`/api/users`);//全ユーザを取得
-        if (res.data) {
-            users.value = res.data; // 取得したデータを users.value に格納
-            // 先生と生徒を分けて格納
-            tusers.value = res.data.filter(user => user.role === 2);
-            susers.value = res.data.filter(user => user.role === 1);
-        } else {
-            showAlert('ユーザの情報を取得できませんでした。', false);
-            users.value = [];
-            tusers.value = [];
-            susers.value = [];
-        }
-    } catch (error) {
-        showAlert('イベントの情報を取得中にエラーが起きました。' + error, false);
-        users.value = [];
+  try {
+    const res = await axios.get(`/api/users`); // 全ユーザを取得
+    if (res.data) {
+      users.value = res.data; // 取得したデータを users.value に格納
+      susers.value = res.data.filter(user => user.role === 1);
+      if (account.value === 'teacher') {
+        // teacher の場合は従来通り role=2 でフィルター
+        tusers.value = res.data.filter(user => user.role === 2);
+      } else if (account.value === 'student') {
+        // student の場合は /student/{studentId} から先生のIDリストを取得し、
+        // それを元に users から先生オブジェクトを抽出
+        const teacherIdsRes = await axios.get(`/api/relations/student/${props.studentID}`);
+        const teacherIds = teacherIdsRes.data; // 假设这里返回的是 string[] 形式的老师ID列表
+        tusers.value = users.value.filter(user => teacherIds.includes(user.id));
+      } else {
+        // 其他情况，tusers 设为空或默认值
         tusers.value = [];
-        susers.value = [];
+      }
+    } else {
+      showAlert('ユーザの情報を取得できませんでした。', false);
+      users.value = [];
+      tusers.value = [];
+      susers.value = [];
     }
+  } catch (error) {
+    showAlert('イベントの情報を取得中にエラーが起きました。' + error, false);
+    users.value = [];
+    tusers.value = [];
+    susers.value = [];
+  }
 }
+
 
 const generateCalendar = async () => {
     const year = currentYear.value;
@@ -669,11 +679,9 @@ const getTodayCell = () => {
 const getEvents = async () => {
     const year = currentYear.value ? currentYear.value : null;
     const month = currentMonth.value ? currentMonth.value : null;
-    console.log('取得する月：' + year + '年' + (month + 1) + "月");
 
     let teacherId = teacherID.value ? teacherID.value : (selectedTeacher.value ? selectedTeacher.value.id : null);
     let studentId = studentID ? studentID.value : null;
-    console.log('選択された先生:', teacherId);
     let allEvents = [];
     try {
         // 先生の予定
@@ -713,7 +721,6 @@ const getEvents = async () => {
             }))
         ];
         calendarEvent.value = allEvents;
-        console.log(calendarEvent.value)
     } catch (error) {
         showAlert('データを取得中にエラーが起きました。' + error, false);
         calendarEvent.value = [];
@@ -806,8 +813,6 @@ const updateSelectedDayEvents = (dayObj) => {
 
 // 日付クリック時のハンドラ
 const handleDayClick = async (dayObj) => {
-
-    // console.log('クリックされた日:', dayObj.eventList, dayObj.date);
 
     // 一括設定が有効な場合
     if (isBulkBooking.value) {
@@ -992,7 +997,6 @@ const formatDuration = (minutes) => {
 
 // blueTimesのどれかの範囲に開始・終了が両方とも含まれていればボタン有効、それ以外は無効
 const isOverlappingBlueTimes = computed(() => {
-    console.log(popupStartTime, popupEndTime)
 
     // ⛔️ 基本チェック
     if (
@@ -1139,7 +1143,6 @@ const submitReservation = async () => {
     openConfirm(`${localStartStr} ～ ${localEndStr} の予定を登録しますか？`, async () => {
         try {
             showLoading()
-            console.log('POST payload:', payload); // 👈 加这句
             const resT = await axios.post(`/api/available-times`, payload);
             if (resT.data) {
                 showAlert(`予約完了: ${localStartStr} ～ ${localEndStr}`, true);
@@ -1267,7 +1270,6 @@ const submitStudentReservation = () => {
  * ローカル時間からUTC時間に変換し、グローバル変数に設定
  */
 const prepareUtcScheduleTimes = () => {
-    console.log('localTimezone:', localTimezone);
     const date = selectedDayEvents.value.date;
     const startTime = popupStartTime.value;
     const duration = popupDuration.value;
@@ -1278,9 +1280,6 @@ const prepareUtcScheduleTimes = () => {
 
     const localStart = moment.tz(`${formatDate(date)}T${startTime}`, localTimezone);
     const localEnd = moment(localStart).add(duration, 'minutes');
-
-    console.log('localStart:', localStart.format()); // 看看时间和时区
-    console.log('startUtc:', localStart.clone().utc().format()); // 转成UTC的时间
 
     const startDateTimeUtc = localStart.clone().utc();
     const endDateTimeUtc = localEnd.clone().utc();
@@ -1366,11 +1365,10 @@ const changeStatusOnClick = (event, newStatus) => {
 };
 
 const shouldShowEvent = (dayObj) => {
-    if (!dayObj || !dayObj.date) return false
 
+    if (!dayObj || !dayObj.date) return false
     const localDate = moment.utc(dayObj.date).local().startOf('day')
     const today = moment().startOf('day')
-
     return localDate.isSameOrAfter(today)
 }
 
@@ -1393,7 +1391,6 @@ onMounted(async () => {
     await getComa();
 
     subscribe(`/api/topic/calendar/`, async () => {
-        console.log("カレンダーの更新を受信しました");
         await onChange();
     });
 });
@@ -1402,7 +1399,6 @@ onMounted(async () => {
 const onStartTimeChange = () => {
     if (!teacherAvailableTimeRange.value) return;
     if (popupDuration.value) {
-        console.log("開始時間が変更されました:", popupStartTime.value);
         // ensure end does not exceed teacher's max
         const start = moment(popupStartTime.value, 'HH:mm');
         const max = moment(teacherAvailableTimeRange.value.max, 'HH:mm');
@@ -1617,7 +1613,7 @@ const isEarlier = (date) => {
 }
 
 .calendar-view {
-    font-family: Arial, sans-serif;
+    
     padding: 20px;
     width: 100%;
     max-width: 900px;

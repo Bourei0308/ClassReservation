@@ -37,7 +37,7 @@ public class ImageController {
     // イメージ獲得
     @Operation(summary = "画像取得")
     @GetMapping("/{id}")
-    public ResponseEntity<InputStreamResource> getImage(@PathVariable String id) throws Exception {
+    public ResponseEntity<InputStreamResource> getImage(@PathVariable("id") String id) throws Exception {
         GridFsResource resource = imageRepository.getImageById(id);
 
         return ResponseEntity.ok()

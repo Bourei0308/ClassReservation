@@ -77,7 +77,7 @@ import { useRouter, RouterLink } from 'vue-router'
   }
 
   .catchphrase {
-    font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+    font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
     font-size: 18px;
     color: #ffffff;
     margin-bottom: -100px;

@@ -52,7 +52,7 @@
   margin-left: 400px;
   /* 留出狗图宽度，避免遮挡 */
   min-height: 100vh;
-  font-family: Arial, sans-serif;
+  
   background-color: #f7cd4a;
 
 }

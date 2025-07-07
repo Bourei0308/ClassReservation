@@ -2,7 +2,7 @@
 <template>
   <div v-if="show" class="loading-overlay">
     <div class="loading-spinner"></div>
-    <p>読み込み中...</p>
+    <p>Loading...</p>
   </div>
 </template>
 <script setup>
