@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.EmailService;
-import com.example.demo.service.GmailService;
 import com.example.demo.util.JwtUtil;
 
 @RestController
@@ -36,9 +35,6 @@ public class AuthController {
 
 	@Autowired
 	private EmailService emailService; // ✅ メール送信サービス（別途作成が必要）
-
-	@Autowired
-	private GmailService gmailService;
 
 	private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 

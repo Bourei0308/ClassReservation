@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
@@ -40,11 +41,11 @@ public class UserController {
 
 		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-		userRepository.save(new User("0", "admin", "admin@gmail.com", encoder.encode("admin123"), 0, "admin123"));
+		userRepository.save(new User("0", "admin", "2430371802@qq.com", encoder.encode("admin123"), 0, "admin123"));
 		userRepository
-				.save(new User("1", "student", "student@gmail.com", encoder.encode("student123"), 1, "student123"));
+				.save(new User("1", "student", null, encoder.encode("student123"), 1, "student123"));
 		userRepository
-				.save(new User("2", "teacher", "teacher@gmail.com", encoder.encode("teacher123"), 2, "teacher123"));
+				.save(new User("2", "teacher", null, encoder.encode("teacher123"), 2, "teacher123"));
 
 		return "ユーザデータ初期化しました";
 	}
@@ -146,73 +147,52 @@ public class UserController {
 	public List<User> getStudents() {
 		return userRepository.findByRole(1); // 1 = 生徒
 	}
+	
+	@PutMapping("/{id}/email")
+	@Operation(summary = "ユーザのメールアドレス更新")
+	public ResponseEntity<?> updateEmail(@PathVariable("id") String id, @RequestBody Map<String, String> payload) {
+	    Optional<User> optionalUser = userRepository.findById(id);
+	    if (!optionalUser.isPresent()) {
+	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("user-not-found");
+	    }
 
-	//  @PutMapping("/{id}/remove")
-	//  @Operation(summary = "ユーザ論理削除")
-	//  public ResponseEntity<String> softDeleteUser(@PathVariable String id) {
-	//      Optional<User> optional = userRepository.findById(id);
-	//      if (optional.isPresent()) {
-	//          User user = optional.get();
-	//          user.setRemoveFlag(true);
-	//          userRepository.save(user);
-	//          return ResponseEntity.ok("ユーザーを削除済みにしました。");
-	//      }
-	//      return ResponseEntity.notFound().build();
-	//  }
-	//  
-	//  @PutMapping("/{id}/restore")
-	//  @Operation(summary = "ユーザ復元")
-	//  public ResponseEntity<String> restoreUser(@PathVariable String id) {
-	//      Optional<User> optional = userRepository.findById(id);
-	//      if (optional.isPresent()) {
-	//          User user = optional.get();
-	//          user.setRemoveFlag(false);
-	//          userRepository.save(user);
-	//          return ResponseEntity.ok("ユーザーを復元しました。");
-	//      }
-	//      return ResponseEntity.notFound().build();
-	//  }
+	    String newEmail = payload.get("email");
+	    if (newEmail == null || newEmail.trim().isEmpty()) {
+	        return ResponseEntity.badRequest().body("email-required");
+	    }
 
-	//    @PostMapping("/{id}/icon")
-	//    @Operation(summary = "アイコン設定")
-	//    public ResponseEntity<?> uploadIcon(
-	//        @PathVariable String id,
-	//        @RequestParam("file") MultipartFile file,
-	//        @RequestParam("cropped") MultipartFile croppedFile
-	//    ) {
-	//        try {
-	//        	// 絶対パス
-	//        	Path uploadDir = Paths.get("C:/pleiades/2025-03/workspace/MinecraftReceiptBrowser/uploads/icons");
-	//        	Path croppedDir = Paths.get("C:/pleiades/2025-03/workspace/MinecraftReceiptBrowser/uploads/icons/cropped");
-	//        	
-	//        	// Directory
-	//        	Files.createDirectories(uploadDir);
-	//        	Files.createDirectories(croppedDir);
-	//        	
-	//            String rawFilename = UUID.randomUUID() + "_" + file.getOriginalFilename();
-	//            String croppedFilename = UUID.randomUUID() + "_" + croppedFile.getOriginalFilename();
-	//
-	//            Path rawPath = uploadDir.resolve(rawFilename);
-	//            Path croppedPath = croppedDir.resolve(croppedFilename);
-	//
-	//            Files.createDirectories(rawPath.getParent());
-	//            Files.createDirectories(croppedPath.getParent());
-	//            file.transferTo(rawPath.toFile());
-	//            croppedFile.transferTo(croppedPath.toFile());
-	//
-	//            User user = userRepository.findById(id).orElseThrow();
-	//            user.setIcon( croppedFilename);
-	//            user.setIconRaw( rawFilename);
-	//            userRepository.save(user);
-	//
-	//            return ResponseEntity.ok(Map.of(
-	//            	    "icon", croppedFilename,
-	//            	    "iconRaw", rawFilename
-	//            	));
-	//        } catch (Exception e) {
-	//        	e.printStackTrace();
-	//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("upload-error");
-	//        }
-	//    }
+	    User user = optionalUser.get();
+	    user.setEmail(newEmail.trim());
+	    userRepository.save(user);
+
+	    return ResponseEntity.ok("email-updated");
+	}
+	
+	@PostMapping("/bulk")
+	@Operation(summary = "ユーザ一括登録")
+	public ResponseEntity<?> registerUsersBulk(@RequestBody List<User> users) {
+	    for (User user : users) {
+	        if (user.getAccount() == null || user.getAccount().isEmpty()
+	            || user.getName() == null || user.getName().isEmpty()
+	            || user.getPassword() == null || user.getPassword().isEmpty()
+	            || user.getRole() == 0) {
+	            return ResponseEntity.badRequest().body("invalid-user-data");
+	        }
+
+	        boolean accountExists = userRepository.findAll().stream()
+	                .anyMatch(u -> u.getAccount().equals(user.getAccount()));
+	        boolean nameExists = userRepository.findAll().stream()
+	                .anyMatch(u -> u.getName().equals(user.getName()));
+	        if (accountExists || nameExists) {
+	            return ResponseEntity.badRequest().body("duplicate-account-or-name");
+	        }
+
+	        user.setPassword(passwordEncoder.encode(user.getPassword()));
+	    }
+
+	    userRepository.saveAll(users);
+	    return ResponseEntity.ok("users-registered");
+	}
+
 
 }

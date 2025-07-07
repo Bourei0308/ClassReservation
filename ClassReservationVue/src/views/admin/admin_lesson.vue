@@ -136,7 +136,10 @@
     </div>
 
     <!-- 弹窗 -->
-    <UserSelectModal :show="showTeacherModal" :role="2" title="先生を選択" @select="onSelectTeacher"
+    
+  </div>
+  </body>
+  <UserSelectModal :show="showTeacherModal" :role="2" title="先生を選択" @select="onSelectTeacher"
       @close="showTeacherModal = false" />
     <UserSelectModal :show="showStudentModal" :role="1" title="生徒を選択" @select="onSelectStudent"
       @close="showStudentModal = false" />
@@ -149,8 +152,6 @@
     <AlertModal v-bind="alertProps" @close="closeAlert" />
     <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
 
-  </div>
-  </body>
 </template>
 
 <script setup>
@@ -161,6 +162,10 @@ import MonthlySummaryModal from '@/components/popup_monthly_class.vue';
 import MonthlyLessonCalendar from '@/components/popup_daily_class.vue';
 import EditLessonModal from "@/components/popup_schedule_edit.vue";
 import { getUsers, getSchedulesByTeacher, getSchedulesByStudent } from '@/scripts/chatUtils';
+import moment from 'moment-timezone';
+
+import { useWebSocket } from '@/scripts/useWebSocket'
+const { subscribe } = useWebSocket()
 
 // 🔸 alert
 import AlertModal from '@/components/popup_message_alert.vue';
@@ -202,15 +207,30 @@ const teacherHours = ref(0);
 const studentHours = ref(0);
 const remainingHours = ref(0);
 const pendingHours = ref(0);
+const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 onMounted(async () => {
   init();
+
+  subscribe(`/api/topic/calendar/`, async () => {
+        console.log("カレンダーの更新を受信しました");
+        await init();
+    });
 });
 
 const init = async () => {
   try {
     const { data } = await axios.get("/api/lessons/completed");
-    lessons.value = data;
+    lessons.value = data.map(l => {
+      const localStart = moment.utc(l.startTime).local(); // 从UTC转换成本地时间
+      console.log("dateTimeStr",l.startTime)
+      console.log("localStart",localStart)
+
+      return {
+        ...l,
+        localStart,
+      };
+    });
   } catch (error) {
     console.error("データ取得エラー:", error);
   }
@@ -398,26 +418,39 @@ function getDurationHours(timeStr) {
 }
 
 const statusOrder = { 2: 0, 1: 1, 0: 2, 3: 3 };
+
 const filteredLessons = computed(() => {
   const [start, end] = getPeriod() || [null, null];
 
-  return lessons.value.filter(l => {
-    const matchTeacher = !filter.value.teacher || l.teacherName === filter.value.teacher;
-    const matchStudent = !filter.value.student || l.studentName === filter.value.student;
-    const matchStatus = !filter.value.status || l.status === Number(filter.value.status);
+  return lessons.value
+    .map(l => {
+      const localStart = moment.tz(l.startTime, localTimezone);
+      console.log("l.startTime",l.startTime)
+      return {
+        ...l,
+        localStart,
+      };
+    })
+    .filter(l => {
+      const matchTeacher = !filter.value.teacher || l.teacherName === filter.value.teacher;
+      const matchStudent = !filter.value.student || l.studentName === filter.value.student;
+      const matchStatus = !filter.value.status || l.status === Number(filter.value.status);
 
-    // 用startDate和endDate判断
-    const matchDate = (!start || !end) || (l.date >= start && l.date <= end);
+      // 用localStart的日期部分比较
+      const localDateStr = l.localStart.format('YYYY-MM-DD');
+      const matchDate = (!start || !end) || (localDateStr >= start && localDateStr <= end);
 
-    return matchTeacher && matchStudent && matchStatus && matchDate;
-  }).sort((a, b) => {
-    const statusDiff = statusOrder[a.status] - statusOrder[b.status];
-    if (statusDiff !== 0) return statusDiff;
+      return matchTeacher && matchStudent && matchStatus && matchDate;
+    })
+    .sort((a, b) => {
+      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+      if (statusDiff !== 0) return statusDiff;
 
-    if (a.date > b.date) return -1;
-    if (a.date < b.date) return 1;
-    return 0;
-  });
+      // localStart逆序（最新时间在前）
+      if (a.localStart.isAfter(b.localStart)) return -1;
+      if (a.localStart.isBefore(b.localStart)) return 1;
+      return 0;
+    });
 });
 
 

@@ -62,7 +62,14 @@ const fetchHours = async () => {
 };
 defineExpose({ fetchHours })
 
-onMounted(async() =>await fetchHours());
+import { useWebSocket } from '@/scripts/useWebSocket'
+const { subscribe,} = useWebSocket()
+onMounted(async() =>{await fetchHours();
+  subscribe(`/api/topic/calendar/`, async () => {
+        await fetchHours();
+    });
+}
+);
 watch(() => props.studentID, () => fetchHours());
 </script>
 

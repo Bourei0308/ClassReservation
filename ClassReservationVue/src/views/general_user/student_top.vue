@@ -6,7 +6,14 @@
       <section class="schedule-header">
         <h2 class="schedule-title">今日の予定</h2>
         <div class="timeband-wrapper">
-          <TimeBand v-if="isBlueTimesLoaded" :blue_time="blueTimes" :hourStep="hourStep" />
+          <template v-if="blueTimes.length > 0">
+            <TimeBand :blue_time="blueTimes" :hour-step="hourStep" />
+          </template>
+          <template v-else>
+            <div style="color: blue; font-weight: bold; text-align: center;">
+              今日に授業がありません。
+            </div>
+          </template>
         </div>
       </section>
 
@@ -198,6 +205,10 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateWidth)
 })
 
+function openPopup() {
+  popup.value.open()
+}
+
 //ログイン
 onMounted(async () => {
   await restoreLogin()
@@ -226,13 +237,14 @@ const fetchTodayBlueTimes = async () => {
     const today = moment().format('YYYY-MM-DD')
 
     const todayClasses = classList.filter(cls => {
-      const start = moment(cls.startTime)
+      // 先用 utc 解析，再转本地时间
+      const start = moment.utc(cls.startTime).local()
       return start.isSame(today, 'day')
     })
 
     blueTimes.value = todayClasses.map(cls => {
-      const start = moment(cls.startTime).format('YYYY-MM-DD HH:mm')
-      const end = moment(cls.endTime).format('YYYY-MM-DD HH:mm')
+      const start = moment.utc(cls.startTime).local().format('YYYY-MM-DD HH:mm')
+      const end = moment.utc(cls.endTime).local().format('YYYY-MM-DD HH:mm')
       return [start, end]
     })
   } catch (err) {
@@ -243,9 +255,6 @@ const fetchTodayBlueTimes = async () => {
   }
 }
 
-function openPopup() {
-  popup.value.open()
-}
 
 
 // 予約削除時に子コンポーネントのメソッドを呼び出すための ref

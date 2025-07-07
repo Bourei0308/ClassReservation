@@ -1,6 +1,6 @@
 package com.example.demo.entity;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -14,18 +14,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Data
 public class ClassSchedule {
-	public ClassSchedule(String id2, String teacherName, String studentName, LocalDateTime startTime2,
-			LocalDateTime endTime2, int status2) {
-		// TODO 自動生成されたコンストラクター・スタブ
-	}
 
 	@Id
 	private String id;
 	private String studentId;
 	private String teacherId;
-	private LocalDateTime createdAt;
-	private LocalDateTime startTime;
-	private LocalDateTime endTime;
+	private Instant createdAt;
+	private Instant startTime;
+	private Instant endTime;
 	private int status; // 0 = pending, 1 = confirmed, 2 = completed, etc.
 	private Boolean isReminded = false;
 }

@@ -9,7 +9,14 @@
       <section class="schedule-header">
         <h2 class="schedule-title">今日の予定</h2>
         <div class="timeband-wrapper">
-          <TimeBand :blue_time="blueTimes" :hourStep="hourStep" />
+          <template v-if="blueTimes.length > 0">
+            <TimeBand :blue_time="blueTimes" :hour-step="hourStep" />
+          </template>
+          <template v-else>
+            <div style="color: blue; font-weight: bold; text-align: center;">
+              今日に授業がありません。
+            </div>
+          </template>
         </div>
       </section>
 
@@ -189,29 +196,32 @@ async function fetchTodayTeacherSchedules() {
   }
 
   try {
-    // 获取老师所有课程
+    // 获取老师所有课程（时间为 UTC0）
     const res = await axios.get(`/api/class-schedules/teacher/${user.value.id}`)
     const schedules = res.data
 
-    // 过滤出“今天”的课程
-    const today = moment().startOf('day')
-    const tomorrow = moment(today).add(1, 'day')
+    // 获取本地“今天”的开始与结束
+    const localToday = moment().startOf('day')
+    const localTomorrow = moment(localToday).add(1, 'day')
 
+    // 用 .utc() 再 .local() 将 UTC 转换为本地
     const todaySchedules = schedules.filter(s => {
-      const start = moment(s.startTime)
-      return start.isSameOrAfter(today) && start.isBefore(tomorrow)
+      const localStart = moment.utc(s.startTime).local()
+      return localStart.isSameOrAfter(localToday) && localStart.isBefore(localTomorrow)
     })
 
-    // 转成你需要的格式 [ [开始, 结束], ... ]
-    blueTimes.value = todaySchedules.map(s => [
-      moment(s.startTime).format('YYYY-MM-DD HH:mm'),
-      moment(s.endTime).format('YYYY-MM-DD HH:mm')
-    ])
+    // 转换为本地格式
+    blueTimes.value = todaySchedules.map(s => {
+      const startLocal = moment.utc(s.startTime).local().format('YYYY-MM-DD HH:mm')
+      const endLocal = moment.utc(s.endTime).local().format('YYYY-MM-DD HH:mm')
+      return [startLocal, endLocal]
+    })
 
   } catch (error) {
     console.error('Failed to fetch schedules:', error)
   }
 }
+
 
 function openPopup() {
   popup.value.open()

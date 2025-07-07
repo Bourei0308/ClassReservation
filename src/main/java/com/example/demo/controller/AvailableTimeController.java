@@ -35,7 +35,7 @@ public class AvailableTimeController {
 
 	@GetMapping("/teacher/{teacherId}")
 	@Operation(summary = "idで先生の空き時間取得")
-	public List<AvailableTime> getByTeacher(@PathVariable String teacherId) {
+	public List<AvailableTime> getByTeacher(@PathVariable("teacherId") String teacherId) {
 		return repository.findByTeacherId(teacherId);
 	}
 	

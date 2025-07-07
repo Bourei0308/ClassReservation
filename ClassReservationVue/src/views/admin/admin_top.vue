@@ -6,6 +6,8 @@
       <router-link to="/admin/accountlist" class="menu-button">アカウント一覧</router-link>
       <router-link to="/admin/charge" class="menu-button">授業時間チャージ</router-link>
       <router-link to="/admin/lesson" class="menu-button">授業管理</router-link>
+      <router-link to="/admin/lesson-add" class="menu-button">授業入力</router-link>
+      <router-link to="/admin/user-add" class="menu-button">ユーザ入力</router-link>
     </div>
   </div>
 </template>

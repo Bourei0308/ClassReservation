@@ -60,6 +60,18 @@ const router = createRouter({
       component: () => import('../views/admin/admin_lesson.vue'),
     },
     {
+      path: '/admin/lesson-add',
+      name: '授業入力',
+      meta: { requiresAuth: true, role_number: 0 },
+      component: () => import('../views/admin/admin_addclass.vue'),
+    },
+    {
+      path: '/admin/user-add',
+      name: 'ユーザ入力',
+      meta: { requiresAuth: true, role_number: 0 },
+      component: () => import('../views/admin/admin_adduser.vue'),
+    },
+    {
       path: '/chat',
       name: 'チャット画面',
       meta: { requiresAuth: true },
@@ -88,31 +100,83 @@ const router = createRouter({
       name: 'ユーザパスワード',
       meta: { requiresAuth: true },
       component: () => import('../views/general_user/account_passwordinfo.vue'),
+    },
+    {
+      path: '/account/set-email',
+      name: 'SetEmail',
+      component: () => import('../views/general_user/account_setEmail.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      meta: { isNotFound: true },
+      component: {
+        render() {
+          return null  // 什么都不渲染
+        }
+      }
     }
   ],
 })
 
 
 import { useAuth } from '@/scripts/useAuth'
+import { useModalManager } from '@/scripts/useModalManager'
 const { restoreLogin } = useAuth()
+const { openConfirmAsync } = useModalManager()
+
 // ✅ グローバル認証
 router.beforeEach(async (to, from, next) => {
-  const { user, isLoggedIn, login, logout, role } = useAuth()
+  const { user } = useAuth()
   await restoreLogin()
 
-  if (to.meta.requiresAuth) {
-    if (!user.value) {
-      alert('ログインしてください')
-      return next('/')
-    }
+  const proceedNext = (path) => {
+    if (path) next(path)
+    else next()
+  }
 
-    if (to.meta.role_number!=null&& user.value.role !== to.meta.role_number) {
-      console.log("no",to.meta.role_number,user.value.role)
-      alert('認証情報が違います。')
-      return next(`/top/${user.value.role}`)
+  // 先单独处理 404 路由
+  if (to.meta.isNotFound) {
+    const confirmed = await openConfirmAsync('存在しないページです。ホームに戻りますか？')
+    if (confirmed) {
+      if (!user.value) {
+        return next('/')  // 跳转首页
+      } else {
+        proceedNext(`/top/${user.value.role}`)
+      }
+
+    } else {
+      return next(false)  // 阻止跳转
     }
   }
 
-  return next()
+  // 下面是认证逻辑
+  const isEmailEmpty = user.value && (!user.value.email || user.value.email.trim() === '')
+
+  if (to.meta.requiresAuth) {
+    if (!user.value) {
+      proceedNext('/')
+      return
+    }
+
+    if (to.meta.role_number != null && user.value.role !== to.meta.role_number) {
+      proceedNext(`/top/${user.value.role}`)
+      return
+    }
+
+    if (isEmailEmpty && to.path !== '/account/set-email' && to.path !== '/') {
+      const confirmed = await openConfirmAsync('メールアドレスを登録してください。設定画面に移動しますか？')
+      if (confirmed) {
+        return next('/account/set-email')
+      } else {
+        return next(false)
+      }
+    }
+  }
+
+  proceedNext()
 })
+
+
 export default router

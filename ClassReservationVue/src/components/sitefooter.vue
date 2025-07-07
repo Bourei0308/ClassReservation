@@ -8,15 +8,9 @@
     </div>
 
 
-      <img src="../assets/img/6.png" class="footer-image left" alt="left image">
-      <img src="../assets/img/6.png" class="footer-image right" alt="right image">
-
-
 
     <div class="dawn">
       <span>@じゅくぽん運営</span>
-      <br>
-      amemiya・butusaka・mizushima・riku・you
     </div>
 
     <div class="footer_links">

@@ -20,10 +20,7 @@
           <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
         </div>
 
-        <button
-          :class="['login-button', { loading: isLoading }]"
-          @click="handleLogin"
-        >
+        <button :class="['login-button', { loading: isLoading }]" @click="handleLogin">
           ログイン
         </button>
 
@@ -39,8 +36,9 @@
 import { ref, onMounted } from 'vue';
 import { useAuth } from '@/scripts/useAuth';
 import { useRouter } from 'vue-router';
+import axios from 'axios'
 
-const { user, login, devLoginMockUser, TEST_MODE } = useAuth();
+const { user, login } = useAuth();
 const router = useRouter();
 
 const account = ref('');
@@ -75,6 +73,21 @@ const handleLogin = async () => {
   }
   isLoading.value = false;
 };
+
+onMounted(async () => {
+
+
+  try {
+
+    await axios.post('/api/auth/logout', {}, { withCredentials: true })
+
+    user.value = null
+    role.value = null
+    sessionStorage.removeItem('user')
+  } catch (e) {
+    console.log("auth/me skipped or failed", e)
+  }
+})
 </script>
 
 <style scoped>
@@ -197,6 +210,7 @@ const handleLogin = async () => {
     opacity: 0;
     transform: translateY(40px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -204,14 +218,81 @@ const handleLogin = async () => {
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25%, 75% { transform: translateX(-10px); }
-  50% { transform: translateX(10px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25%,
+  75% {
+    transform: translateX(-10px);
+  }
+
+  50% {
+    transform: translateX(10px);
+  }
 }
 
 @keyframes spinner {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* 手机屏幕（最大宽度768px）适配 */
+@media screen and (max-width: 768px) {
+  .login-container {
+    flex-direction: column;
+    background-position: center top;
+    background-size: cover;
+    height: auto;
+    /* 高度自适应 */
+    padding: 10px 10px 50px 10px;
+  }
+
+  .left-panel {
+    flex: none;
+  }
+
+  .right-panel {
+    flex: none;
+    width: 100%;
+    padding-top: 30px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .login-box {
+    width: 100%;
+    max-width: 400px;
+    /* 最大宽度限制 */
+    padding: 40px 30px;
+    border-radius: 12px;
+  }
+
+  .login-box h1 {
+    font-size: 2rem;
+    margin-bottom: 30px;
+  }
+
+  .input-group label {
+    font-size: 1rem;
+  }
+
+  .input-group input {
+    font-size: 1rem;
+    padding: 12px;
+  }
+
+  .login-button {
+    font-size: 1.5em;
+    padding: 14px;
+  }
+
+  .forgot-password-button {
+    font-size: 1.2em;
+    margin-top: 15px;
   }
 }
 </style>

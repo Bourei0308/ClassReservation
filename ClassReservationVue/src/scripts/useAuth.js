@@ -29,6 +29,7 @@ export function useAuth() {
     return {
         user,
         isLoggedIn: computed(() => !!user.value),
+        hasEmail: computed(() => Boolean(user.value?.email?.trim())),
         login: async (account, password) => {
             const { useWebSocket } = await import('@/scripts/useWebSocket')
             const { connect, subscribe } = useWebSocket()
@@ -44,6 +45,12 @@ export function useAuth() {
 
                 sessionStorage.setItem('user', JSON.stringify(res.data))
                 role.value = user.value.role
+
+                // 如果邮箱为空，跳转到邮箱设置页面
+                if (!user.value.email || user.value.email.trim() === '') {
+                    router.push('/account/set-email')
+                    return
+                }
 
                 connect(() => {
                     subscribe(`/api/topic/unread/${user.value.id}`, () => {

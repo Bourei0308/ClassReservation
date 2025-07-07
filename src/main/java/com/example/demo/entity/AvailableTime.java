@@ -1,6 +1,6 @@
 package com.example.demo.entity;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -17,6 +17,6 @@ public class AvailableTime {
 	@Id
 	private String id;
 	private String teacherId;
-	private LocalDateTime startTime;
-	private LocalDateTime endTime;
+	private Instant startTime;
+	private Instant endTime;
 }

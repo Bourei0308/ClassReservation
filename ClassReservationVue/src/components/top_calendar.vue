@@ -42,17 +42,16 @@
                         <ul class="event-list">
                             <template v-if="dayObj.eventList && dayObj.eventList.length">
                                 <!-- 一般イベント（无 studentName） -->
-                                <li v-if="dayObj.eventList.some(e => e && !e.studentName)">
+                                <li v-if="shouldShowEvent(dayObj)">
                                     <div class="event-title">
-                                        {{dayObj.eventList.find(e => e && !e.studentName).title}}
+                                        {{dayObj.eventList.find(e => e && !e.studentName)?.title}}
                                     </div>
                                 </li>
 
                                 <!-- 承認待ち -->
                                 <li v-if="dayObj.eventList.some(e => e && e.studentName && e.status == 0)">
                                     <div class="student-info-noconfirm">
-                                        <span class="desktop-only">承認待ちの授業</span>
-                                        <span class="mobile-only">未承認</span>
+                                        未承認
                                     </div>
                                 </li>
 
@@ -60,8 +59,7 @@
                                 <li
                                     v-if="dayObj.eventList.some(e => e && e.studentName && e.status == 1 && isUncompleted(e))">
                                     <div class="student-info-uncompleted">
-                                        <span class="desktop-only">未完了の授業</span>
-                                        <span class="mobile-only">未完了</span>
+                                        未完了
                                     </div>
                                 </li>
 
@@ -69,8 +67,7 @@
                                 <li
                                     v-if="dayObj.eventList.some(e => e && e.studentName && e.status == 1 && !isUncompleted(e))">
                                     <div class="student-info-confirm">
-                                        <span class="desktop-only">承認済みの授業</span>
-                                        <span class="mobile-only">承認</span>
+                                        承認
                                     </div>
                                 </li>
 
@@ -140,17 +137,30 @@
                             event.teacherName + "先生" + event.title }}</span>
                         <div class="event-box">
                             <div v-if="event.studentName" class="event-box-info">
-
-
-                                <div><span class="class-head">授業時間：</span><span>{{
-                                    moment(event.startTime).format('HH:mm') }} -
-                                        {{ moment(event.endTime).format('HH:mm') }}</span></div>
+                                <div>
+                                    <span class="class-head">授業時間：</span>
+                                    <span>
+                                        {{
+                                            moment.utc(event.startTime).local().format('HH:mm')
+                                        }} -
+                                        {{
+                                            moment.utc(event.endTime).local().format('HH:mm')
+                                        }}
+                                    </span>
+                                </div>
                                 <div><span class="class-head">先生：</span><span>{{ event.teacherName }}</span></div>
                                 <div class="red_hint" v-if="event.status === 1 && isUncompleted(event)">
                                     先生が【完了】ボタンを押してください。</div>
                             </div>
                             <div class="timeband-box" v-if="!event.studentName">
-                                <TimeBand :blue_time="blueTimes" :hour-step="2" />
+                                <template v-if="blueTimes.length > 0">
+                                    <TimeBand :blue_time="blueTimes" :hour-step="2" />
+                                </template>
+                                <template v-else>
+                                    <div style="color: red; font-weight: bold; text-align: center;">
+                                        今日はもう空き時間がありません。
+                                    </div>
+                                </template>
                             </div>
 
                             <div v-if="account === 'teacher' && event.status == undefined"
@@ -194,17 +204,9 @@
             <div v-else>
                 この日にはイベントがありません。
             </div>
-            <div v-if="(account === 'teacher' || (account === 'student' && selectedTeacher && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.teacherName)))
-                && !(account === 'teacher' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.studentName === ''))"
-                class="new">
-                <button v-if="!isEarlier(selectedDayEvents.date)" class="reserve-btn"
-                    @click="openReservationPopup">新しい予約を入れる</button>
-            </div>
-            <div
-                v-else-if="(account === 'teacher' && selectedDayEvents && selectedDayEvents.eventList && selectedDayEvents.eventList.some(event => event.studentName === ''))">
-                <label></label>
-            </div>
-            <div v-else-if="!selectedTeacher" class="message">
+            <!-- 予約ボタン（学生用） -->
+            <!-- 先生未选择时，显示选择框 -->
+            <div v-if="account === 'student' && !selectedTeacher" class="message">
                 <label>先生を選択して下さい。</label>
                 <select id="teacher-select" v-model="selectedTeacher" @change="onTeacherChange"
                     class="teacher-dropdown">
@@ -214,9 +216,30 @@
                     </option>
                 </select>
             </div>
-            <div v-else class="message">
-                <label>先生の予約時間外です。</label>
+
+            <!-- 先生选了之后，显示预约按钮或提示 -->
+            <div v-else-if="account === 'student'"
+                 class="new">
+                <button v-if="!isEarlier(selectedDayEvents.date) && blueTimes.length > 0" class="reserve-btn"
+                    @click="openReservationPopup">
+                    新しい予約を入れる
+                </button>
+                <div v-else class="message">
+                    <label>先生の予約時間外です。</label>
+                </div>
             </div>
+
+
+            <!-- 予約ボタン（先生用） -->
+            <div v-if="account === 'teacher'
+                && selectedDayEvents
+                && selectedDayEvents.eventList
+                && !selectedDayEvents.eventList.some(event => event.studentName === '')
+                && !isEarlier(selectedDayEvents.date)" class="new">
+                <button class="reserve-btn" @click="openReservationPopup">新しい予約を入れる</button>
+            </div>
+
+
             <div v-if="showPopup" class="popup-overlay">
                 <div class="popup-content">
                     <h4 v-if="popupMode === 'create'">新しい予約</h4>
@@ -291,9 +314,12 @@
                         </label>
                         <div style="margin-top:10px;">
                             <button v-if="popupMode === 'create'" @click="submitStudentReservation"
-                                :disabled="popupStartTime >= popupEndTime || isOverlappingBlueTimes"
-                                :class="{ 'disabled-btn': popupStartTime >= popupEndTime || isOverlappingBlueTimes }">予約申請</button>
+                                :disabled="isOverlappingBlueTimes"
+                                :class="{ 'disabled-btn': isOverlappingBlueTimes }">予約申請</button>
                             <button @click="closeReservationPopup">取消</button>
+                            <div v-if="remainingHours < 0.5" style="color:red; margin-top:5px;">
+                                ⚠️ 残り時間が足りません（30分未満）
+                            </div>
                         </div>
                     </div>
                     <div v-else>
@@ -337,7 +363,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { defineProps } from 'vue';
-import moment from "moment";
+import moment from 'moment-timezone';
 import _, { chain } from "lodash";
 import axios from 'axios';
 
@@ -405,12 +431,12 @@ const popupEndTime = ref('');
 const popupMode = ref('create'); // 'create' or 'edit'
 const editingEvent = ref(null); // 編集対象イベント
 const blueTimes = ref([]);
-const dateFlag = ref(false); // 日付が選択されたかどうかのフラグ
 const lastClickedDayObj = ref(null);
 const remainingHours = ref(0); // 残りのコマ数
 const popupDuration = ref(30); // default 30 minutes
 const isBulkBooking = ref(false); // まとめて予約するかどうか
 const dayList = ref([]); // まとめて予約する日付のリスト
+const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 
 // 算出プロパティ
@@ -441,17 +467,6 @@ const teacherAvailableTimeRange = computed(() => {
     };
 });
 
-// 生徒の入力が先生の空き時間内かどうか
-const isStudentTimeInRange = computed(() => {
-    if (account.value !== 'student' || !teacherAvailableTimeRange.value) return true;
-    if (!popupStartTime.value || !popupEndTime.value) return false;
-    return (
-        popupStartTime.value >= teacherAvailableTimeRange.value.min &&
-        popupEndTime.value <= teacherAvailableTimeRange.value.max &&
-        popupStartTime.value < popupEndTime.value
-    );
-});
-
 // メソッド
 const prevMonth = () => {
     currentDate.value = currentDate.value.clone().subtract(1, 'month');
@@ -468,7 +483,7 @@ const isReserved = () => {
     let flag = false
     if (lastClickedDayObj.value && Array.isArray(lastClickedDayObj.value.eventList)) {
         const hasInvalidStatusEvent = lastClickedDayObj.value.eventList.some(e => {
-            if (e.status != null && (e.status == 1 || e.status == 2)) {
+            if (e.status != null && e.status !== 3) {
 
                 flag = true
             }
@@ -563,40 +578,49 @@ const getUsers = async () => {
     }
 }
 
-const generateCalendar = async () => { // async キーワードを追加
+const generateCalendar = async () => {
     const year = currentYear.value;
     const month = currentMonth.value;
     const offsetValue = offset.value;
 
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     // 前月の日を埋める
     const prevPaddingDays = (() => {
-        const firstDay = (new Date(year, month)).getDay(); // 今月の1日の曜日
-        const paddingDayCount = (firstDay + 7 - offsetValue) % 7; // 埋める日数
-        const prevLastDate = (new Date(year, month, 0)).getDate(); // 前月の最終日
-        return _.range(prevLastDate - paddingDayCount + 1, prevLastDate + 1).map((day) => ({
-            date: new Date(year, month - 1, day),
-            day,
-            isPrev: true,
-            isNext: false,
-            isToday: false,
-            eventList: [], // 前月・次月の日にはイベントがないと仮定
-        }));
+        const firstDay = new Date(year, month).getDay();
+        const paddingDayCount = (firstDay + 7 - offsetValue) % 7;
+        const prevLastDate = new Date(year, month, 0).getDate();
+
+        return _.range(prevLastDate - paddingDayCount + 1, prevLastDate + 1).map((day) => {
+            const date = moment.tz({ year, month: month - 1, day }, userTimeZone).toDate();
+            return {
+                date,
+                day,
+                isPrev: true,
+                isNext: false,
+                isToday: false,
+                eventList: [],
+            };
+        });
     })();
 
     // 今月の日にちリストを生成する
     const currentDays = (() => {
-        const lastDate = new Date(year, month + 1, 0); // 今月の最終日
-        const currentDayCount = lastDate.getDate(); // 今月の日数
+        const lastDate = new Date(year, month + 1, 0);
+        const currentDayCount = lastDate.getDate();
+
         return _.range(1, currentDayCount + 1).map((day) => {
-            const date = new Date(year, month, day);
-            const isToday = moment(date).isSame(moment(), 'day'); // 今日かどうかを判定
-            const dayEvents = getDayEvents(date); // その日のイベントを取得（日付オブジェクトを渡す）
+            const mDate = moment.tz({ year, month, day }, userTimeZone);
+            const date = mDate.toDate();
+            const isToday = mDate.isSame(moment.tz(userTimeZone), 'day');
+            const dayEvents = getDayEvents(date);
+
             return {
-                date: date,
+                date,
                 day,
                 isPrev: false,
                 isNext: false,
-                isToday: isToday,
+                isToday,
                 eventList: dayEvents,
             };
         });
@@ -604,31 +628,31 @@ const generateCalendar = async () => { // async キーワードを追加
 
     // 来月の日を埋める
     const nextPaddingDays = (() => {
-        // カレンダーは通常6週分（42マス）で構成されることが多い
         const totalDays = prevPaddingDays.length + currentDays.length;
-        const paddingDayCount = (42 - totalDays) % 7; // 足りない日数
-        return _.range(1, paddingDayCount + 1).map((day) => ({
-            date: new Date(year, month + 1, day),
-            day,
-            isPrev: false,
-            isNext: true,
-            isToday: false,
-            eventList: [], // 前月・次月の日にはイベントがないと仮定
-        }));
+        const paddingDayCount = (42 - totalDays) % 7;
+
+        return _.range(1, paddingDayCount + 1).map((day) => {
+            const date = moment.tz({ year, month: month + 1, day }, userTimeZone).toDate();
+            return {
+                date,
+                day,
+                isPrev: false,
+                isNext: true,
+                isToday: false,
+                eventList: [],
+            };
+        });
     })();
 
-    // 全ての日を結合
     const flatCalendar = [
         ...prevPaddingDays,
         ...currentDays,
         ...nextPaddingDays,
     ];
 
-    // 2次元配列にして calendarGrid にセット
-    calendarGrid.value = _.chunk(flatCalendar, 7); // lodashのchunkを使って7日ごとに分割
-
-    // console.log("カレンダーデータ:", calendarGrid.value);
+    calendarGrid.value = _.chunk(flatCalendar, 7);
 };
+
 
 const getTodayCell = () => {
     for (const week of calendarGrid.value) {
@@ -696,96 +720,76 @@ const getEvents = async () => {
     }
 };
 
-// その日のイベントを取得する関数
+// その日のイベントを取得する関数（ユーザーのローカル時刻に基づく）
 const getDayEvents = (date) => {
     if (!Array.isArray(calendarEvent.value)) {
         console.warn("calendarEvent.value が配列ではありません。空のリストを返します。");
         return [];
     }
-    const targetDate = moment(date).format('YYYY-MM-DD');
-    // accountによって表示するイベントを切り替え
+
+    // ユーザーのローカルタイムゾーン（例: Asia/Tokyo）
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // 指定された日（date）をユーザー時刻で1日の始まりと終わりで範囲にする
+    const dayStart = moment.tz(date, userTimeZone).startOf('day');
+    const dayEnd = moment.tz(date, userTimeZone).endOf('day');
+
+    // 共通のフィルタ関数：ユーザーのローカル時刻で比較
+    const isEventOnThisDay = (event) => {
+        const eventTime = moment.utc(event.startTime).tz(userTimeZone);
+        return eventTime.isBetween(dayStart, dayEnd, null, '[]');
+    };
+
+    // 共通のマッピング関数（タイトルや名前をつける）
+    const mapEvent = (event) => {
+        const teacher = tusers.value.find(t => t.id == event.teacher_id);
+        const student = susers.value.find(s => s.id == event.student_id);
+        let title = '';
+
+        if (teacher && student) {
+            title = `${student.name}さんの授業`;
+        } else if (teacher) {
+            title = account.value === 'student' ? '予約可' : '登録済';
+        } else if (student) {
+            title = `${student.name}さん出席`;
+        } else {
+            title = '予定あり';
+        }
+
+        return {
+            ...event,
+            teacherName: teacher ? teacher.name : '不明な先生',
+            studentName: student ? student.name : '',
+            title,
+        };
+    };
+
+    // アカウントタイプ別にフィルタリング
     if (account.value === 'student') {
-        // 生徒の場合: 選択先生の予定＋自分（生徒）の予定のみ
         return calendarEvent.value.filter(event => {
-            const eventDate = moment(event.startTime).format('YYYY-MM-DD');
-            // 先生の予定 or 自分の予定
-            const isTeacher = teacherID.value ? event.teacher_id == teacherID.value : (selectedTeacher.value && event.teacher_id == selectedTeacher.value.id);
+            if (!isEventOnThisDay(event)) return false;
+            const isTeacher = teacherID.value
+                ? event.teacher_id == teacherID.value
+                : (selectedTeacher.value && event.teacher_id == selectedTeacher.value.id);
             const isStudent = event.student_id && users.value.find(u => u.id == event.student_id && u.role === 1);
-            return eventDate === targetDate && (isTeacher || isStudent);
-        }).map(event => {
-            const teacher = tusers.value.find(t => t.id == event.teacher_id);
-            const student = susers.value.find(s => s.id == event.student_id);
-            let title = '';
-            if (teacher && student) {
-                title = `${student.name}さんの授業`;
-            } else if (teacher) {
-                title = `予約可`;
-            } else if (student) {
-                title = `${student.name}さん出席`;
-            } else {
-                title = '予定あり';
-            }
-            return {
-                ...event,
-                teacherName: teacher ? teacher.name : '不明な先生',
-                studentName: student ? student.name : '',
-                title,
-            };
-        });
+            return isTeacher || isStudent;
+        }).map(mapEvent);
     } else if (account.value === 'teacher') {
-        // 先生の場合: 自分の予定＋生徒が登録した予定すべて
         return calendarEvent.value.filter(event => {
-            const eventDate = moment(event.startTime).format('YYYY-MM-DD');
-            // 自分が担当 or 生徒が登録
-            const isTeacher = teacherID.value ? event.teacher_id == teacherID.value : (selectedTeacher.value && event.teacher_id == selectedTeacher.value.id);
-            return (eventDate === targetDate) && isTeacher;
-        }).map(event => {
-            const teacher = tusers.value.find(t => t.id == event.teacher_id);
-            const student = susers.value.find(s => s.id == event.student_id);
-            let title = '';
-            if (teacher && student) {
-                title = `${student.name}さんの授業`;
-            } else if (teacher) {
-                title = `登録済`;
-            } else if (student) {
-                title = `${student.name}さん出席`;
-            } else {
-                title = '予定あり';
-            }
-            return {
-                ...event,
-                teacherName: teacher ? teacher.name : '不明な先生',
-                studentName: student ? student.name : '',
-                title,
-            };
-        });
+            if (!isEventOnThisDay(event)) return false;
+            const isTeacher = teacherID.value
+                ? event.teacher_id == teacherID.value
+                : (selectedTeacher.value && event.teacher_id == selectedTeacher.value.id);
+            return isTeacher;
+        }).map(mapEvent);
     } else {
-        // その他は全て表示
+        // その他ユーザーは全部表示
         return calendarEvent.value.filter(event => {
-            const eventDate = moment(event.startTime).format('YYYY-MM-DD');
-            return eventDate === targetDate;
-        }).map(event => {
-            const teacher = tusers.value.find(t => t.id == event.teacher_id);
-            const student = susers.value.find(s => s.id == event.student_id);
-            let title = '';
-            if (teacher && student) {
-                title = `${student.name}さんの授業`;
-            } else if (teacher) {
-                title = `${teacher.name}先生出席`;
-            } else if (student) {
-                title = `${student.name}さん出席`;
-            } else {
-                title = '予定あり';
-            }
-            return {
-                ...event,
-                teacherName: teacher ? teacher.name : '不明な先生',
-                studentName: student ? student.name : '',
-                title,
-            };
-        });
+            return isEventOnThisDay(event);
+        }).map(mapEvent);
     }
 };
+
 
 const updateSelectedDayEvents = (dayObj) => {
     if (!dayObj) return;
@@ -799,76 +803,6 @@ const updateSelectedDayEvents = (dayObj) => {
     selectedDay.value = dayObj;
 };
 
-// 一括設定のクリック
-const onBulkBookingChange = () => {
-    if (!isBulkBooking.value) {
-        // 一括設定をオフにする場合は、最後にクリックした日をリセット
-        dayList.value = [];
-    } else {
-        // 一括設定をオンにする場合は
-    }
-};
-
-// 日付を受け取りその日がdayListに含まれているかを確認し、真偽値で返す関数
-const isDateInDayList = (date) => {
-    if (account.value !== 'teacher' || !isBulkBooking.value) return false;
-    return dayList.value.some(d => moment(d).isSame(date));
-};
-
-// まとめて予約のキャンセル
-const cancelBulkBooking = () => {
-    dayList.value = [];
-};
-
-// まとめて予約をする関数
-const submitBulkBooking = () => {
-    if (!isBulkBooking.value || dayList.value.length === 0) return;
-
-    if (!popupStartTime.value || !popupDuration.value) {
-        showAlert('開始時間と予約時間を入力してください', false);
-        return;
-    }
-
-    const bookings = dayList.value.map(date => {
-        const startTime = moment(date).set({
-            hour: moment(popupStartTime.value, 'HH:mm').hour(),
-            minute: moment(popupStartTime.value, 'HH:mm').minute()
-        });
-        const endTime = startTime.clone().add(popupDuration.value, 'minutes');
-        return {
-            start: startTime,
-            end: endTime,
-            startStr: startTime.format('YYYY-MM-DD HH:mm'),
-            endStr: endTime.format('HH:mm'),
-            apiPayload: {
-                teacherId: selectedTeacher.value ? selectedTeacher.value.id : teacherID.value,
-                startTime: startTime.format('YYYY-MM-DDTHH:mm:ss'),
-                endTime: endTime.format('YYYY-MM-DDTHH:mm:ss'),
-            }
-        };
-    });
-
-    const confirmMessage = bookings.map(b => `・${b.startStr} ~ ${b.endStr}`).join('\n');
-
-    openConfirm(`以下の${bookings.length}件の予定を登録しますか？\n\n${confirmMessage}`, async () => {
-        try {
-            showLoading();
-            await Promise.all(
-                bookings.map(b => axios.post('/api/available-times', b.apiPayload))
-            );
-            dayList.value = []; // 選択リセット
-            onChange(); // カレンダー更新
-            showAlert('一括登録が完了しました', true);
-        } catch (error) {
-            console.error('一括登録エラー:', error);
-            showAlert('一括登録に失敗しました', false);
-        } finally {
-            isBulkBooking.value=false
-            closeLoading();
-        }
-    });
-};
-
 
 // 日付クリック時のハンドラ
 const handleDayClick = async (dayObj) => {
@@ -879,12 +813,12 @@ const handleDayClick = async (dayObj) => {
     if (isBulkBooking.value) {
         // 選択された日付が今日より前の時は追加しない
         if (moment(dayObj.date).isBefore(moment(), 'day')) {
-            showAlert('過去の日付は選択できません。',false);
+            showAlert('過去の日付は選択できません。', false);
             return;
         }
         // 選択された日付にすでに予定が入っていたら追加しない
         if (dayObj.eventList && dayObj.eventList.length > 0) {
-            showAlert('選択された日付にはすでに予定があります。',false);
+            showAlert('選択された日付にはすでに予定があります。', false);
             return;
         }
         // クリックした日付がすでにリストにあるか確認
@@ -971,7 +905,7 @@ const openEditPopup = async (event) => {
 };
 
 // 先生空き時間削除
-const handledeleteEdit =async (event) => {
+const handledeleteEdit = async (event) => {
     const eventId = event.id;
     // 確認ダイアログ表示
     openConfirm('この予定を本当に削除しますか？', async () => {
@@ -984,7 +918,7 @@ const handledeleteEdit =async (event) => {
             console.error('削除エラー:', error);
             showAlert('予定の削除に失敗しました', false);
         } finally {
-            
+
             await onChange();
             closeLoading();
             showPopup.value = false;
@@ -1058,47 +992,157 @@ const formatDuration = (minutes) => {
 
 // blueTimesのどれかの範囲に開始・終了が両方とも含まれていればボタン有効、それ以外は無効
 const isOverlappingBlueTimes = computed(() => {
-    if (!popupStartTime.value || !popupEndTime.value || !Array.isArray(blueTimes.value) || !selectedDayEvents.value) return true;
-    const dateStr = selectedDayEvents.value.date ? moment(selectedDayEvents.value.date).format('YYYY-MM-DD') : '';
+    console.log(popupStartTime, popupEndTime)
+
+    // ⛔️ 基本チェック
+    if (
+        !popupStartTime.value ||
+        !popupEndTime.value ||
+        !Array.isArray(blueTimes.value) ||
+        !selectedDayEvents.value
+    ) return true;
+
+    // ⛔️ 剩余时数不足
+    if (remainingHours.value < 0.5) {
+        return true;
+    }
+
+    const dateStr = selectedDayEvents.value.date
+        ? moment(selectedDayEvents.value.date).format('YYYY-MM-DD')
+        : '';
+
     const inputStart = moment(`${dateStr} ${popupStartTime.value}`, 'YYYY-MM-DD HH:mm');
     const inputEnd = inputStart.clone().add(popupDuration.value, 'minutes');
-    // どれか一つでも両方が範囲内なら有効（falseを返す）
+
+    // ❗️開始時間が終了時間以降の場合はエラーとみなす（ボタン無効）
+    if (!inputStart.isBefore(inputEnd)) {
+        return true;
+    }
+
+    // ✅ どれか一つでも両方が範囲内なら有効（falseを返す）
     const inAny = blueTimes.value.some(time => {
         if (!Array.isArray(time) || time.length !== 2) return false;
         const blueStart = moment(time[0], 'YYYY-MM-DD HH:mm');
         const blueEnd = moment(time[1], 'YYYY-MM-DD HH:mm');
         return inputStart.isSameOrAfter(blueStart) && inputEnd.isSameOrBefore(blueEnd);
     });
-    return !inAny; // trueなら無効, falseなら有効
+
+    return !inAny; // 有効→false、無効→true
 });
+
+
+
+// 一括設定のクリック
+const onBulkBookingChange = () => {
+    if (!isBulkBooking.value) {
+        // 一括設定をオフにする場合は、最後にクリックした日をリセット
+        dayList.value = [];
+    } else {
+        // 一括設定をオンにする場合は
+    }
+};
+
+// 日付を受け取りその日がdayListに含まれているかを確認し、真偽値で返す関数
+const isDateInDayList = (date) => {
+    if (account.value !== 'teacher' || !isBulkBooking.value) return false;
+    return dayList.value.some(d => moment(d).isSame(date));
+};
+
+// まとめて予約のキャンセル
+const cancelBulkBooking = () => {
+    dayList.value = [];
+};
+
+// まとめて予約をする関数
+const submitBulkBooking = () => {
+    if (!isBulkBooking.value || dayList.value.length === 0) return;
+
+    if (!popupStartTime.value || !popupDuration.value) {
+        showAlert('開始時間と予約時間を入力してください', false);
+        return;
+    }
+
+    const bookings = dayList.value.map(date => {
+        // 组合日期和开始时间，按本地时区解析
+        const localStart = moment.tz(`${formatDate(date)}T${popupStartTime.value}`, localTimezone);
+        const localEnd = localStart.clone().add(popupDuration.value, 'minutes');
+
+        // 转换为 UTC 时间字符串供 API 使用
+        const startUtcStr = localStart.clone().utc().format();
+        const endUtcStr = localEnd.clone().utc().format();
+
+        return {
+            localStart,
+            localEnd,
+            startStr: localStart.format('YYYY-MM-DD HH:mm'),
+            endStr: localEnd.format('HH:mm'),
+            apiPayload: {
+                teacherId: selectedTeacher.value ? selectedTeacher.value.id : teacherID.value,
+                startTime: startUtcStr,
+                endTime: endUtcStr,
+            }
+        };
+    });
+
+    const confirmMessage = bookings.map(b => `・${b.startStr} ~ ${b.endStr}`).join('\n');
+
+    openConfirm(`以下の${bookings.length}件の予定を登録しますか？\n\n${confirmMessage}`, async () => {
+        try {
+            showLoading();
+            await Promise.all(
+                bookings.map(b => axios.post('/api/available-times', b.apiPayload))
+            );
+            dayList.value = []; // 選択リセット
+            onChange(); // カレンダー更新
+            showAlert('一括登録が完了しました', true);
+        } catch (error) {
+            console.error('一括登録エラー:', error);
+            showAlert('一括登録に失敗しました', false);
+        } finally {
+            isBulkBooking.value = false;
+            closeLoading();
+        }
+    });
+};
+
 
 // 先生の予約を登録する
 const submitReservation = async () => {
-    // バリデーション
     if (!popupStartTime.value || !popupDuration.value) {
         showAlert('開始時間と終了時間を入力してください', false);
         return;
     }
 
-    const date = selectedDayEvents.value.date;
-    const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
-    const endDateTime = moment(startDateTime, 'YYYY-MM-DDTHH:mm')
-        .add(popupDuration.value, 'minutes')
-        .format('YYYY-MM-DDTHH:mm');
+    let localStart, localEnd, startDateTimeUtc, endDateTimeUtc;
+
+    try {
+        const result = prepareUtcScheduleTimes();
+        localStart = result.localStart;
+        localEnd = result.localEnd;
+        startDateTimeUtc = result.startUtc;
+        endDateTimeUtc = result.endUtc;
+    } catch (err) {
+        showAlert('日付または時間の処理に失敗しました', false);
+        return;
+    }
 
     const payload = {
         teacherId: props.teacherID,
-        startTime: startDateTime,
-        endTime: endDateTime,
+        startTime: startDateTimeUtc.toISOString(),
+        endTime: endDateTimeUtc.toISOString(),
     };
-    console.log("submitReservation")
-    // 确认弹窗调用，传入确认后异步执行的函数
-    openConfirm(`${startDateTime} ～ ${endDateTime} の予定を登録しますか？`, async () => {
+
+    // 本地时间字符串，用于 UI 展示
+    const localStartStr = localStart.format('YYYY年MM月DD日 HH:mm');
+    const localEndStr = localEnd.format('HH:mm');
+
+    openConfirm(`${localStartStr} ～ ${localEndStr} の予定を登録しますか？`, async () => {
         try {
             showLoading()
+            console.log('POST payload:', payload); // 👈 加这句
             const resT = await axios.post(`/api/available-times`, payload);
             if (resT.data) {
-                showAlert(`予約完了: ${startDateTime} ～ ${endDateTime}`, true);
+                showAlert(`予約完了: ${localStartStr} ～ ${localEndStr}`, true);
                 await onChange();
                 closeLoading()
                 showPopup.value = false;
@@ -1113,30 +1157,39 @@ const submitReservation = async () => {
     });
 };
 
-
 // 先生の予約の編集
 const submitEditReservation = async () => {
-    if (!popupStartTime.value || !popupEndTime.value) {
+    if (!popupStartTime.value || !popupDuration.value) {
         showAlert('開始時間と終了時間を入力してください', false);
         return;
     }
 
-    openConfirm('この予定を本当に更新しますか？', async () => {
-        const date = selectedDayEvents.value.date;
-        const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
-        const endDateTime = moment(startDateTime, 'YYYY-MM-DDTHH:mm')
-            .add(popupDuration.value, 'minutes')
-            .format('YYYY-MM-DDTHH:mm');
+    let localStart, localEnd, startDateTimeUtc, endDateTimeUtc;
 
-        if (!editingEvent.value) return;
+    try {
+        const result = prepareUtcScheduleTimes();
+        localStart = result.localStart;
+        localEnd = result.localEnd;
+        startDateTimeUtc = result.startUtc;
+        endDateTimeUtc = result.endUtc;
+    } catch (err) {
+        showAlert('時間処理中にエラーが発生しました', false);
+        return;
+    }
 
-        const payload = {
-            id: editingEvent.value.id,
-            teacherId: editingEvent.value.teacher_id,
-            startTime: startDateTime,
-            endTime: endDateTime,
-        };
+    if (!editingEvent.value) return;
 
+    const payload = {
+        id: editingEvent.value.id,
+        teacherId: editingEvent.value.teacher_id,
+        startTime: startDateTimeUtc.toISOString(),
+        endTime: endDateTimeUtc.toISOString(),
+    };
+
+    const localStartStr = localStart.format('YYYY年MM月DD日 HH:mm');
+    const localEndStr = localEnd.format('HH:mm');
+
+    openConfirm(`${localStartStr} ～ ${localEndStr} の予定を更新しますか？`, async () => {
         try {
             showLoading();
             await axios.put(`/api/available-times/${editingEvent.value.id}`, payload);
@@ -1152,94 +1205,40 @@ const submitEditReservation = async () => {
     });
 };
 
-// 日付をyyyy-MM-dd形式で返す関数
-const formatDate = (date) => {
-    return moment(date).format('YYYY-MM-DD');
-};
 
-const changeStatusOnClick = (event, newStatus) => {
-    const eventId = event.id
-    const statusTextMap = {
-        0: '復元',
-        1: '承認',
-        2: '完了',
-        3: '取り消し',
-        4: '取り消し',
-    };
-    const actionText = statusTextMap[newStatus] || '変更';
-    openConfirm(`ステータスを「${actionText}」に変更してもよろしいですか？`, async () => {
-        try {
-            const event = selectedDayEvents.value.eventList.find(e => e.id === eventId);
-            showLoading();
-            if (newStatus === 1 && event) {
-                // 先生が生徒の授業を承認した
-                await changeStatus(eventId, newStatus);
-                await onChange();
-                closeLoading();
-                await sendStudentConfirmMail(event.id);
-                showAlert('承認しました。', true);
-            }
-            if (newStatus === 2 && event) {
-                // 先生が生徒の授業を完了した
-                await changeStatus(eventId, newStatus);
-                await onChange();
-                closeLoading();
-                showAlert('完了しました。', true);
-            }
-            if (newStatus === 3 && event) {
-                // 先生が生徒の授業をキャンセルした
-                await sendStudentCancellMail(event.id);
-                await changeStatus(eventId, newStatus);
-                await onChange();
-                closeLoading();
-                showAlert('キャンセルしました。', true);
-            }
-            if (newStatus === 4 && event) {
-                // 生徒が申請をキャンセルした
-                await sendStudentCancelledBeforeApprovalMail(event.id);
-                await changeStatus(eventId, newStatus);
-                await onChange();
-                closeLoading();
-                showAlert('キャンセルしました。', true);
-            }
-        } catch (error) {
-            closeLoading();
-            showAlert('ステータスの変更に失敗しました', false);
-        }
-    });
-};
-
-//授業削除ボタンを表示するかを判定する関数
-const shouldShowClassDeleteButton = (event) => {
-    if (account.value === 'student' && (event.status === 3 || event.status === 0)) {
-        return true; // 生徒はキャンセルした授業に対して削除ボタンを表示
-    }
-    return false;
-};
-
+//生徒の予約
 const submitStudentReservation = () => {
-    if (!popupStartTime.value || !popupEndTime.value) {
+    if (!popupStartTime.value || !popupDuration.value) {
         showAlert('開始時間と終了時間を入力してください', false);
         return;
     }
 
-    const date = selectedDayEvents.value.date;
-    const startDateTime = `${formatDate(date)}T${popupStartTime.value}`;
-    const endDateTime = moment(startDateTime, 'YYYY-MM-DDTHH:mm')
-        .add(popupDuration.value, 'minutes')
-        .format('YYYY-MM-DDTHH:mm');
+    let localStart, localEnd, startDateTimeUtc, endDateTimeUtc;
+
+    try {
+        const result = prepareUtcScheduleTimes();
+        localStart = result.localStart;
+        localEnd = result.localEnd;
+        startDateTimeUtc = result.startUtc;
+        endDateTimeUtc = result.endUtc;
+    } catch (err) {
+        showAlert('日付または時間の処理に失敗しました', false);
+        return;
+    }
 
     const payload = {
         studentId: studentID.value,
         teacherId: teacherID.value || (selectedTeacher.value ? selectedTeacher.value.id : null),
-        startTime: startDateTime,
-        endTime: endDateTime,
-        createdAt: moment().format('YYYY-MM-DDTHH:mm:ss'),
+        startTime: startDateTimeUtc.toISOString(),
+        endTime: endDateTimeUtc.toISOString(),
+        createdAt: moment().toISOString(),
         status: 0, // 承認待ち
     };
 
-    // 确认弹窗
-    openConfirm(`${startDateTime} ～ ${endDateTime} の予約申請を送信しますか？`, async () => {
+    const localStartStr = localStart.format('YYYY年MM月DD日 HH:mm');
+    const localEndStr = localEnd.format('HH:mm');
+
+    openConfirm(`${localStartStr} ～ ${localEndStr} の予約申請を送信しますか？`, async () => {
         try {
             showLoading();
             const res = await axios.post(`/api/class-schedules`, payload);
@@ -1261,6 +1260,127 @@ const submitStudentReservation = () => {
             console.error(error);
         }
     });
+};
+
+
+/**
+ * ローカル時間からUTC時間に変換し、グローバル変数に設定
+ */
+const prepareUtcScheduleTimes = () => {
+    console.log('localTimezone:', localTimezone);
+    const date = selectedDayEvents.value.date;
+    const startTime = popupStartTime.value;
+    const duration = popupDuration.value;
+
+    if (!date || !startTime || !duration) {
+        throw new Error("時間または日付が未設定です");
+    }
+
+    const localStart = moment.tz(`${formatDate(date)}T${startTime}`, localTimezone);
+    const localEnd = moment(localStart).add(duration, 'minutes');
+
+    console.log('localStart:', localStart.format()); // 看看时间和时区
+    console.log('startUtc:', localStart.clone().utc().format()); // 转成UTC的时间
+
+    const startDateTimeUtc = localStart.clone().utc();
+    const endDateTimeUtc = localEnd.clone().utc();
+
+    return {
+        localStart,
+        localEnd,
+        startUtc: startDateTimeUtc,
+        endUtc: endDateTimeUtc,
+        localTz: localTimezone
+    };
+};
+
+
+// 日付をyyyy-MM-dd形式で返す関数
+const formatDate = (date) => {
+    return moment(date).format('YYYY-MM-DD');
+};
+
+const changeStatusOnClick = (event, newStatus) => {
+    const eventId = event.id;
+    const statusTextMap = {
+        0: '復元',
+        1: '承認',
+        2: '完了',
+        3: '取り消し',
+        4: '取り消し',
+    };
+    const actionText = statusTextMap[newStatus] || '変更';
+
+    openConfirm(`ステータスを「${actionText}」に変更してもよろしいですか？`, async () => {
+        try {
+            const event = selectedDayEvents.value.eventList.find(e => e.id === eventId);
+            if (!event) {
+                showAlert('イベントが見つかりません。', false);
+                return;
+            }
+
+            showLoading();
+
+            if (newStatus === 4) {
+                // 新：先发邮件通知接口，传 teacherId 和 startTime（ISO格式字符串）
+                axios.post('/api/mail/notify/student/cancelled/beforeapproval', {
+                    teacherId: event.teacherId,
+                    startTime: event.startTime, // 假设是ISO字符串，如果不是，需要转换
+                });
+
+                await changeStatus(eventId, newStatus);
+                await onChange();
+                closeLoading();
+                showAlert('キャンセルしました。', true);
+                return;
+            }
+
+            // 其他共通処理
+            await changeStatus(eventId, newStatus);
+            await onChange();
+            closeLoading();
+
+            if (newStatus === 1) {
+                sendStudentConfirmMail(event.id).catch(err => {
+                    console.error('承認メール送信失敗:', err);
+                    showAlert('承認メールの送信に失敗しました。', false);
+                });
+                showAlert('ステータスを承認に変更しました。', true);
+
+            } else if (newStatus === 2) {
+                showAlert('完了しました。', true);
+
+            } else if (newStatus === 3) {
+                sendStudentCancellMail(event.id).catch(err => {
+                    console.error('キャンセルメール送信失敗:', err);
+                    showAlert('キャンセルメールの送信に失敗しました。', false);
+                });
+                showAlert('キャンセルしました。', true);
+            }
+        } catch (error) {
+            console.error('ステータス変更エラー:', error);
+            closeLoading();
+            showAlert('ステータスの変更に失敗しました', false);
+        }
+    });
+};
+
+const shouldShowEvent = (dayObj) => {
+    if (!dayObj || !dayObj.date) return false
+
+    const localDate = moment.utc(dayObj.date).local().startOf('day')
+    const today = moment().startOf('day')
+
+    return localDate.isSameOrAfter(today)
+}
+
+
+//授業削除ボタンを表示するかを判定する関数
+const shouldShowClassDeleteButton = (event) => {
+    if (account.value === 'student' && (event.status === 3 || event.status === 0)) {
+        return true; // 生徒はキャンセルした授業に対して削除ボタンを表示
+    }
+    return false;
 };
 
 

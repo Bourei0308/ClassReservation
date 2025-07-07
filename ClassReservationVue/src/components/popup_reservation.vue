@@ -187,43 +187,56 @@ const refreshPopup = async () => {
 
 // ステータス変更
 const handleChangeStatus = (id, newStatus, mode) => {
-    const statusTextMap = {
-        0: '復元',
-        1: '承認',
-        2: '完了',
-        3: '取り消し',
-        4: '取り消し',
-    };
-    const actionText = statusTextMap[newStatus] || '変更';
+  const statusTextMap = {
+    0: '復元',
+    1: '承認',
+    2: '完了',
+    3: '取り消し',
+    4: '取り消し',
+  };
+  const actionText = statusTextMap[newStatus] || '変更';
 
-    openConfirm(`ステータスを「${actionText}」に変更してもよろしいですか？`, async () => {
-        try {
-            showLoading();
+  openConfirm(`ステータスを「${actionText}」に変更してもよろしいですか？`, async () => {
+    try {
+      showLoading();
 
-            if (mode === "confirm" && newStatus === 1) {
-                await changeStatus(id, newStatus);
-                await sendStudentConfirmMail(id);
+      // 先更新状态
+      await changeStatus(id, newStatus);
 
-            } else if (mode === "cancell" && newStatus === 3) {
-                await sendStudentCancellMail(id);
-                await changeStatus(id, newStatus);
+      // 成功后立即刷新视图等
+      await refreshPopup();
+      emit('list-refreshed');
+      closeLoading();
+      showAlert('ステータスを変更しました', true);
 
-            } else if (mode === "cancell" && newStatus === 4) {
-                await sendStudentCancelledBeforeApprovalMail(id);
-                await changeStatus(id, newStatus);
-            }
+      // 然后再“异步发送邮件”，不阻塞主流程
+      if (mode === "confirm" && newStatus === 1) {
+        sendStudentConfirmMail(id).catch((err) => {
+          console.error('メール送信失敗:', err);
+          showAlert('確認メールの送信に失敗しました', false);
+        });
 
-            await refreshPopup();
-            emit('list-refreshed');
-            closeLoading();
-            showAlert('ステータスを変更しました', true);
-        } catch (error) {
-            console.error('ステータス変更エラー:', error);
-            closeLoading();
-            showAlert('ステータスの変更に失敗しました', false);
-        }
-    });
+      } else if (mode === "cancell" && newStatus === 3) {
+        sendStudentCancellMail(id).catch((err) => {
+          console.error('メール送信失敗:', err);
+          showAlert('キャンセルメールの送信に失敗しました', false);
+        });
+
+      } else if (mode === "cancell" && newStatus === 4) {
+        sendStudentCancelledBeforeApprovalMail(id).catch((err) => {
+          console.error('メール送信失敗:', err);
+          showAlert('承認前キャンセルメールの送信に失敗しました', false);
+        });
+      }
+
+    } catch (error) {
+      console.error('ステータス変更エラー:', error);
+      closeLoading();
+      showAlert('ステータスの変更に失敗しました', false);
+    }
+  });
 };
+
 
 // 名前取得
 const getStudentName = (id) => {
@@ -232,7 +245,7 @@ const getStudentName = (id) => {
 }
 
 // 時間表示
-const formatTime = (time) => moment(time).format('MM/DD HH:mm')
+const formatTime = (time) => moment.utc(time).local().format('MM/DD HH:mm');
 
 // 時間差
 const getDuration = (start, end) => {

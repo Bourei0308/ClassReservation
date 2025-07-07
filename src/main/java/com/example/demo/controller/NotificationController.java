@@ -1,6 +1,6 @@
 package com.example.demo.controller;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,14 +27,14 @@ public class NotificationController {
 
 	@GetMapping("/user/{userId}")
 	@Operation(summary = "全てのお知らせ取得")
-	public List<Notification> getByUser(@PathVariable String userId) {
+	public List<Notification> getByUser(@PathVariable("userId") String userId) {
 		return repository.findByUserId(userId);
 	}
 
 	@PostMapping
 	@Operation(summary = "お知らせの追加とメール送信")
 	public Notification create(@RequestBody Notification notification) {
-		notification.setCreatedAt(LocalDateTime.now());
+		notification.setCreatedAt(Instant.now());
 		notification.setRead(false);
 		Notification savedNotification = repository.save(notification);
 		return savedNotification;

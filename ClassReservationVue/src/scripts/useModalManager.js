@@ -33,17 +33,47 @@ const alertProps = reactive({
 const confirmShow = ref(false);
 const confirmMessage = ref('');
 let confirmCallback = null;
+let cancelCallback = null;
+
 const openConfirm = (msg, onConfirm) => {
   confirmMessage.value = msg;
   confirmCallback = onConfirm;
+  cancelCallback = null; // 手动打开时清除 cancelCallback
   confirmShow.value = true;
 };
+
+// ✅ 新增支持 async 的 confirm
+const openConfirmAsync = (msg) => {
+  return new Promise((resolve) => {
+    confirmMessage.value = msg;
+    confirmShow.value = true;
+
+    confirmCallback = () => {
+      confirmShow.value = false;
+      resolve(true);
+    };
+
+    cancelCallback = () => {
+      confirmShow.value = false;
+      resolve(false);
+    };
+  });
+};
+
 const onConfirm = () => {
   confirmShow.value = false;
-  if (confirmCallback) confirmCallback();
+  if (confirmCallback) {
+    confirmCallback();
+    confirmCallback = null;
+  }
 };
+
 const onCancel = () => {
   confirmShow.value = false;
+  if (cancelCallback) {
+    cancelCallback();
+    cancelCallback = null;
+  }
 };
 
 // ------------------------
@@ -57,7 +87,7 @@ const closeLoading = () => {
   loadingShow.value = false;
 };
 
-// 暴露统一接口
+// ✅ 暴露统一接口
 export function useModalManager() {
   return {
     // Alert 用
@@ -69,6 +99,7 @@ export function useModalManager() {
     confirmShow,
     confirmMessage,
     openConfirm,
+    openConfirmAsync,
     onConfirm,
     onCancel,
 

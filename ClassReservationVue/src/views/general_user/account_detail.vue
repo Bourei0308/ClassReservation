@@ -200,4 +200,25 @@ const goToPasswordChange = async () => {
 .password-button:hover {
   background-color: #1e1e4f;
 }
+
+@media screen and (max-width: 768px) {
+  /* 手机等窄屏时隐藏左侧背景图 */
+  .left-panel {
+    display: none;
+  }
+  
+  /* 右侧部分宽度撑满 */
+  .right-panel {
+    flex: none;
+    width: 100%;
+    padding: 20px;
+  }
+  
+  /* 调整用户信息盒子宽度适配手机 */
+  .user-info-box {
+    max-width: 100%;
+    padding: 1.5rem;
+    border-radius: 12px;
+  }
+}
 </style>

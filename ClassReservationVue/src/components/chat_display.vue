@@ -39,7 +39,7 @@ const chatContainer = ref(null)
 
 import { useWebSocket } from '@/scripts/useWebSocket'
 
-const { send,subscribe,disconnect } = useWebSocket()
+const { send,subscribe } = useWebSocket()
 
 const sendMessage = async () => {
     if (!text.value.trim()) return
@@ -52,26 +52,6 @@ const sendMessage = async () => {
     }
     await axios.post('/api/chats', payload)
     send("/api/app/chat/send", {}, JSON.stringify(payload))
-
-    // // 💌 メール送信処理（ここを追加）
-    // // ② メールテンプレート生成と送信（ここが今回の追加）
-    // try {
-    //     const template = EmailTemplates.teacherBookingNotification(
-    //         props.targetUser.name,  // 先生の名前
-    //         props.user.name,        // 学生の名前
-    //         new Date().toLocaleString() // 授業時間（今回は仮に今の時刻）
-    //     )
-
-    //     await sendEmail({
-    //         to: props.targetUser.email, // 📧 送信先メールアドレス
-    //         subject: template.subject,
-    //         body: template.body
-    //     })
-
-    //     console.log('メール送信成功')
-    // } catch (error) {
-    //     console.error('メール送信失敗:', error)
-    // }
     text.value = ''
     emit('sent')
 }

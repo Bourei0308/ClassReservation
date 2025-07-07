@@ -3,16 +3,16 @@
 
   <header class="site_header">
     <!-- Logo / Title -->
-    <div v-if="isLoggedIn" class="site_title_login" @click="goTo(`/top/${role}`)">
+    <div v-if="isLoggedIn&&hasEmail" class="site_title_login" @click="goTo(`/top/${role}`)">
       じゅくぽん
     </div>
 
-    <div v-if="!isLoggedIn" class="site_title">
+    <div v-if="!isLoggedIn||!hasEmail" class="site_title">
       じゅくぽん
     </div>
 
     <!-- Right icons -->
-    <div v-if="isLoggedIn" class="header_icon_group">
+    <div v-if="isLoggedIn&&hasEmail" class="header_icon_group">
      <!-- Notification icon -->
 <div class="icon_link" @click="goTo('/notice')">
   <div class="icon_box">
@@ -51,7 +51,7 @@ const goTo = (path) => {
 }
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useAuth } from '@/scripts/useAuth'
-const { user, restoreLogin, isLoggedIn } = useAuth()
+const { user, restoreLogin, isLoggedIn,hasEmail } = useAuth()
 
 import { inject } from 'vue'
 const hasUnreadMessage = inject('hasUnreadMessage')

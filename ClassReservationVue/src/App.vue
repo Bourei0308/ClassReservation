@@ -24,7 +24,7 @@ onMounted(async () => {
 
     // ✔️ 登录成功之后连接WebSocket
     connect(() => {
-      
+
       // ✔️ 订阅未读消息
       subscribe(`/api/topic/unread/${user.value.id}`, () => {
         hasUnreadMessage.value = true
@@ -47,6 +47,15 @@ onUnmounted(() => {
   disconnect()
 })
 
+// 🔸 alert
+import AlertModal from '@/components/popup_message_alert.vue';
+import ConfirmDialog from '@/components/popup_message_confirm.vue';
+import { useModalManager } from '@/scripts/useModalManager';
+const {
+  showAlert, closeAlert, alertProps,
+  confirmShow, confirmMessage, openConfirm, onConfirm, onCancel
+} = useModalManager();
+
 
 </script>
 
@@ -58,6 +67,8 @@ onUnmounted(() => {
     </div>
   </div>
 
+  <AlertModal v-bind="alertProps" @close="closeAlert" />
+  <ConfirmDialog :show="confirmShow" :message="confirmMessage" @confirm="onConfirm" @cancel="onCancel" />
 
   <sitefooter />
 </template>
